@@ -3,7 +3,7 @@
 import Head from "next/head";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { supabase } from "../../../lib/supabase";
+import api, { getApiErrorMessage } from "../../../lib/api";
 import { format_price, get_close_text, ListingProps } from "../../page";
 import { useListing } from "../../../components/providers/ListingProvider";
 import { Order, useOrder } from "../../../components/providers/OrderProvider";
@@ -36,107 +36,37 @@ export default function ListingDetailPage() {
     setIsFavorite((prev) => !prev);
   }
 
-  async function create_order(user_id: string) {
-    const {data, error} = await supabase.from("orders").insert({
-      qty: qty,
-      total_amount: qty * (listing?.discount_price || 1),
-      listing_id: listing?.id,
-      customer_id: user_id,
-      merchant_id: listing?.merchant_id
-    }).select().single();
-    
-    console.log(data);
-    console.log(error);
-
-    return data
-  }
-
-  async function create_payment(order: Promise<Order>, user_id: string) {
-    const resolve_order = await order;
-
-    const {data, error} = await supabase.from("payments").insert({
-      amount: resolve_order.total_amount,
-      midtrans_trx_id: "testing",
-      time_limit: getTimeLimit30MinutesFromNow(),
-      order_id: resolve_order.id,
-      customer_id: user_id
-    }).select("*").single();
-
-    console.log(data)
-    console.log(error)
-
-    return data
-  }
-
-  async function add_sold_total() {
-    if (!listing?.id) {
-      console.log("Listing ID tidak ditemukan");
-      return false;
-    }
-  
-    const buyQty = Number(qty);
-  
-    if (!buyQty || buyQty <= 0) {
-      console.log("Qty tidak valid");
-      return false;
-    }
-  
-    const { data, error } = await supabase
-      .from("listings")
-      .select("id, sold_total, stock_total")
-      .eq("id", listing.id)
-      .single();
-  
-
-    if (error || !data) {
-      console.log("Gagal mengambil listing:", error);
-      return false;
-    }
-  
-    const soldTotal = Number(data.sold_total ?? 0);
-    const stockTotal = Number(data.stock_total ?? 0);
-  
-    if (soldTotal + buyQty > stockTotal) {
-      console.log("Pembelian melebihi batas stock tersedia");
-      return false;
-    }
-  
-    const { data: updatedData, error: updateError } = await supabase
-      .from("listings")
-      .update({
-        sold_total: soldTotal + buyQty,
-        status: soldTotal + buyQty === data.stock_total ? "close" : "active"
-      })
-      .eq("id", data.id)
-      .select("id, sold_total, stock_total")
-      .single();
-
-  
-    if (updateError) {
-      console.log("Gagal update listing:", updateError);
-      return false;
-    }
-  
-    console.log("Update listing berhasil:", updatedData);
-  
-    return true;
-  }
-
+  /**
+   * handleReserve — creates an order via Express backend.
+   *
+   * The backend atomically:
+   *  1. Acquires SELECT FOR UPDATE lock on the listing (Serializable tx)
+   *  2. Validates stock availability
+   *  3. Decrements stock
+   *  4. Inserts the order record
+   *
+   * No stock management or payment creation happens on the frontend.
+   */
   async function handleReserve() {
-    const {user} = (await supabase.auth.getUser()).data;
-    if (!user) {
+    // Ensure user is authenticated (JWT must exist in localStorage)
+    const token = typeof window !== "undefined" ? localStorage.getItem("sb_access_token") : null;
+    if (!token) {
+      router.push("/sign-in");
       return;
     }
 
-    if (!(await add_sold_total())) {
-      console.log("gagal memesan");
-      return
+    try {
+      const { data } = await api.post("/order", {
+        listing_id: listing?.id,
+        qty: qty,
+      });
+
+      // Navigate to payment page using the order's public_id from the response
+      router.push(`/pay/${data.order.id}/serve`);
+    } catch (err) {
+      console.error("Reserve failed:", getApiErrorMessage(err));
+      // TODO: show user-facing error toast
     }
-
-    const order = await create_order(user.id);
-    const payment = await create_payment(await order, user.id)
-
-    router.push(`/pay/${order.public_id}/serve`);
   }
 
   function handleDirections() {
