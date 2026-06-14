@@ -6,7 +6,7 @@ import SignUpRole from "../../components/sign-up/choose_role";
 import InputUserData from "../../components/sign-up/input_user_data";
 import InputAboutMerchant from "../../components/sign-up/about_merchant";
 import MerchantChooseLocation from "../../components/sign-up/location_merchant";
-import { supabase } from "../../lib/supabase";
+import api, { getApiErrorMessage } from "../../lib/api";
 import { useRouter } from "next/navigation";
 
 type Role = "MERCHANT" | "CUSTOMER";
@@ -204,74 +204,33 @@ export default function HomePage() {
   }
 
   async function handle_submit() {
-    console.log("Final register data:", input_data);
+    try {
+      const account_type = input_data.role === "MERCHANT" ? "MERCHANT" : "CONSUMER";
 
-    const {data, error} = await supabase.auth.signUp({
-      email: input_data.email,
-      password: input_data.password
-    });
-    console.log("auth regis")
-    if (error) {
-      console.log(error);
-      return;
-    }
-
-    console.log(data.session)
-    console.log(data.user)
-
-    await profile_regis(data.user?.id)
-    await role_regis(data.user?.id)
-
-    sessionStorage.setItem("verification_email", input_data.email);
-
-    router.push("/email-verification");
-  }
-
-
-  async function profile_regis (user_id: string|undefined) {
-    if (user_id === undefined) return;
-    const {data, error} = await supabase.from("profiles").insert({
-      full_name: input_data.full_name,
-      user_id: user_id
-    });
-
-    console.log("profile regis")
-    if (data) {
-      console.log(data)
-      return true;
-    } 
-    console.log(error);
-    return false;
-  }
-
-  async function role_regis (user_id: string|undefined) {
-    if (user_id === undefined) return;
-    const tabel_name = `${input_data.role}s`
-    
-    let user_data;
-    
-    console.log("role regis")
-    if (tabel_name === "merchants") {
-      user_data = {
-        user_id: user_id,
+      const payload = {
+        email: input_data.email,
+        password: input_data.password,
+        full_name: input_data.full_name,
+        // Merchant-specific fields (ignored by backend if role is CONSUMER)
+        shop_name: input_data.merchant_name,
+        address: input_data.address,
         category: input_data.category,
         desc: input_data.desc,
-        merchant_name: input_data.merchant_name
-      }
-    }else {
-      user_data = {
-        user_id: user_id
-      }
-    }
-    
-    const {data, error} = await supabase.from(tabel_name).insert(user_data);
+      };
 
-    if (data) {
-      console.log(data)
-      return true;
-    } 
-    console.log(error);
-    return false;
+      const endpoint = account_type === "MERCHANT" ? "/auth/merch_reg" : "/auth/reg";
+      const { data } = await api.post(endpoint, payload);
+
+      // Store the JWT for subsequent authenticated requests
+      if (data.token) {
+        localStorage.setItem("sb_access_token", data.token);
+      }
+
+      sessionStorage.setItem("verification_email", input_data.email);
+      router.push("/email-verification");
+    } catch (error) {
+      set_errors({ general: getApiErrorMessage(error) });
+    }
   }
   
 
