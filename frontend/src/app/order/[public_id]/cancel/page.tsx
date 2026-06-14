@@ -4,49 +4,12 @@ import Link from 'next/link';
 import { PageHeader, MerchantCard, OrderSummary, OrderDetailsInfo } from '../../../../components/shared';
 import { useOrder } from '../../../../components/providers/OrderProvider';
 import CustomerNavbar from '../../../../components/navbar/customer_navbar';
-import { useEffect, useState } from 'react';
-import { supabase } from '../../../../lib/supabase';
-
-interface CancelledOrderData {
-  id: string;
-  storeName: string;
-  address: string;
-  distance: string;
-  imageUrl: string;
-  cancelReason: string;
-  items: Array<{
-    quantity: number;
-    name: string;
-    description: string;
-    price: number;
-  }>;
-  totalPrice: number;
-  amountSaved: number;
-  orderId: string;
-  paymentMethod: string;
-  chargeApplied: boolean;
-}
 
 export default function CancelledOrderPage() {
-
-  const [payment_data, set_payment_data] = useState();
   const { order, isLoading } = useOrder();
+  // Payment method is embedded in the order response from GET /order/:id
+  const payment_method = order?.payment?.[0]?.payment_type ?? undefined;
 
-  console.log(order)
-  useEffect(() => {
-
-    async function get_payment_data() {
-      if (isLoading) return;
-      const {data, error} = await supabase.from("payments").select("*").eq("order_id", order?.id);
-      console.log(order?.id)
-      
-      console.log("data");
-      console.log(data);
-      console.log(error);
-    }
-
-    get_payment_data();
-  }, [isLoading]);
 
 
   return (
@@ -114,7 +77,7 @@ export default function CancelledOrderPage() {
         <div className="px-6 mb-6">
           <OrderDetailsInfo
             orderId={order?.public_id}
-            paymentMethod={'//payment-method'}
+            paymentMethod={payment_method}
           />
         </div>
 

@@ -4,28 +4,11 @@ import Link from 'next/link';
 // import { PageHeader, MerchantCard, OrderSummary, OrderDetailsInfo } from '../../../../components/shared';
 import { Order } from '../providers/OrderProvider';
 import { MerchantCard, OrderDetailsInfo, OrderSummary } from '../shared';
-import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase';
-import { Payment } from '../providers/PaymentProvider';
 
 export default function CancelledOrderPage({order}: {order: Order | undefined}) {
-  const [payment_data, set_payment_data] = useState<Payment>();
+  // Payment data is included in the order response from GET /order/:id
+  const payment_method = order?.payment?.[0]?.payment_type ?? undefined;
 
-  console.log("test")
-  useEffect(() => {
-
-    async function get_payment_data() {
-      const {data, error} = await supabase.from("payments").select("*").eq("order_id", order?.id).single()
-      console.log("data");
-      console.log(data);
-      console.log(error);
-    
-      if (error) return;
-      set_payment_data(data); 
-    }
-
-    get_payment_data();
-  }, []);
 
   return (
     <>
@@ -76,7 +59,7 @@ export default function CancelledOrderPage({order}: {order: Order | undefined}) 
         <div className="px-6 mb-6">
           <OrderDetailsInfo
             orderId={order?.public_id}
-            paymentMethod={payment_data?.payment_method}
+            paymentMethod={payment_method}
           />
         </div>
 

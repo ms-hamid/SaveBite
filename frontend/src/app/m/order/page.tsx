@@ -4,8 +4,9 @@ import MerchantOrderCard, { OrderCardData } from "../../../components/m/Merchant
 import DashboardBottomNav from "../../../components/m/DashboardBottomNav";
 import DashboardTopAppBar from "../../../components/m/DashboardTopAppBar";
 import { Order } from "../../../components/providers/OrderProvider";
-import { supabase } from "../../../lib/supabase";
+import api, { getApiErrorMessage } from "../../../lib/api";
 import { useRouter } from "next/navigation";
+import { supabase } from "../../../lib/supabase"; // Retained for auth.getUser() — migrate in Phase 3
 
 export default function MerchantOrdersActiveStateRefinedPage() {
 
@@ -16,21 +17,27 @@ const [orders, set_orders] = useState<Order[] | null>();
 
 async function change_status(id: number, status: string) {
   if (status === "ready_to_pickup") {
-    router.push("/m/scan")
+    router.push("/m/scan");
+    return;
   }
 
-  let new_status;
+  // Map current status to the next status transition
+  let next_status;
+  if (status === "paid_reserved") next_status = "preparing";
+  if (status === "preparing") next_status = "ready_to_pickup";
 
-  if (status === "paid_reserved") new_status = "preparing"
-  if (status === "preparing") new_status = "ready_to_pickup"
+  if (!next_status) return;
 
-  const {data, error} = await supabase.from("orders").update({
-    status: new_status
-  }).eq("id", id).select().single();
-
-  console.log(data);
-  console.log(error);
-
+  try {
+    // TODO: Replace with a dedicated merchant status-transition endpoint
+    // e.g. PATCH /merchant/order/:id/status { status: next_status }
+    // For now, routed through the generic order cancel/confirm cycle
+    await api.patch(`/order/${id}/status`, { status: next_status });
+    // Refresh orders list after update
+    get_orders_ref.current?.();
+  } catch (err) {
+    console.error("Status change failed:", getApiErrorMessage(err));
+  }
 }
 
 useEffect(() => {
