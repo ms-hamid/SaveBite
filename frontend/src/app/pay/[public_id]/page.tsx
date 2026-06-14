@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../../lib/supabase";
+import api, { getApiErrorMessage } from "../../../lib/api";
 import { useParams } from "next/navigation";
 import { usePayment } from "../../../components/providers/PaymentProvider";
 
@@ -10,21 +10,21 @@ export default function PaymentOrderPage() {
   const router = useRouter();
   const params = useParams();
   async function handle_tranfer() {
-    const {data, error} = await supabase.from("orders").update({
-      status: "paid_reserved"
-    }).eq("id", order?.id).select("*").single();
-    console.log(data)
-    console.log(error)
-    router.push(`/pay/${params.public_id}/done`)
+    try {
+      await api.patch(`/order/${order?.id}/confirm-transfer`, { payment_method: "bank_transfer" });
+      router.push(`/pay/${params.public_id}/done`);
+    } catch (err) {
+      console.error("Confirm transfer failed:", getApiErrorMessage(err));
+    }
   }
 
   async function handle_cancel() {
-    const {data, error} = await supabase.from("orders").update({
-      status: "cancelled"
-    }).eq("id", order?.id).select("*").single();
-    console.log(data)
-    console.log(error)
-    router.push(`/order/${params.public_id}/cancel`)
+    try {
+      await api.patch(`/order/${order?.id}/cancel`);
+      router.push(`/order/${params.public_id}/cancel`);
+    } catch (err) {
+      console.error("Cancel order failed:", getApiErrorMessage(err));
+    }
   }
   
   return (

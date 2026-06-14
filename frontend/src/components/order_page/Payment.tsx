@@ -1,13 +1,13 @@
-import { supabase } from "../../lib/supabase";
+import api, { getApiErrorMessage } from "../../lib/api";
 import { Order } from "../providers/OrderProvider";
 
 export default function PaymentOrderPage({order}: {order: Order | undefined}) {
   async function handle_tranfer() {
-    const {data, error} = await supabase.from("orders").update({
-      status: "paid_reserved"
-    }).eq("id", order?.id).select("*").single();
-    console.log(data)
-    console.log(error)
+    try {
+      await api.patch(`/order/${order?.id}/confirm-transfer`, { payment_method: "bank_transfer" });
+    } catch (err) {
+      console.error("Confirm transfer failed:", getApiErrorMessage(err));
+    }
   }
   
   return (

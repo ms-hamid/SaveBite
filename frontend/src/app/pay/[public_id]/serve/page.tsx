@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { usePayment } from "../../../../components/providers/PaymentProvider";
 import { format_price } from "../../../page";
-import { supabase } from "../../../../lib/supabase";
+import api, { getApiErrorMessage } from "../../../../lib/api";
 
 type PaymentMethod = "apple" | "visa";
 
@@ -35,82 +35,21 @@ export default function ConfirmReservationPage() {
 
   async function handlePayment() {
     if (isProcessing) return;
-
     setIsProcessing(true);
 
-    // Simulasi loading payment
-    const {data, error} = await supabase.from("payments").update({
-      payment_method: selectedPayment
-    }).eq("order_id", order?.id).select().single();
+    try {
+      // Backend atomically: updates payment_method + generates QR code + sets PAID_RESERVED
+      await api.patch(`/order/${order?.id}/confirm-transfer`, {
+        payment_method: selectedPayment,
+      });
 
-    console.log(data);
-    console.log(error);
-
-    if (error) return;
-    
-    activateOrderCode(order?.id)
-
-    setIsProcessing(false);
-
-    router.push(`/pay/${params.public_id}/process`)
-    
-
-  }
-
-
-  const ORDER_CODE_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-  function generateOrderCode(length = 6) {
-    const values = new Uint32Array(length);
-    crypto.getRandomValues(values);
-
-    let code = "";
-
-    for (let i = 0; i < length; i++) {
-      code += ORDER_CODE_CHARS[values[i] % ORDER_CODE_CHARS.length];
+      router.push(`/pay/${params.public_id}/process`);
+    } catch (err) {
+      console.error("Payment confirmation failed:", getApiErrorMessage(err));
+      setShowError(true);
+    } finally {
+      setIsProcessing(false);
     }
-
-    return code;
-  }
-
-  function getExpiredAtFromNow(hours = 2) {
-    const expiredAt = new Date();
-    expiredAt.setHours(expiredAt.getHours() + hours);
-
-    return expiredAt.toISOString();
-  }
-
-  async function activateOrderCode(orderId: number | undefined) {
-    const maxRetry = 10;
-
-    for (let attempt = 1; attempt <= maxRetry; attempt++) {
-      const orderCode = generateOrderCode();
-      const expiredAt = getExpiredAtFromNow(2);
-
-      const { data, error } = await supabase
-        .from("orders")
-        .update({
-          order_code: orderCode,
-          order_code_active: true,
-          order_code_expires_at: expiredAt,
-        })
-        .eq("id", orderId)
-        .eq("order_code_active", false)
-        .select("*")
-        .single();
-
-      if (!error) {
-        return data;
-      }
-
-      if (error.code === "23505") {
-        continue;
-      }
-
-      throw new Error(error.message);
-    }
-
-    throw new Error("Gagal membuat order code unik.");
   }
 //   const {listing, is_loading } = useListing();
 
