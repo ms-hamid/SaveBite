@@ -1,0 +1,36 @@
+# ─── Development tooling ──────────────────────────────────────────────────────
+node_modules/
+.npm/
+
+# ─── Environment secrets ──────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ─── Test artefacts ───────────────────────────────────────────────────────────
+src/tests/
+vitest.config.js
+coverage/
+.nyc_output/
+
+# ─── Git ──────────────────────────────────────────────────────────────────────
+.git/
+.gitignore
+
+# ─── Editor / OS ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ─── Local storage (dev-only uploads) ────────────────────────────────────────
+storage/
+
+# ─── Prisma migrations (applied separately via CI) ───────────────────────────
+# prisma/migrations/   ← keep this commented if you want migrations baked in
