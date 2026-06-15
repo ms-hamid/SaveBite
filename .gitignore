@@ -39,3 +39,9 @@ venv/
 env/
 *.egg-info/
 .pytest_cache/
+
+# ─── Deployment Artefacts ─────────────────────────────────────────────────────
+frontend/.next/
+frontend/out/
+frontend/.env.local
+.vercel/
