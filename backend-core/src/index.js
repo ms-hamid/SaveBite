@@ -6,6 +6,7 @@ import auth_route from './routes/auth.route.js';
 import listing_route from './routes/merchant/listing.route.js';
 import order_route from './routes/consumer/order.route.js';
 import { globalErrorHandler } from './middlewares/error.middleware.js';
+import { orderTimeoutJob } from './jobs/orderTimeout.job.js';
 
 
 const app = express();
@@ -44,6 +45,13 @@ app.use(globalErrorHandler);
 // ─── Listen ───────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
+
+  // ─── Background Jobs ────────────────────────────────────────────────────────
+  // Initialise persistent cron jobs AFTER server is ready.
+  // These require a 24/7 container host (Railway, Render, VPS) — they CANNOT
+  // run on Vercel serverless functions which are stateless and ephemeral.
+  orderTimeoutJob(); // FR-S-02: auto-cancel PENDING_PAYMENT orders > 15 min
+  console.log('⏰ Background jobs initialised (orderTimeoutJob)');
 });
 
 export default app;
