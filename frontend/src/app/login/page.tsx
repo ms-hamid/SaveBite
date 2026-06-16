@@ -33,6 +33,8 @@ export default function LoginPage() {
     }
   }, [router]);
   
+  const [is_loading, set_is_loading] = useState(false)
+  
   const [input_data, set_input_data] = useState<LoginPageProps>({
     email: "",
     password: "",
@@ -47,7 +49,6 @@ export default function LoginPage() {
   // valid email akan kosong ketika belum ada input dan juga ketika email sudah memenuhi syarat valid
   // valid email akan terisi ketika button submit button ditekan dan email tidak memenuhi syarat valid
   // const is_email_valid = input_data.email.includes("@") && input_data.email.includes(".");
-  const [is_email_valid, set_is_email_valid] = useState<boolean>(true);
 
   async function handle_submit(
     e: React.MouseEvent
@@ -59,6 +60,8 @@ export default function LoginPage() {
     if (!valid) return;
   
     try {
+      set_is_loading(true)
+
       const login_data = await login(
         input_data.email,
         input_data.password
@@ -82,6 +85,8 @@ export default function LoginPage() {
           error?.response?.data?.message ||
           "Email atau password salah",
       }));
+    }finally{
+      set_is_loading(false)
     }
   }
 
@@ -175,11 +180,18 @@ function validateForm() {
           )}
 
           <button type="button" onClick={(e) => {
-              // alert("berhaisl")
               handle_submit(e)
             
             }} className="mt-4 w-full bg-primary text-white h-12 rounded-lg font-semibold text-base shadow-none transition-all flex items-center justify-center" >
-            Sign In
+            
+            {is_loading ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                Signing in…
+              </>
+            ) : (
+              "Sign In"
+            )}
           </button>
           <div className="relative flex py-4 items-center">
             <div className="flex-grow border-t border-slate-200 dark:border-slate-700" />
