@@ -36,10 +36,11 @@ export async function merchant_register(req, res) {
 
 export async function login(req, res) {
     try {
-        const token = await get_token(req.body);
+        const {token, role} = await get_token(req.body);
 
         return res.status(200).json({
-            token: token
+            token: token,
+            role: role
         });
     } catch (e) {
         return res.status(500).json({

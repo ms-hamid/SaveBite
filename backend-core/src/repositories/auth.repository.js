@@ -1,5 +1,8 @@
-import { KYC_Status } from "@prisma/client";
-import { prisma } from "../lib/prisma.js";
+// import { KYC_Status } from "@prisma/client";
+// import { prisma } from "../lib/prisma.js";
+
+import { profile } from "console";
+import {prisma} from "../lib/prisma.js";
 
 export async function create_user(user_field, account_type="CONSUMSER", merchant_field={}) {
     return await prisma.$transaction(async (tx) => {
@@ -20,18 +23,19 @@ export async function create_user(user_field, account_type="CONSUMSER", merchant
             new_user.merchant = merchant_data;
         }
     })
-
-
 };
 
 
-export async function get_acc_by_email(email){
-    return await prisma.user.findUnique({
+export async function get_acc_by_email(email) {
+    return await prisma.authUser.findFirst({
         where: {
-            email: email
-        }
+        email,
+        },
+        include: {
+        profile: true,
+        },
     });
-};
+}
 
 export async function insert_merchant_data(field) {
     return await prisma.merchant.create({
