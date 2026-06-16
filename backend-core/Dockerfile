@@ -16,9 +16,17 @@ WORKDIR /app
 
 # Copy only manifests first to leverage Docker layer caching
 COPY package.json ./
+# Copy Prisma schema so prisma generate has access to it during the build stage
+COPY prisma/ ./prisma/
 
 # Install production deps only — exclude devDependencies (nodemon, vitest, etc.)
 RUN npm install --omit=dev
+
+# Generate the Prisma Client engine binary for the Alpine Linux (musl) target.
+# This MUST run after npm install but BEFORE the runner stage copies node_modules.
+# Without this, the engine binary compiled on the host (Windows/macOS) will not
+# match the container's OS and Prisma will fail at runtime.
+RUN npx prisma generate
 
 
 # ── Stage 2: production runner ────────────────────────────────────────────────
