@@ -7,24 +7,41 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import AuthInputComponent from "../../components/auth/input_column";
 import { RegisterData } from "../sign-up/page";
+import { login } from "@/services/auth";
+import { cpSync } from "fs";
 
 type LoginPageProps = {
   email: string;
   password: string;
 };
 
-export type Profile = {
-  user_id: string;
-  full_name: string | null;
-  role: "CUSTOMER"| "MERCHANT";
-};
-
 export default function LoginPage() {
+
   const router = useRouter();
 
+  useEffect(() => {
+    const role = localStorage.getItem("role");
+
+    console.log("role", role)
+
+    if (role === "CUSTOMER") {
+      router.push("/");
+    }
+
+    if (role === "MERCHANT") {
+      router.push("/m");
+    }
+  }, [router]);
+  
   const [input_data, set_input_data] = useState<LoginPageProps>({
     email: "",
     password: "",
+  });
+
+  const [errors, setErrors] = useState({
+    email: "",
+    password: "",
+    general: "",
   });
 
   // valid email akan kosong ketika belum ada input dan juga ketika email sudah memenuhi syarat valid
@@ -32,32 +49,41 @@ export default function LoginPage() {
   // const is_email_valid = input_data.email.includes("@") && input_data.email.includes(".");
   const [is_email_valid, set_is_email_valid] = useState<boolean>(true);
 
-  async function handle_submit(e: React.MouseEvent) {
-    e.preventDefault()
-    const {data, error} = await supabase.auth.signInWithPassword({
-      email: input_data.email,
-      password: input_data.password
-    })
+  async function handle_submit(
+    e: React.MouseEvent
+  ) {
+    e.preventDefault();
+  
+    const valid = validateForm();
+  
+    if (!valid) return;
+  
+    try {
+      const login_data = await login(
+        input_data.email,
+        input_data.password
+      );
+      console.log("login_data.role")
 
-    if (error) {
-      console.log(error);
-      return
+      console.log(login_data.role)
+  
+      if (
+        login_data.role === "CUSTOMER"
+      ) {
+        router.push("/");
+      } else {
+        router.push("/m");
+      }
+    } catch (error: any) {
+      console.log(error)
+      setErrors((prev) => ({
+        ...prev,
+        general:
+          error?.response?.data?.message ||
+          "Email atau password salah",
+      }));
     }
-    console.log(data.session);
-    // router.push("/");
-    const {profile, error_profile}= await get_profile(data.user.id);
-    
-    if (error_profile) {
-      console.log(error_profile);
-      return;
-    }
-
-    if (profile.role === "CUSTOMER") {
-      router.push("/")
-    }else {
-      router.push("/m")
-    } 
-  }; 
+  }
 
   async function get_profile(user_id: string) {
     const {data, error} = await supabase.from("profiles").select("*").eq("user_id", user_id).single();
@@ -68,16 +94,69 @@ export default function LoginPage() {
     };
   }
   
-  function update_input<K extends keyof RegisterData>(
-    key: K,
-    value: RegisterData[K]
-  ) {
-    set_input_data((prev) => ({
+  function update_input<
+  K extends keyof RegisterData
+>(
+  key: K,
+  value: RegisterData[K]
+) {
+  set_input_data((prev) => ({
+    ...prev,
+    [key]: value,
+  }));
+
+  if (key === "email") {
+    setErrors((prev) => ({
       ...prev,
-      [key]: value,
+      email: "",
+      general: "",
     }));
   }
 
+  if (key === "password") {
+    setErrors((prev) => ({
+      ...prev,
+      password: "",
+      general: "",
+    }));
+  }
+}
+
+function validateForm() {
+  const newErrors = {
+    email: "",
+    password: "",
+    general: "",
+  };
+
+  let isValid = true;
+
+  const emailRegex =
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!input_data.email.trim()) {
+    newErrors.email = "Email wajib diisi";
+    isValid = false;
+  } else if (!emailRegex.test(input_data.email)) {
+    newErrors.email =
+      "Format email tidak valid";
+    isValid = false;
+  }
+
+  if (!input_data.password.trim()) {
+    newErrors.password =
+      "Password wajib diisi";
+    isValid = false;
+  } else if (input_data.password.length < 6) {
+    newErrors.password =
+      "Password minimal 6 karakter";
+    isValid = false;
+  }
+
+  setErrors(newErrors);
+
+  return isValid;
+}
   return (
     <>
 
@@ -85,12 +164,18 @@ export default function LoginPage() {
  
         <div className="flex flex-col gap-5 flex-1">
 
-          <AuthInputComponent label="Email" name="email" placeholder="Enter your email" onChange={update_input} value={input_data.email} type="email"/>
+          <AuthInputComponent error={errors.email} label="Email" name="email" placeholder="Enter your email" onChange={update_input} value={input_data.email} type="email"/>
           
-          <AuthInputComponent label="Password" name="password" placeholder="Enter your password" onChange={update_input} value={input_data.password} type="password"/>
+          <AuthInputComponent error={errors.password} label="Password" name="password" placeholder="Enter your password" onChange={update_input} value={input_data.password} type="password"/>
           
+          {errors.general && (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
+              {errors.general}
+            </div>
+          )}
+
           <button type="button" onClick={(e) => {
-              alert("berhaisl")
+              // alert("berhaisl")
               handle_submit(e)
             
             }} className="mt-4 w-full bg-primary text-white h-12 rounded-lg font-semibold text-base shadow-none transition-all flex items-center justify-center" >
