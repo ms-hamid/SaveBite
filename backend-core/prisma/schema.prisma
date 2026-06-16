@@ -8,8 +8,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 
@@ -140,4 +141,27 @@ model Payment {
   midtrans_trx_id   String    @unique
   payment_type      String
   pg_status         String
+}
+
+
+/// FR-U-03 — Password Reset Tokens
+/// The `token_hash` column stores a SHA-256 digest of the raw token.
+/// The raw token is NEVER persisted — only returned in the API response
+/// (development mode only).
+model PasswordReset {
+  id          String    @id @default(uuid()) @db.Uuid
+
+  /// The email address the reset was requested for.
+  email       String
+
+  /// SHA-256 hex digest of the raw one-time token.
+  /// The raw token is returned to the caller once and never stored.
+  token_hash  String    @unique
+
+  /// Hard expiry — tokens are invalid after this timestamp.
+  expires_at  DateTime
+
+  created_at  DateTime  @default(now())
+
+  @@index([email])
 }
