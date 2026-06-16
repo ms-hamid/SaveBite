@@ -39,9 +39,5 @@
         { "key": "Service-Worker-Allowed", "value": "/" }
       ]
     }
-  ],
-
-  "env": {
-    "NODE_ENV": "production"
-  }
+  ]
 }
