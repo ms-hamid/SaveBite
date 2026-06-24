@@ -1,12 +1,12 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
-import { format_price, get_close_text, set_to_hour } from "../../app/page";
-import { Listing } from "../../types";
+import { format_price, get_close_text, set_to_hour } from "../../app/home/page";
+import { Formatted, Listing } from "../../types";
+import { getListingByPublicID } from "@/services/listing";
 
 
 type ListingContextType = {
-    listing: Listing | null | undefined,
-    set_listing: React.Dispatch<React.SetStateAction<Listing | null | undefined>>;
+    listing: Listing & {others: Formatted} | null | undefined,
+    set_listing: React.Dispatch<React.SetStateAction<Listing & {others: Formatted} | null | undefined>>;
     is_loading: boolean;
     refetch_listing: () => Promise<void>;
 }
@@ -14,29 +14,21 @@ type ListingContextType = {
 const listing_context = createContext<ListingContextType | null>(null);
 
 export function ListingProvider({children, public_id} : {children: React.ReactNode, public_id: string}) {
-    const [listing, set_listing] = useState<Listing | null | undefined>(null)
+    const [listing, set_listing] = useState<Listing & {others: Formatted} | null | undefined>(null)
     const [is_loading, set_is_loading] = useState(true);
 
     async function refetch_listing() {
         try {
             set_is_loading(true);
 
-            const { data, error } = await supabase.from("listings").select("*, merchants (merchant_name) ").eq("public_id", public_id).single();
-            if (error) {
-                console.log(error)
-                return;
-            }
-
+            const data = (await getListingByPublicID(public_id)).data
+            console.log("price: ", data.original_price)
             const others_data = {
-                formatted_original_price: format_price(data.original_price),
-                formatted_discount_price: format_price(data.discount_price),
-                formatted_price_diff:format_price(data.original_price - data.discount_price),
-                ended_time: get_close_text(data.close_time),
-                stock_left: data.stock_total - data.sold_total
+                ori_price: format_price(data.original_price),
+                dis_price: format_price(data.discount_price),
+                price_diff: format_price(data.original_price - data.discount_price)
             }
-
-
-            console.log(data.stock_total - data.sold_total)
+            // console.log(data.stock_total - data.sold_total)
             data["others"] = others_data
 
             console.log("ini data dari provider");
@@ -45,6 +37,8 @@ export function ListingProvider({children, public_id} : {children: React.ReactNo
             set_listing(data);
         } catch(error) {
             console.log(error);
+        } finally {
+            set_is_loading(false)
         }
     }
 

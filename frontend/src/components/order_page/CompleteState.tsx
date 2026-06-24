@@ -1,32 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { Order } from '../providers/OrderProvider';
 import { MerchantCard, OrderDetailsInfo, OrderSummary } from '../shared';
 import { useParams } from 'next/navigation';
-
-interface CompletedOrderData {
-  id: string;
-  storeName: string;
-  address: string;
-  distance: string;
-  imageUrl: string;
-  completedTime: string;
-  items: Array<{
-    quantity: number;
-    name: string;
-    description: string;
-    price: number;
-  }>;
-  totalPrice: number;
-  amountSaved: number;
-  orderId: string;
-  paymentMethod: string;
-  impact: {
-    foodSaved: number;
-    co2Avoided: number;
-  };
-}
+import { Order } from '@/types';
 
 export default function CompletedOrderPage({
 order}: {
@@ -93,8 +70,8 @@ const params = useParams()
         {/* Merchant Card */}
         <div className="px-4 mb-6 mt-4">
           <MerchantCard
-            storeName={order?.listings.merchants.merchant_name}
-            address={order?.listings.merchants.address}
+            storeName={order?.listing?.merchant?.merchant_name ?? ""}
+            address={order?.listing?.merchant?.address}
             distance={"distance"}
             imageUrl={'merchant_image_url'}
           />
@@ -107,7 +84,7 @@ const params = useParams()
           </h3>
           <OrderSummary
             item={order}
-            amountSaved={order?.formatted.saved_price}
+            amountSaved={order?.formatted?.saved_price || ""}
           />
         </div>
 

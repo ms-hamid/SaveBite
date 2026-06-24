@@ -4,7 +4,7 @@ import Head from "next/head";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { usePayment } from "../../../../components/providers/PaymentProvider";
-import { format_price } from "../../../page";
+import { format_price } from "../../../home/page";
 import api, { getApiErrorMessage } from "../../../../lib/api";
 
 type PaymentMethod = "apple" | "visa";
@@ -149,23 +149,23 @@ export default function ConfirmReservationPage() {
               <div className="flex gap-4">
                 <div className="relative h-20 w-20 shrink-0">
                   <img
-                    alt={order?.listings.name}
+                    alt={order?.listing?.name ?? ""}
                     className="h-full w-full object-cover rounded-xl bg-slate-100"
-                    src={order?.listings?.img_url}
+                    src={order?.listing?.img_url ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
                   />
 
                   <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm border border-white dark:border-[#1a2c26]">
-                    -{order?.listings?.discount_percentage}%
+                    -{order?.listing?.discount_percentage}%
                   </div>
                 </div>
 
                 <div className="flex-1 flex flex-col justify-center">
                   <h3 className="font-bold text-slate-900 dark:text-white text-lg leading-tight">
-                    {order?.listings.name}
+                    {order?.listing?.name}
                   </h3>
 
                   <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
-                    {order?.listings?.merchants.merchant_name}
+                    {order?.listing?.merchant?.merchant_name}
                   </p>
                 </div>
               </div>
@@ -240,7 +240,7 @@ export default function ConfirmReservationPage() {
                   </span>
 
                   <span className="text-slate-900 dark:text-white font-medium line-through decoration-slate-400 text-right w-20">
-                    {order?.formatted.ori_price}
+                    {order?.formatted?.ori_price}
                   </span>
                 </div>
 
@@ -250,7 +250,7 @@ export default function ConfirmReservationPage() {
                   </span>
 
                   <span className="text-emerald-500 font-medium text-right w-20">
-                    -{order?.formatted.saved_price}
+                    -{order?.formatted?.saved_price}
                   </span>
                 </div>
 
@@ -270,7 +270,7 @@ export default function ConfirmReservationPage() {
                   </span>
 
                   <span className="text-slate-900 dark:text-white font-medium text-right w-20">
-                    {order?.formatted.total_amount}
+                    {order?.formatted?.total_amount}
                   </span>
                 </div>
 

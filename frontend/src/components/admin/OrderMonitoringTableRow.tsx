@@ -1,26 +1,4 @@
-export type OrderStatus =
-  | "pending_payment"
-  | "paid_reserved"
-  | "completed"
-  | "expired_unclaimed"
-  | "cancelled"
-  | "ready_to_pickup"
-  | "preparing";
-
-export type Order = {
-  id: number;
-  qty: number;
-  total_amount: number | string;
-  qr_token: string | null;
-  status: OrderStatus | null;
-  created_at: string | null;
-  updated_at: string | null;
-  deleted_at: string | null;
-  listing_id: number;
-  public_id: string;
-  merchant_id: string;
-  customer_id: string;
-};
+import type { Order, OrderStatus } from "@/types";
 
 type OrderMonitoringTableRowProps = {
   order: Order;

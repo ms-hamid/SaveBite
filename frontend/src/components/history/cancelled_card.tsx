@@ -7,7 +7,7 @@ export default function CancelledCard ({id, name, image, date, product, order_nu
             <div className="flex gap-4">
                 <img className="w-14 h-14 rounded-xl bg-slate-200 dark:bg-slate-700 bg-cover bg-center shrink-0"
                     data-alt="Fresh vegetables in a basket"
-                    src={image}
+                    src={image ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
                 />
                 <div>
                     <h3 className="font-bold text-base text-slate-900 dark:text-white leading-tight">{name}

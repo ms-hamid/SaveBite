@@ -1,5 +1,6 @@
+import { Order } from "@/types";
 import api, { getApiErrorMessage } from "../../lib/api";
-import { Order } from "../providers/OrderProvider";
+
 
 export default function PaymentOrderPage({order}: {order: Order | undefined}) {
   async function handle_tranfer() {

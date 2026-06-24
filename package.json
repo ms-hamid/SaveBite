@@ -20,5 +20,16 @@
   "license": "ISC",
   "devDependencies": {
     "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "@prisma/extension-accelerate": "^3.0.1",
+    "@tailwindcss/container-queries": "^0.1.1",
+    "@tailwindcss/forms": "^0.5.11",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "firebase": "^12.15.0",
+    "html5-qrcode": "^2.3.8",
+    "jsonwebtoken": "^9.0.3"
   }
 }

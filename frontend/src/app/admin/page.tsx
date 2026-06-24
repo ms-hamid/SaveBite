@@ -1,8 +1,5 @@
 import AdminLayout from "../../components/admin/AdminLayout";
 
-export const metadata = {
-  title: "SaveBite Admin - Platform Overview",
-};
 
 export default function Page() {
   return (

@@ -1,37 +1,56 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import AdminLayout from '../../../../components/admin/AdminLayout';
+import { useEffect, useMemo, useState } from "react";
+import AdminLayout from "../../../../components/admin/AdminLayout";
+
+import { getMerchantsPendingList } from "@/services/user";
+import type { Merchant } from "@/types/merchant";
+import Link from "next/link";
+
+
 
 export default function Page() {
+  const [merchants, setMerchants] = useState<Merchant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  const ITEMS_PER_PAGE = 10;
+
+  async function loadMerchants() {
+    try {
+      setLoading(true);
+      setErrorMessage("");
+  
+      const data = await getMerchantsPendingList();
+  
+      setMerchants(data.data.merchants ?? []);
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("Failed to load merchants");
+    } finally {
+      setLoading(false);
+    }
+  }
+
 
   useEffect(() => {
-    const button = document.getElementById('mobile-menu-btn');
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('mobile-nav-overlay');
-    if (!button || !sidebar || !overlay) return;
-
-    const toggleMenu = () => {
-      if (sidebar.classList.contains('-translate-x-full')) {
-        sidebar.classList.remove('-translate-x-full');
-        overlay.classList.remove('hidden');
-      } else {
-        sidebar.classList.add('-translate-x-full');
-        overlay.classList.add('hidden');
-      }
-    };
-    const closeMenu = () => {
-      sidebar.classList.add('-translate-x-full');
-      overlay.classList.add('hidden');
-    };
-
-    button.addEventListener('click', toggleMenu);
-    overlay.addEventListener('click', closeMenu);
-    return () => {
-      button.removeEventListener('click', toggleMenu);
-      overlay.removeEventListener('click', closeMenu);
-    };
+      loadMerchants();
   }, []);
+
+
+  const totalPages = Math.ceil(
+    merchants.length / ITEMS_PER_PAGE
+  );
+  
+  const paginatedMerchants = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+  
+    return merchants.slice(start, end);
+  }, [merchants, currentPage]);
+
 
   return (
     <AdminLayout>
@@ -99,101 +118,156 @@ export default function Page() {
       </tr>
       </thead>
       <tbody className="font-body-default text-body-default text-on-surface">
+  {loading ? (
+    <tr>
+      <td
+        colSpan={4}
+        className="py-unit-lg px-unit-lg text-center"
+      >
+        Loading...
+      </td>
+    </tr>
+  ) : errorMessage ? (
+    <tr>
+      <td
+        colSpan={4}
+        className="py-unit-lg px-unit-lg text-center text-error"
+      >
+        {errorMessage}
+      </td>
+    </tr>
+  ) : paginatedMerchants.length === 0 ? (
+    <tr>
+      <td
+        colSpan={4}
+        className="py-unit-lg px-unit-lg text-center"
+      >
+        No pending merchant found.
+      </td>
+    </tr>
+  ) : (
+    paginatedMerchants.map((merchant) => (
+      <tr
+        key={merchant.user_id}
+        className="border-b border-outline-variant/30 hover:bg-surface transition-colors"
+      >
+        <td className="py-unit-md px-unit-lg">
+          <div className="flex items-center gap-unit-sm">
+            <div className="w-8 h-8 rounded bg-surface-container flex items-center justify-center text-primary font-bold">
+              {merchant.merchant_name?.charAt(0).toUpperCase() ?? "M"}
+            </div>
 
-      <tr className="border-b border-outline-variant/30 hover:bg-surface transition-colors">
-      <td className="py-unit-md px-unit-lg">
-      <div className="flex items-center gap-unit-sm">
-      <div className="w-8 h-8 rounded bg-surface-container flex items-center justify-center text-primary font-bold">G</div>
-      <span className="font-body-medium text-body-medium">Green Bites Cafe</span>
-      </div>
-      </td>
-      <td className="py-unit-md px-unit-lg text-on-surface-variant">Oct 24, 2023 - 09:15 AM</td>
-      <td className="py-unit-md px-unit-lg">
-      <span className="inline-flex items-center px-2 py-1 rounded-full bg-error-container text-error font-label-bold text-label-bold">
-      <span className="w-2 h-2 rounded-full bg-error mr-2"></span>
-                                              Overdue
-                                          </span>
-      </td>
-      <td className="py-unit-md px-unit-lg text-right">
-      <button className="bg-[#10b981] text-on-primary px-unit-lg py-2 rounded-lg font-label-bold text-label-bold hover:opacity-90 transition-colors shadow-sm">Review</button>
-      </td>
-      </tr>
+            <span className="font-body-medium text-body-medium">
+              {merchant.merchant_name ?? "-"}
+            </span>
+          </div>
+        </td>
 
-      <tr className="border-b border-outline-variant/30 hover:bg-surface transition-colors">
-      <td className="py-unit-md px-unit-lg">
-      <div className="flex items-center gap-unit-sm">
-      <div className="w-8 h-8 rounded bg-surface-container flex items-center justify-center text-primary font-bold">T</div>
-      <span className="font-body-medium text-body-medium">The Daily Loaf</span>
-      </div>
-      </td>
-      <td className="py-unit-md px-unit-lg text-on-surface-variant">Oct 24, 2023 - 11:30 AM</td>
-      <td className="py-unit-md px-unit-lg">
-      <span className="inline-flex items-center px-2 py-1 rounded-full bg-[#fef3c7] text-[#92400e] font-label-bold text-label-bold">
-      <span className="w-2 h-2 rounded-full bg-[#d97706] mr-2"></span>
-                                              Approaching
-                                          </span>
-      </td>
-      <td className="py-unit-md px-unit-lg text-right">
-      <button className="bg-[#10b981] text-on-primary px-unit-lg py-2 rounded-lg font-label-bold text-label-bold hover:opacity-90 transition-colors shadow-sm">Review</button>
-      </td>
-      </tr>
+        <td className="py-unit-md px-unit-lg text-on-surface-variant">
+          -
+        </td>
 
-      <tr className="border-b border-outline-variant/30 hover:bg-surface transition-colors">
-      <td className="py-unit-md px-unit-lg">
-      <div className="flex items-center gap-unit-sm">
-      <div className="w-8 h-8 rounded bg-surface-container flex items-center justify-center text-primary font-bold">S</div>
-      <span className="font-body-medium text-body-medium">Sushi Surplus</span>
-      </div>
-      </td>
-      <td className="py-unit-md px-unit-lg text-on-surface-variant">Oct 24, 2023 - 02:45 PM</td>
-      <td className="py-unit-md px-unit-lg">
-      <span className="inline-flex items-center px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-bold text-label-bold">
-      <span className="w-2 h-2 rounded-full bg-primary-container mr-2"></span>
-                                              On Track
-                                          </span>
-      </td>
-      <td className="py-unit-md px-unit-lg text-right">
-      <button className="bg-[#10b981] text-on-primary px-unit-lg py-2 rounded-lg font-label-bold text-label-bold hover:opacity-90 transition-colors shadow-sm">Review</button>
-      </td>
-      </tr>
+        <td className="py-unit-md px-unit-lg">
+          <span
+            className={`
+              inline-flex items-center px-2 py-1 rounded-full font-label-bold text-label-bold
+              ${
+                merchant.kyc_status === "rejected"
+                  ? "bg-error-container text-error"
+                  : merchant.kyc_status === "pending"
+                  ? "bg-[#fef3c7] text-[#92400e]"
+                  : "bg-secondary-container text-on-secondary-container"
+              }
+            `}
+          >
+            <span
+              className={`
+                w-2 h-2 rounded-full mr-2
+                ${
+                  merchant.kyc_status === "rejected"
+                    ? "bg-error"
+                    : merchant.kyc_status === "pending"
+                    ? "bg-[#d97706]"
+                    : "bg-primary-container"
+                }
+              `}
+            />
 
-      <tr className="border-b border-outline-variant/30 hover:bg-surface transition-colors">
-      <td className="py-unit-md px-unit-lg">
-      <div className="flex items-center gap-unit-sm">
-      <div className="w-8 h-8 rounded bg-surface-container flex items-center justify-center text-primary font-bold">P</div>
-      <span className="font-body-medium text-body-medium">Pastry Perfect</span>
-      </div>
-      </td>
-      <td className="py-unit-md px-unit-lg text-on-surface-variant">Oct 24, 2023 - 04:10 PM</td>
-      <td className="py-unit-md px-unit-lg">
-      <span className="inline-flex items-center px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-bold text-label-bold">
-      <span className="w-2 h-2 rounded-full bg-primary-container mr-2"></span>
-                                              On Track
-                                          </span>
-      </td>
-      <td className="py-unit-md px-unit-lg text-right">
-      <button className="bg-[#10b981] text-on-primary px-unit-lg py-2 rounded-lg font-label-bold text-label-bold hover:opacity-90 transition-colors shadow-sm">Review</button>
-      </td>
+            {merchant.kyc_status ?? "pending"}
+          </span>
+        </td>
+
+        <td className="py-unit-md px-unit-lg text-right">
+          <Link href={`/admin/merchant/${merchant.user_id}/verify`} className="bg-[#10b981] text-on-primary px-unit-lg py-2 rounded-lg font-label-bold text-label-bold hover:opacity-90 transition-colors shadow-sm">
+            Review
+          </Link>
+        </td>
       </tr>
-      </tbody>
+    ))
+  )}
+</tbody>
       </table>
       </div>
 
-      <div className="flex items-center justify-between p-unit-md bg-surface-container-lowest border-t border-outline-variant/50">
-      <p className="font-body-default text-body-default text-on-surface-variant">Showing 1 to 4 of 142 entries</p>
-      <div className="flex items-center gap-unit-sm">
-      <button className="p-1 rounded text-outline-variant cursor-not-allowed" disabled={true}>
-      <span className="material-symbols-outlined">chevron_left</span>
-      </button>
-      <button className="w-8 h-8 rounded-full bg-secondary-container text-primary font-label-bold text-label-bold flex items-center justify-center">1</button>
-      <button className="w-8 h-8 rounded-full hover:bg-surface-container text-on-surface-variant font-label-bold text-label-bold flex items-center justify-center transition-colors">2</button>
-      <button className="w-8 h-8 rounded-full hover:bg-surface-container text-on-surface-variant font-label-bold text-label-bold flex items-center justify-center transition-colors">3</button>
-      <span className="text-on-surface-variant">...</span>
-      <button className="p-1 rounded text-on-surface hover:bg-surface-container transition-colors">
-      <span className="material-symbols-outlined">chevron_right</span>
-      </button>
-      </div>
-      </div>
+<div className="flex items-center justify-between p-unit-md bg-surface-container-lowest border-t border-outline-variant/50">
+<p className="font-body-default text-body-default text-on-surface-variant">
+  Showing{" "}
+  {merchants.length === 0
+    ? 0
+    : (currentPage - 1) * ITEMS_PER_PAGE + 1}
+  {" "}to{" "}
+  {Math.min(
+    currentPage * ITEMS_PER_PAGE,
+    merchants.length
+  )}
+  {" "}of{" "}
+  {merchants.length}
+  {" "}entries
+</p>
+
+<div className="flex items-center gap-unit-sm">
+  <button
+    className="p-1 rounded"
+    disabled={currentPage === 1}
+    onClick={() =>
+      setCurrentPage((prev) => prev - 1)
+    }
+  >
+    <span className="material-symbols-outlined">
+      chevron_left
+    </span>
+  </button>
+
+  {Array.from(
+    { length: totalPages },
+    (_, i) => i + 1
+  ).map((page) => (
+    <button
+      key={page}
+      onClick={() => setCurrentPage(page)}
+      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+        currentPage === page
+          ? "bg-secondary-container text-primary font-label-bold"
+          : "hover:bg-surface-container"
+      }`}
+    >
+      {page}
+    </button>
+  ))}
+
+  <button
+    className="p-1 rounded"
+    disabled={currentPage === totalPages}
+    onClick={() =>
+      setCurrentPage((prev) => prev + 1)
+    }
+  >
+    <span className="material-symbols-outlined">
+      chevron_right
+    </span>
+  </button>
+</div>
+</div>
       </div>
       </main>
       <script>

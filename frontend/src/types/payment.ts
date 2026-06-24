@@ -12,7 +12,9 @@ export type Payment = {
   order_id: number;
   customer_id: string | null;
   payment_method: string | null;
-
+  paid_at: string | null;
+  expired_at: string | null;
+  qris_url: string | null;
   // Relation
   order?: Order | null;
 };

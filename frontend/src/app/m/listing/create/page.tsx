@@ -3,22 +3,18 @@
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import TopNavBack from "../../../../components/m/TopNavArrow";
 import { supabase } from "../../../../lib/supabase";
+import { createListing, CreateListingPayload } from "@/services/listing";
 
-export type ListingProps = {
-  id: number;
+type ListingProps = {
   name: string;
   open_time: string;
   close_time: string;
-  sold_total: number;
   stock_total: number;
   description: string;
-  is_open: boolean;
   original_price: number;
   discount_price: number;
   discount_percentage: number;
-  deleted_at: string;
-  merchant_id: string;
-  img_url: string;
+  imgUrl: string;
 };
 
 type ListingInsert = Omit<ListingProps, "id" | "deleted_at">;
@@ -56,9 +52,9 @@ function timeToTodayDate(time: string) {
   return date;
 }
 
-function buildPickupWindow(openTime: string, closeTime: string) {
-  const openDate = timeToTodayDate(openTime);
-  const closeDate = timeToTodayDate(closeTime);
+function buildPickupWindow(open_time: string, close_time: string) {
+  const openDate = timeToTodayDate(open_time);
+  const closeDate = timeToTodayDate(close_time);
 
   if (closeDate <= openDate) {
     closeDate.setDate(closeDate.getDate() + 1);
@@ -70,12 +66,12 @@ function buildPickupWindow(openTime: string, closeTime: string) {
   };
 }
 
-function calculateDiscountPercentage(originalPrice: number, discountPrice: number) {
-  if (originalPrice <= 0) return 0;
+function calculateDiscountPercentage(original_price: number, discount_price: number) {
+  if (original_price <= 0) return 0;
 
   return Math.max(
     0,
-    Math.round(((originalPrice - discountPrice) / originalPrice) * 100)
+    Math.round(((original_price - discount_price) / original_price) * 100)
   );
 }
 
@@ -95,16 +91,16 @@ export default function RefinedAddSurplusFormPage() {
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  const originalPrice = Number(form.original_price || 0);
-  const discountPrice = Number(form.discount_price || 0);
+  const original_price = Number(form.original_price || 0);
+  const discount_price = Number(form.discount_price || 0);
 
   const customerSaving = useMemo(() => {
-    return Math.max(0, originalPrice - discountPrice);
-  }, [originalPrice, discountPrice]);
+    return Math.max(0, original_price - discount_price);
+  }, [original_price, discount_price]);
 
-  const discountPercentage = useMemo(() => {
-    return calculateDiscountPercentage(originalPrice, discountPrice);
-  }, [originalPrice, discountPrice]);
+  const discount_percentage = useMemo(() => {
+    return calculateDiscountPercentage(original_price, discount_price);
+  }, [original_price, discount_price]);
 
   function handleInputChange(
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -128,7 +124,7 @@ export default function RefinedAddSurplusFormPage() {
 
   async function uploadListingImage(file: File) {
     const fileExt = file.name.split(".").pop();
-    const fileName = `${crypto.randomUUID()}.${fileExt}`;
+    const fileName = `${safeUUID()}.${fileExt}`;
     const filePath = `listings/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
@@ -146,6 +142,20 @@ export default function RefinedAddSurplusFormPage() {
 
     return data.publicUrl;
   }
+
+
+  function safeUUID() {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -167,65 +177,57 @@ export default function RefinedAddSurplusFormPage() {
         throw new Error("Quantity minimal 1.");
       }
 
-      if (originalPrice <= 0) {
+      if (original_price <= 0) {
         throw new Error("Regular price wajib lebih dari 0.");
       }
 
-      if (discountPrice <= 0) {
+      if (discount_price <= 0) {
         throw new Error("Surplus price wajib lebih dari 0.");
       }
 
-      if (discountPrice >= originalPrice) {
+      if (discount_price >= original_price) {
         throw new Error("Surplus price harus lebih murah dari regular price.");
       }
 
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+      // const {
+      //   data: { user },
+      //   error: userError,
+      // } = await supabase.auth.getUser();
 
-      if (userError) {
-        throw userError;
-      }
+      // if (userError) {
+      //   throw userError;
+      // }
 
-      if (!user) {
-        throw new Error("Kamu harus login terlebih dahulu.");
-      }
+      // if (!user) {
+      //   throw new Error("Kamu harus login terlebih dahulu.");
+      // }
 
-      console.log(user);
+      // console.log(user);
 
       const imageUrl = imageFile ? await uploadListingImage(imageFile) : "";
 
       const pickupWindow = buildPickupWindow(form.open_time, form.close_time);
 
-      const payload: ListingInsert = {
+      const payload: CreateListingPayload = {
         name: form.name.trim(),
         description: form.description.trim(),
         open_time: pickupWindow.open_time,
         close_time: pickupWindow.close_time,
-        sold_total: 0,
         stock_total: form.stock_total,
-        is_open: true,
-        original_price: originalPrice,
-        discount_price: discountPrice,
-        discount_percentage: discountPercentage,
-        merchant_id: user.id,
+        original_price: original_price,
+        discount_price: discount_price,
+        discount_percentage: discount_percentage,
         img_url: imageUrl,
       };
 
-      const { error: insertError } = await supabase
-        .from("listings")
-        .insert(payload);
-
-      if (insertError) {
-        throw insertError;
-      }
+      await createListing(payload);
 
       setSuccessMessage("Surplus listing berhasil dipublish.");
       setForm(initialForm);
       setImageFile(null);
       setImagePreview("");
     } catch (error) {
+      console.log(error)
       const message =
         error instanceof Error
           ? error.message
@@ -248,7 +250,7 @@ export default function RefinedAddSurplusFormPage() {
             <div className="bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-6 flex flex-col items-center justify-center gap-3 relative overflow-hidden group cursor-pointer hover:bg-slate-100 transition-colors">
               {imagePreview ? (
                 <img
-                  src={imagePreview}
+                  src={imagePreview ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
                   alt="Preview listing"
                   className="w-full h-48 object-cover rounded-xl"
                 />

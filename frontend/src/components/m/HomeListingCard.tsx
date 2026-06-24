@@ -48,7 +48,7 @@ export default function ActiveListingCard({
             alt={listing.imageAlt}
             className="w-full h-full object-cover"
             data-alt={listing.imageAlt}
-            src={listing.imageUrl}
+            src={listing.imageUrl ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
           />
         </div>
 

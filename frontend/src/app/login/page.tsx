@@ -1,37 +1,35 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { LoginScreen } from "../../components/login/LoginScreen";
+import { useState } from "react";
 import AuthPageLayout from "../../components/auth/page_layout";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase";
 import AuthInputComponent from "../../components/auth/input_column";
-import { RegisterData } from "../sign-up/page";
 import { login } from "@/services/auth";
-import { cpSync } from "fs";
+import { Role } from "@/types";
+import { enablePushNotification } from "../../lib/firebase/messaging";
 
 type LoginPageProps = {
   email: string;
   password: string;
 };
 
+type RegisterData = {
+  role: Role;
+  full_name: string;
+  email: string;
+  password: string;
+  confirm_password: string;
+  merchant_name: string;
+  category: string;
+  desc: string;
+  location: string;
+  address: string;
+  phone: string;
+};
+
 export default function LoginPage() {
 
   const router = useRouter();
-
-  useEffect(() => {
-    const role = localStorage.getItem("role");
-
-    console.log("role", role)
-
-    if (role === "CUSTOMER") {
-      router.push("/");
-    }
-
-    if (role === "MERCHANT") {
-      router.push("/m");
-    }
-  }, [router]);
   
   const [is_loading, set_is_loading] = useState(false)
   
@@ -66,17 +64,20 @@ export default function LoginPage() {
         input_data.email,
         input_data.password
       );
-      console.log("login_data.role")
 
-      console.log(login_data.role)
-  
-      if (
-        login_data.role === "CUSTOMER"
-      ) {
-        router.push("/");
-      } else {
-        router.push("/m");
+      localStorage.setItem("email", input_data.email);
+
+      // Enable push notification sync with user account
+      try {
+        enablePushNotification();
+      } catch (err) {
+        console.error("Failed to enable push notifications on login:", err);
       }
+
+      if (login_data.role === "CUSTOMER") router.push("/home");
+      else if (login_data.role === "MERCHANT") router.push("/m");
+      else router.push("/admin");
+      
     } catch (error: any) {
       console.log(error)
       setErrors((prev) => ({
@@ -90,15 +91,6 @@ export default function LoginPage() {
     }
   }
 
-  async function get_profile(user_id: string) {
-    const {data, error} = await supabase.from("profiles").select("*").eq("user_id", user_id).single();
-
-    return {
-      profile : data, 
-      error_profile: error
-    };
-  }
-  
   function update_input<
   K extends keyof RegisterData
 >(

@@ -1,26 +1,8 @@
 // "use client";
 
 import { Listing } from "../../app/m/listing/page";
-import { ListingProps } from "../../app/page";
+import { ListingProps } from "../../app/home/page";
 
-// type ListingStatus = "active" | "close" | "draft";
-
-// type ListingCardProps = {
-//   title: string;
-//   price?: number;
-//   imageUrl?: string;
-//   status: ListingStatus;
-//   sold?: number;
-//   stock?: number;
-//   timeText?: string;
-//   isFast?: boolean;
-
-//   onEdit?: () => void;
-//   onDelete?: () => void;
-//   onRelist?: () => void;
-//   onViewDetails?: () => void;
-//   onContinueEditing?: () => void;
-// };
 
 function formatPrice(price?: number) {
   if (!price) return "";
@@ -33,22 +15,10 @@ function formatPrice(price?: number) {
 }
 
 export default function ListingCard({
-
-    listing
-    //   title,
-//   price,
-//   imageUrl,
-//   status,
-//   sold = 0,
-//   stock = 0,
-//   timeText,
-//   isFast = false,
-//   onEdit,
-//   onDelete,
-//   onRelist,
-//   onViewDetails,
-//   onContinueEditing,
-}: {listing: Listing}) {
+    listing,
+    onDelete,
+    onEdit,
+}: {listing: Listing, onDelete: () => void, onEdit: () => void}) {
     const status = listing.status;
   const isActive = status === "active";
   const isEnded = status === "close";
@@ -77,7 +47,7 @@ export default function ListingCard({
                 w-full h-full object-cover
                 ${isEnded ? "grayscale-[40%]" : ""}
               `}
-              src={listing.img_url}
+              src={listing.img_url ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
               alt={listing.name}
             />
 
@@ -192,7 +162,7 @@ export default function ListingCard({
           {isActive && (
             <div className="flex gap-2 mt-2">
               <button
-                // onClick={onEdit}
+                onClick={onEdit}
                 className="flex-1 py-1.5 px-3 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1"
               >
                 <span className="material-symbols-outlined text-[14px]">
@@ -202,7 +172,7 @@ export default function ListingCard({
               </button>
 
               <button
-                // onClick={onDelete}
+                onClick={onDelete}
                 className="flex-1 py-1.5 px-3 rounded-lg border border-slate-200 text-xs font-bold text-red-600 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1"
               >
                 <span className="material-symbols-outlined text-[14px]">

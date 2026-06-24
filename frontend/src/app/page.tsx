@@ -1,9 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { enablePushNotification } from "../lib/firebase/messaging";
 
 export default function OnboardingPage() {
+
+
+  useEffect(()=>{
+
+    enablePushNotification();
+
+  },[]);
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const route = useRouter();
@@ -20,7 +28,7 @@ export default function OnboardingPage() {
   };
 
   const skipOnboarding = () => {
-    console.log("Skip");
+    setCurrentSlide(2);
   };
 
   const slides = [
@@ -169,7 +177,7 @@ export default function OnboardingPage() {
         </button>
 
         {currentSlide === 2 && (
-          <button className="w-full mt-4 text-sm text-slate-500">
+          <button onClick={() => {route.push("/login")}} className="w-full mt-4 text-sm text-slate-500">
             Already have an account?{" "}
             <span className="text-primary font-semibold">
               Sign In

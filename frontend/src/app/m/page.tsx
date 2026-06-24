@@ -1,125 +1,45 @@
+"use client"
 import DashboardTopAppBar from "../../components/m/DashboardTopAppBar";
 import DashboardBottomNav from "../../components/m/DashboardBottomNav"; 
 import AIPredictionCard from "../../components/m/AiHomeExplanation";
 import ActiveListingCard, { ActiveListingData } from "../../components/m/HomeListingCard";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { getMyListing } from "@/services/listing";
 
 export default function MerchantDashboardActiveListingEndedPage() {
+  const [listing_data, set_listing_data] =
+  useState<any[]>([]);
 
-const activeListingPlaceholderData: ActiveListingData[] = [
-  {
-    id: 1,
-    name: "Artisan Sourdough",
-    imageUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBZeR1aRBbkvJ-jO6ygtIIdtVZquJ0g8e4k15nMjZNWDX4k5WkC6JxUHRIeFUr5nKbu4qDJoJ8eZKuPqb6FGVSB2yf7l8TD4rovfpnBiNwugL-UtTyoIKPcvfL870jFBQkuHb0M0uce60fa6eUdPOM3AGeXz4ZKZ51U7ZaJ_t6BnDweiwQHq-aK2Zk-ily3OrVOqz9XOQKdx8yBt6zSfI-017BJLoyED5WwYNLqsbILp9kYT1abf4XCefJzGajCuRGA3H7RO_HydDzG",
-    imageAlt:
-      "close up of rustic artisan sourdough bread loaf on wooden cutting board with flour dusting",
-    price: 45000,
-    status: "selling",
-    timeLabel: "Ends in 2h",
-    soldTotal: 7,
-    stockTotal: 10,
-  },
-  {
-    id: 2,
-    name: "Croissant Butter Pack",
-    imageUrl: "https://placehold.co/600x400/png?text=Croissant+Butter+Pack",
-    imageAlt: "croissant butter pack",
-    price: 38000,
-    status: "selling",
-    timeLabel: "Ends in 1h 30m",
-    soldTotal: 8,
-    stockTotal: 12,
-  },
-  {
-    id: 3,
-    name: "Banana Muffin Box",
-    imageUrl: "https://placehold.co/600x400/png?text=Banana+Muffin+Box",
-    imageAlt: "banana muffin box",
-    price: 32000,
-    status: "selling",
-    timeLabel: "Ends in 45m",
-    soldTotal: 15,
-    stockTotal: 20,
-  },
-  {
-    id: 4,
-    name: "Chicken Rice Box",
-    imageUrl: "https://placehold.co/600x400/png?text=Chicken+Rice+Box",
-    imageAlt: "chicken rice box",
-    price: 25000,
-    status: "selling",
-    timeLabel: "Ends in 3h",
-    soldTotal: 6,
-    stockTotal: 15,
-  },
-  {
-    id: 5,
-    name: "Donut Mixed Box",
-    imageUrl: "https://placehold.co/600x400/png?text=Donut+Mixed+Box",
-    imageAlt: "donut mixed box",
-    price: 42000,
-    status: "selling",
-    timeLabel: "Ends in 1h",
-    soldTotal: 9,
-    stockTotal: 10,
-  },
-  {
-    id: 6,
-    name: "Pasta Lunch Box",
-    imageUrl: "https://placehold.co/600x400/png?text=Pasta+Lunch+Box",
-    imageAlt: "pasta lunch box",
-    price: 35000,
-    status: "ended",
-    timeLabel: "Ended 30m ago",
-    soldTotal: 50,
-    stockTotal: 50,
-  },
-  {
-    id: 7,
-    name: "Brownies Slice Pack",
-    imageUrl: "https://placehold.co/600x400/png?text=Brownies+Slice+Pack",
-    imageAlt: "brownies slice pack",
-    price: 30000,
-    status: "ended",
-    timeLabel: "Ended 1h ago",
-    soldTotal: 18,
-    stockTotal: 20,
-  },
-  {
-    id: 8,
-    name: "Surplus Pastry Box",
-    imageUrl: "https://placehold.co/600x400/png?text=Surplus+Pastry+Box",
-    imageAlt: "surplus pastry box",
-    price: 35000,
-    status: "ended",
-    timeLabel: "Ended 2h ago",
-    soldTotal: 25,
-    stockTotal: 25,
-  },
-  {
-    id: 9,
-    name: "Salad Bowl Set",
-    imageUrl: "https://placehold.co/600x400/png?text=Salad+Bowl+Set",
-    imageAlt: "salad bowl set",
-    price: 28000,
-    status: "ended",
-    timeLabel: "Ended 3h ago",
-    soldTotal: 12,
-    stockTotal: 15,
-  },
-  {
-    id: 10,
-    name: "Nasi Ayam Paket Hemat",
-    imageUrl: "https://placehold.co/600x400/png?text=Nasi+Ayam+Paket+Hemat",
-    imageAlt: "nasi ayam paket hemat",
-    price: 27000,
-    status: "ended",
-    timeLabel: "Ended yesterday",
-    soldTotal: 30,
-    stockTotal: 30,
-  },
-];
+const [loading, set_loading] =
+  useState(true);
+
+const [error, set_error] =
+  useState("");
+
+  useEffect(() => {
+  async function fetch_my_listings() {
+    try {
+      set_loading(true);
+
+      const listings = await getMyListing();
+
+      set_listing_data(listings);
+    } catch (err: any) {
+      console.error(err);
+
+      set_error(
+        err?.response?.data?.message ||
+        "Gagal mengambil data listing"
+      );
+    } finally {
+      set_loading(false);
+    }
+  }
+
+  fetch_my_listings();
+}, []);
+
   
   
   return (
@@ -262,8 +182,8 @@ const activeListingPlaceholderData: ActiveListingData[] = [
                 href="#">View all</a>
             </div>
             
-            { activeListingPlaceholderData.length !== 0 ?
-              activeListingPlaceholderData.map((listing) => 
+            { listing_data.length !== 0 ?
+              listing_data.map((listing) => 
                 <ActiveListingCard
                   key={listing.id}
                   listing={listing}
@@ -276,10 +196,6 @@ const activeListingPlaceholderData: ActiveListingData[] = [
                 />
               ) : 
               <section>
-                <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold text-slate-900 tracking-tight">Active Listings</h2>
-                <a className="text-sm font-semibold text-slate-400 transition-colors" href="#">View all</a>
-                </div>
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] p-6 flex flex-col items-center justify-center text-center h-32">
                 <h3 className="font-semibold text-slate-900 mb-1">No active listings</h3>
                 <p className="text-xs text-slate-500 mb-3">Start selling your surplus food today</p>

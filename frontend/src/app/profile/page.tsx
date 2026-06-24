@@ -1,6 +1,16 @@
+"use client"
+import { useRouter } from "next/navigation";
 import CustomerNavbar from "../../components/navbar/customer_navbar";
+import { logout } from "@/services/auth";
 
 export default function ProfilePage() {
+  const router = useRouter()
+  
+  async function handleLogout() {
+    await logout()
+    router.push("/login")
+  } 
+  
   return (
     <>
       <div>
@@ -17,7 +27,10 @@ export default function ProfilePage() {
           <section className="mb-6">
             <h3 className="text-[10px] font-bold text-slate-400/50 dark:text-slate-500/50 uppercase tracking-[0.2em] mb-1.5 ml-1">Profile &amp; Security</h3>
             <div className="bg-white dark:bg-slate-800 rounded-[20px] overflow-hidden shadow-soft border border-slate-100 dark:border-slate-700/50">
-              <button className="w-full h-14 px-4 flex items-center justify-between active:bg-slate-50 dark:active:bg-slate-700 transition-colors border-b border-slate-50 dark:border-slate-700/50">
+              <button 
+                onClick={() => router.push("/profile/edit-profile")}
+                className="w-full h-14 px-4 flex items-center justify-between active:bg-slate-50 dark:active:bg-slate-700 transition-colors border-b border-slate-50 dark:border-slate-700/50"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-[30px] h-[30px] rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300">
                     <span className="material-icons-round text-[18px]">person</span>
@@ -137,7 +150,9 @@ export default function ProfilePage() {
             </div>
           </section>
           <div className="text-center pb-8 flex flex-col items-center gap-6 mt-8">
-            <button className="w-full border border-rose-200 dark:border-rose-900/30 text-rose-400 hover:text-rose-500 hover:bg-rose-50 dark:text-rose-400/80 dark:hover:text-rose-300 dark:hover:bg-rose-900/10 transition-colors py-3 px-8 rounded-xl font-bold text-sm">
+            <button 
+            onClick={handleLogout}
+            className="w-full border border-rose-200 dark:border-rose-900/30 text-rose-400 hover:text-rose-500 hover:bg-rose-50 dark:text-rose-400/80 dark:hover:text-rose-300 dark:hover:bg-rose-900/10 transition-colors py-3 px-8 rounded-xl font-bold text-sm">
               Log Out
             </button>
             <p className="text-[10px] text-slate-300/60 dark:text-slate-600/60 font-medium tracking-wide scale-90">Version 2.4.0 (184)</p>

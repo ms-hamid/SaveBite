@@ -49,7 +49,7 @@ type AdminNavbarProps = {
             <img
               alt="Admin Profile"
               className="w-8 h-8 rounded-full object-cover ring-2 ring-transparent group-hover:ring-emerald-100"
-              src={adminImageUrl}
+              src={adminImageUrl ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
             />
   
             <div className="text-right hidden lg:block">

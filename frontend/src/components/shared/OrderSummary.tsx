@@ -1,6 +1,7 @@
 'use client';
 
-import { Order } from "../providers/OrderProvider";
+import { Order } from "@/types";
+
 
 interface OrderSummaryProps {
   item: Order | undefined;
@@ -24,15 +25,15 @@ export function OrderSummary({
             </div>
             <div>
               <p className="text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                {item?.listings.name}
+                {item?.listing?.name}
               </p>
               <p className="text-xs text-text-sub-light dark:text-text-sub-dark mt-0.5">
-                {item?.listings.description}
+                {item?.listing?.description}
               </p>
             </div>
           </div>
           <p className="text-sm font-medium text-text-main-light dark:text-text-main-dark">
-            {item?.formatted.dis_price}
+            {item?.formatted?.dis_price}
           </p>
         </div>
 
@@ -42,7 +43,7 @@ export function OrderSummary({
           Total Paid
         </p>
         <p className="text-lg font-bold text-text-main-light dark:text-text-main-dark">
-          {item?.formatted.total_amount}
+          {item?.formatted?.total_amount}
         </p>
       </div>
 

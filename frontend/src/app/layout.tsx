@@ -5,6 +5,7 @@ import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { PWA_CONFIG } from "../lib/pwa/pwa-config";
 import { PWAProvider } from "../components/pwa/PWAProvider";
 import "./globals.css"
+import Script from "next/script";
 
 export const metadata: Metadata = {
   applicationName: PWA_CONFIG.appName,
@@ -48,6 +49,13 @@ export default function RootLayout({ children }: RootLayoutProps) {
       className={`light ${inter.variable} ${plusJakartaSans.variable}`}
     >
       <head>
+
+        <Script
+          src="https://app.sandbox.midtrans.com/snap/snap.js"
+          data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
+          strategy="afterInteractive"
+        />
+        
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
           rel="stylesheet"

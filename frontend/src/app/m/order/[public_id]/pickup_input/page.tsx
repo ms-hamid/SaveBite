@@ -1,11 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { supabase } from "../../../lib/supabase";
+import { getApiErrorMessage } from "@/lib/api";
+import { pickupOrder } from "@/services/order";
+import { useParams } from "next/navigation";
 
 const CODE_LENGTH = 6;
 
 export default function ManualPickupCodeRefinedMinimalistPage() {
+  const params = useParams();
 
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""));
   const [activeIndex, setActiveIndex] = useState(0);
@@ -13,7 +16,7 @@ export default function ManualPickupCodeRefinedMinimalistPage() {
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   const isCodeComplete = code.every((item) => item !== "");
-  const pickupCode = code.join("");
+  const pickup_order = code.join("");
 
   function cleanInput(value: string) {
     return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -87,33 +90,37 @@ export default function ManualPickupCodeRefinedMinimalistPage() {
     }
   }
 
-  async function handleVerifyCode() {
-    if (!isCodeComplete) return;
-  
-    const now = new Date().toISOString();
-  
-    console.log(now)
-    console.log(pickupCode)
 
-
-    const { data, error } = await supabase
-      .from("orders")
-      .update({
-        status: "completed",
-        order_code_active: false,
-      })
-      .eq("order_code", pickupCode)
-      .eq("order_code_active", true)
-      .gt("order_code_expires_at", now)
-      .eq("status", "ready_to_pickup")
-      .select("*")
-      .single();
+  async function verifyPickup(
+    pickup_order: string
+  ) {
+    try {
   
-    if (error) {
-      console.log(error);
-      return;
+      const result =
+        await pickupOrder(
+          pickup_order,
+          params.public_id as string
+        );
+  
+      alert(
+        "Order berhasil diselesaikan"
+      );
+  
+      return result;
+  
+    } catch (error) {
+  
+      console.error(error);
+  
+      alert(
+        getApiErrorMessage(error)
+      );
     }
-  
+  }
+
+
+  async function handleVerifyCode() {
+    const data = await verifyPickup(pickup_order)
     console.log("Order completed:", data);
   }
 

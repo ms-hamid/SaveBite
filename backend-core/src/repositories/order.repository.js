@@ -12,7 +12,7 @@
  *   - Prevents race conditions on the last item (concurrent buyers)
  */
 
-import { prisma } from "../lib/prisma.js";
+import {prisma }from "../lib/prisma.js";
 import { createError } from "../middlewares/error.middleware.js";
 import crypto from "crypto";
 
@@ -44,113 +44,162 @@ function generate_order_code() {
  * The entire operation runs inside a serializable transaction.
  * Any failure rolls back all changes.
  *
- * @param {string} userId
- * @param {string} listingId
+ * @param {string} user_id
+ * @param {string} listing_id
  * @param {number} qty
  * @returns {Promise<Order>}
  */
-export async function create_order_atomic(userId, listingId, qty) {
-  return prisma.$transaction(
-    async (tx) => {
-      // 1. Acquire pessimistic row-level lock on the listing
-      const [listing] = await tx.$queryRaw`
-        SELECT id, stock, status, discount_price, expired_at
-        FROM "Listing"
-        WHERE id = ${listingId}::uuid
-        FOR UPDATE
-      `;
+export async function create_order_atomic(
+  customer_id,
+  listing_id,
+  qty
+) {
+  return prisma.$transaction(async (tx) => {
 
-      if (!listing) {
-        throw createError("Listing not found", 404);
+    const listing = await tx.listing.findUnique({
+      where: {
+        public_id: listing_id
       }
+    });
 
-      if (listing.status !== "PUBLISHED") {
-        throw createError("This listing is no longer available", 409);
-      }
-
-      if (new Date(listing.expired_at) < new Date()) {
-        throw createError("This listing has expired", 409);
-      }
-
-      if (listing.stock < qty) {
-        throw createError(
-          `Only ${listing.stock} item(s) remaining — cannot reserve ${qty}`,
-          409
-        );
-      }
-
-      // 2. Decrement stock
-      await tx.$executeRaw`
-        UPDATE "Listing"
-        SET stock = stock - ${qty},
-            status = CASE WHEN stock - ${qty} = 0 THEN 'EXPIRED'::"List_Status" ELSE status END
-        WHERE id = ${listingId}::uuid
-      `;
-
-      // 3. Create the order record
-      const total_amount =
-        Number(listing.discount_price) * qty;
-
-      const order = await tx.order.create({
-        data: {
-          user_id: userId,
-          listing_id: listingId,
-          qty,
-          total_amount,
-          qr_token: generate_qr_token(),
-          status: "PENDING_PAYMENT",
-        },
-      });
-
-      return order;
-    },
-    {
-      // Serializable isolation prevents phantom reads on concurrent stock checks
-      isolationLevel: "Serializable",
-      maxWait: 5000,  // ms to wait for lock acquisition
-      timeout: 10000, // ms before transaction is aborted
+    if (!listing) {
+      throw createError("Listing not found", 404);
     }
-  );
+
+    if (listing.status !== "active") {
+      throw createError(
+        "This listing is no longer available",
+        409
+      );
+    }
+
+    const availableStock =
+      listing.stock_total - listing.sold_total;
+
+    if (availableStock < qty) {
+      throw createError(
+        `Only ${availableStock} item(s) remaining`,
+        409
+      );
+    }
+
+    await tx.listing.update({
+      where: {
+        public_id: listing_id
+      },
+      data: {
+        sold_total: {
+          increment: qty
+        },
+
+        status:
+          availableStock - qty <= 0
+            ? "close"
+            : undefined
+      }
+    });
+
+    const total_amount =
+      Number(listing.discount_price) * qty;
+
+    const order = await tx.order.create({
+      data: {
+        qty,
+        total_amount,
+
+        qr_token: generate_qr_token(),
+
+        customer_id,
+        merchant_id: listing.merchant_id,
+        listing_id: listing.id,
+        order_lock_expired: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+
+        status: "pending_payment"
+      }
+    });
+
+    return order;
+  });
 }
 
 /**
  * Update order status + generate order code on payment confirmation.
  * @param {string} orderId
- * @param {string} paymentMethod - e.g. 'bank_transfer', 'qris'
+ * @param {string} payment_merthod - e.g. 'bank_transfer', 'qris'
  * @returns {Promise<Order>}
  */
-export async function confirm_order_payment(orderId, paymentMethod) {
+export async function confirm_order_payment(
+  orderId,
+  payment_merthod
+) {
   return prisma.$transaction(async (tx) => {
-    const order = await tx.order.findUnique({ where: { id: orderId } });
 
-    if (!order) throw createError("Order not found", 404);
-    if (order.status !== "PENDING_PAYMENT") {
+    const order =
+      await tx.order.findUnique({
+        where: {
+          public_id: orderId
+        }
+      });
+
+    if (!order) {
       throw createError(
-        `Cannot confirm payment — order status is '${order.status}'`,
+        "Order not found",
+        404
+      );
+    }
+
+    if (
+      order.status !== "pending_payment"
+    ) {
+      throw createError(
+        `Cannot confirm payment`,
         409
       );
     }
 
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 2);
 
-    // Retry up to 10 times to avoid order_code uniqueness collisions
-    for (let attempt = 0; attempt < 10; attempt++) {
+    expiresAt.setHours(
+      expiresAt.getHours() + 2
+    );
+
+    for (
+      let attempt = 0;
+      attempt < 10;
+      attempt++
+    ) {
       try {
-        const updated = await tx.order.update({
-          where: { id: orderId },
-          data: {
-            status: "PAID_RESERVED",
-            order_code: generate_order_code(),
-            order_code_active: true,
-            order_code_expires_at: expiresAt,
-            payment_method: paymentMethod,
+        return await tx.order.update({
+          where: {
+            public_id: orderId
           },
-          include: { list: { include: { merchant: true } } },
+          data: {
+            status: "paid_reserved",
+
+            order_code:
+              generate_order_code(),
+
+            order_code_active: true,
+
+            order_code_expires_at:
+              expiresAt
+          },
+
+          include: {
+            listings: true,
+            merchants: true
+          }
         });
-        return updated;
+
       } catch (e) {
-        if (e.code === "P2002" && attempt < 9) continue; // unique collision, retry
+
+        if (
+          e.code === "P2002" &&
+          attempt < 9
+        ) {
+          continue;
+        }
+
         throw e;
       }
     }
@@ -160,34 +209,63 @@ export async function confirm_order_payment(orderId, paymentMethod) {
 /**
  * Cancel an order and release the reserved stock back to the listing.
  * @param {string} orderId
- * @param {string} cancelledBy - userId initiating the cancellation
+ * @param {string} cancelledBy - user_id initiating the cancellation
  * @returns {Promise<Order>}
  */
-export async function cancel_order(orderId, cancelledBy) {
+export async function cancel_order(
+  orderId
+) {
   return prisma.$transaction(async (tx) => {
-    const order = await tx.order.findUnique({ where: { id: orderId } });
+    // console.log("orderId repo: ", orderId)
 
-    if (!order) throw createError("Order not found", 404);
+    const order =
+      await tx.order.findUnique({
+        where: {
+          public_id: orderId
+        }
+      });
 
-    const cancellable = ["PENDING_PAYMENT", "PAID_RESERVED"];
-    if (!cancellable.includes(order.status)) {
+    if (!order) {
       throw createError(
-        `Cannot cancel — order is already '${order.status}'`,
+        "Order not found",
+        404
+      );
+    }
+
+    const cancellable = [
+      "pending_payment",
+      "paid_reserved"
+    ];
+
+    if (
+      !cancellable.includes(order.status)
+    ) {
+      throw createError(
+        `Cannot cancel order`,
         409
       );
     }
 
-    // Release stock back to the listing
-    await tx.$executeRaw`
-      UPDATE "Listing"
-      SET stock = stock + ${order.qty},
-          status = 'PUBLISHED'::"List_Status"
-      WHERE id = ${order.listing_id}::uuid
-    `;
+    await tx.listing.update({
+      where: {
+        id: order.listing_id
+      },
+      data: {
+        sold_total: {
+          decrement: order.qty
+        },
+
+        status: "active"
+      }
+    });
 
     return tx.order.update({
-      where: { id: orderId },
-      data: { status: "CANCELLED" },
+      where: {
+        id: order.id
+      },
+      data: {
+        status: "cancelled"
+      }
     });
   });
 }
@@ -198,29 +276,201 @@ export async function cancel_order(orderId, cancelledBy) {
  * @returns {Promise<Order|null>}
  */
 export async function find_order_by_id(orderId) {
-  return prisma.order.findUnique({
-    where: { id: orderId },
+  const order = await prisma.order.findUnique({
+    where: { public_id: orderId },
     include: {
-      list: {
-        include: { merchant: true },
+      listing: true,
+      merchant: true,
+      payments: {
+        orderBy: {
+          created_at: "desc",
+        },
+        take: 1,
       },
-      payment: true,
+    },
+  });
+
+  if (!order) return null;
+
+  return {
+    ...order,
+    payment: order.payments[0] ?? null,
+    payments: undefined,
+  };
+}
+/**
+ * List all orders for a given user (customer), newest first.
+ * @param {string} user_id
+ * @returns {Promise<Order[]>}
+ */
+export async function find_orders_by_user(
+  customer_id
+) {
+  return prisma.order.findMany({
+    where: {
+      customer_id
+    },
+
+    orderBy: {
+      created_at: "desc"
+    },
+
+    include: {
+      listing: {
+        select: {
+          name: true,
+          discount_price: true
+        }
+      },
+
+      payments: {
+        select: {
+          pg_status: true
+        }
+      }
+    }
+  });
+}
+
+export async function find_orders_by_merchant(merchant_id) {
+  return prisma.order.findMany({
+    where: {
+      merchant_id,
+      deleted_at: null,
+    },
+
+    orderBy: {
+      created_at: "desc",
+    },
+
+    include: {
+      customer: {
+        select: {
+          full_name: true,
+        },
+      },
+
+      listing: {
+        select: {
+          name: true,
+          description: true,
+          discount_price: true,
+          discount_percentage: true,
+          original_price: true,
+        },
+      },
     },
   });
 }
 
-/**
- * List all orders for a given user (customer), newest first.
- * @param {string} userId
- * @returns {Promise<Order[]>}
- */
-export async function find_orders_by_user(userId) {
+
+export async function update_order_status(
+  public_id,
+  status
+) {
+    const expiresAt = new Date();
+
+    expiresAt.setHours(
+      expiresAt.getHours() + 2
+    );
+
+    if (status === "paid_reserved") {
+       for (
+      let attempt = 0;
+      attempt < 10;
+      attempt++
+    ) {
+      try {
+        return await prisma.order.update({
+          where: {
+            public_id: public_id
+          },
+          data: {
+            status: status,
+
+            order_code:
+              generate_order_code(),
+
+            order_code_active: true,
+
+            order_code_expires_at:
+              expiresAt
+          },
+
+          include: {
+            listing: true,
+            merchant: true
+          }
+        });
+
+      } catch (e) {
+
+        if (
+          e.code === "P2002" &&
+          attempt < 9
+        ) {
+          continue;
+        }
+
+        throw e;
+      }
+    }
+}
+  return prisma.order.update({
+    where: {
+      public_id,
+    },
+    data: {
+      status,
+    },
+  });
+}
+
+export async function complete_order(
+  orderId
+) {
+  return prisma.order.update({
+    where: {
+      id: orderId,
+    },
+    data: {
+      status: "completed",
+      order_code_active: false,
+    },
+  });
+}
+
+export async function find_order_by_code(
+  order_code,
+  public_id
+) {
+  return prisma.order.findFirst({
+    where: {
+      order_code,
+      order_code_active: true,
+      status: "ready_to_pickup",
+      public_id 
+    },
+  });
+}
+
+
+export async function fetch_all_order() {
   return prisma.order.findMany({
-    where: { user_id: userId },
-    orderBy: { created_at: "desc" },
+    where: {
+      deleted_at: null,
+    },
     include: {
-      list: { select: { title: true, discount_price: true } },
-      payment: { select: { pg_status: true } },
+      customer: {
+        select: {
+          full_name: true,
+        },
+      },merchants:{
+        select: {
+          merchant_name: true,
+        },
+      },
+      listing: true,
     },
   });
 }

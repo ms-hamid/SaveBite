@@ -25,7 +25,7 @@ export function DealCard({
     <div className="bg-surface-light dark:bg-surface-dark rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-800">
       <div className="relative h-40 bg-gray-200 overflow-hidden">
         <img
-          src={imageUrl}
+          src={imageUrl ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
           alt={storeName}
           className="w-full h-full object-cover"
         />

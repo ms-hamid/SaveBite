@@ -7,11 +7,15 @@
  * Docs: https://docs.midtrans.com/reference/snap-js
  */
 
-// import Midtrans from 'midtrans-client';
+import Midtrans from 'midtrans-client';
+
+console.log(process.env.MIDTRANS_IS_PRODUCTION)
+console.log(process.env.MIDTRANS_SERVER_KEY)
+console.log(process.env.MIDTRANS_CLIENT_KEY)
 
 // TODO: implement
-// export const snap = new Midtrans.Snap({
-//   isProduction: process.env.NODE_ENV === 'production',
-//   serverKey: process.env.MIDTRANS_SERVER_KEY,
-//   clientKey: process.env.MIDTRANS_CLIENT_KEY,
-// });
+export const core_api = new Midtrans.CoreApi({
+  isProduction: process.env.MIDTRANS_IS_PRODUCTION === 'true',
+  serverKey: process.env.MIDTRANS_SERVER_KEY,
+  clientKey: process.env.MIDTRANS_CLIENT_KEY,
+});

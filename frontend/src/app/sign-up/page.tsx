@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { ButtonHTMLAttributes, useState } from "react";
 import ArrowBack from "../../components/ArrowBack";
 import SignUpRole from "../../components/sign-up/choose_role";
 import InputUserData from "../../components/sign-up/input_user_data";
@@ -8,10 +8,11 @@ import InputAboutMerchant from "../../components/sign-up/about_merchant";
 import MerchantChooseLocation from "../../components/sign-up/location_merchant";
 import api, { getApiErrorMessage } from "../../lib/api";
 import { useRouter } from "next/navigation";
+import { register } from "@/services/auth";
 
 type Role = "MERCHANT" | "CUSTOMER";
 
-export type RegisterData = {
+type RegisterData = {
   role: Role;
   full_name: string;
   email: string;
@@ -142,43 +143,6 @@ export default function HomePage() {
       return Object.keys(new_errors).length === 0;
     }
 
-    // if (role === "MERCHANT" && step_count === 3) {
-    //   const new_errors: Errors = {};
-
-    //   if (!input_data.location.trim()) {
-    //     new_errors.location = "Location wajib diisi";
-    //   }
-
-    //   set_errors(new_errors);
-
-    //   return Object.keys(new_errors).length === 0;
-    // }
-
-    // if (role === "CUSTOMER" && step_count === 2) {
-    //   const new_errors: Errors = {};
-
-    //   if (!input_data.phone.trim()) {
-    //     new_errors.phone = "Phone number wajib diisi";
-    //   }
-
-    //   set_errors(new_errors);
-
-    //   return Object.keys(new_errors).length === 0;
-    // }
-
-    // if (role === "CUSTOMER" && step_count === 3) {
-    //   const new_errors: Errors = {};
-
-    //   if (!input_data.address.trim()) {
-    //     new_errors.address = "Address wajib diisi";
-    //   }
-
-    //   set_errors(new_errors);
-
-    //   return Object.keys(new_errors).length === 0;
-    // }
-    
-
     return true;
   }
 
@@ -205,6 +169,7 @@ export default function HomePage() {
 
   async function handle_submit() {
     try {
+      // e.preventDefault()
       const account_type = input_data.role === "MERCHANT" ? "MERCHANT" : "CONSUMER";
 
       const payload = {
@@ -218,21 +183,43 @@ export default function HomePage() {
         desc: input_data.desc,
       };
 
-      const endpoint = account_type === "MERCHANT" ? "/auth/merch_reg" : "/auth/reg";
-      const { data } = await api.post(endpoint, payload);
+      let data;
 
-      // Store the JWT for subsequent authenticated requests
-      if (data.token) {
-        localStorage.setItem("sb_access_token", data.token);
-      }
+      if (account_type === 'MERCHANT') {
+        data = await register({
+          email: input_data.email,
+          password: input_data.password,
+          full_name: input_data.full_name,
+        
+          role: "MERCHANT",
+        
+          merchant_name:
+            input_data.merchant_name,
+        
+          address:
+            input_data.address,
+        
+          category:
+            input_data.category,
+        });
+      }else {
+        data = await register({
+          email: input_data.email,
+          password: input_data.password,
+          full_name: input_data.full_name,
+          role: "CUSTOMER",
+        });
+      } 
 
-      sessionStorage.setItem("verification_email", input_data.email);
+
+      
+      sessionStorage.setItem("verification_email", input_data.email)
       router.push("/email-verification");
+
     } catch (error) {
       set_errors({ general: getApiErrorMessage(error) });
     }
   }
-  
 
   const merchant_steps = [
     {
@@ -366,6 +353,7 @@ export default function HomePage() {
       <div className="max-w-[448px] mx-auto w-full min-h-screen relative flex flex-col bg-white overflow-x-hidden pb-[100px]">
         <ArrowBack back_function={handle_back_step} />
 
+
         <main className="flex-1 px-6 flex flex-col gap-5 pt-2 pb-20">
           <div className="mb-6 mt-2">
             <div className="flex justify-between items-center mb-2">
@@ -407,9 +395,10 @@ export default function HomePage() {
 
         <div className="fixed bottom-0 w-full max-w-[448px] bg-white pt-4 pb-8 px-6 z-40">
           <button
+            type={step_count === active_steps.length - 1 ? "submit" : "button"}
             onClick={handle_next_step}
             className="w-full bg-gradient-to-r from-[#6AD2A2] to-[#51C795] text-white font-bold h-14 rounded-xl transition-all flex justify-center items-center gap-2 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary active:scale-[0.98]"
-          >
+            >
             {step_count === active_steps.length - 1 ? "Create Account" : "Continue"}
           </button>
 

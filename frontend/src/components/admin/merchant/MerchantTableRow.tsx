@@ -1,30 +1,6 @@
+import { Merchant } from "@/types";
 import Link from "next/link";
 
-export type MerchantOrder = {
-  id: number;
-  qty: number;
-  total_amount: number | string;
-  status: string | null;
-  created_at: string | null;
-  deleted_at: string | null;
-  merchant_id: string;
-};
-
-export type MerchantRowData = {
-  user_id: string;
-  merchant_name: string;
-  category: string;
-  location: string;
-  rating: string;
-  review_count: string;
-  status: "Active" | "Inactive" | "Incomplete";
-  total_orders: number;
-  total_revenue: number;
-};
-
-type MerchantTableRowProps = {
-  merchant: MerchantRowData;
-};
 
 function formatRupiah(value: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -34,19 +10,19 @@ function formatRupiah(value: number) {
   }).format(value);
 }
 
-function getStatusClass(status: MerchantRowData["status"]) {
-  if (status === "Active") {
+function getStatusClass(status: Merchant["kyc_status"]) {
+  if (status === "approved") {
     return "bg-highlight text-primary";
   }
 
-  if (status === "Inactive") {
+  if (status === "rejected") {
     return "bg-error-light text-error";
   }
 
   return "bg-surface-container text-on-surface-variant";
 }
 
-export default function MerchantTableRow({ merchant }: MerchantTableRowProps) {
+export default function MerchantTableRow({merchant} : {merchant: Merchant}) {
   return (
     <tr className="hover:bg-surface-container-low/50 transition-colors group bg-surface-container-lowest">
       <td className="p-unit-md">
@@ -78,12 +54,13 @@ export default function MerchantTableRow({ merchant }: MerchantTableRowProps) {
           >
             location_on
           </span>
-          <span>{merchant.location}</span>
+          <span>{merchant.address}</span>
         </div>
       </td>
 
       <td className="p-unit-md">
-        {merchant.rating === "-" ? (
+        {/* "rating" */}
+        {"-" === "-" ? (
           <span className="text-on-surface-variant italic">No ratings yet</span>
         ) : (
           <div className="flex items-center gap-1">
@@ -97,27 +74,29 @@ export default function MerchantTableRow({ merchant }: MerchantTableRowProps) {
               {merchant.rating}
             </span>
             <span className="text-on-surface-variant text-xs">
-              ({merchant.review_count})
+              ({"merchant.review_count"})
             </span>
           </div>
         )}
       </td>
 
       <td className="p-unit-md text-on-surface-variant">
-        {merchant.total_orders} orders
+        {merchant.orders?.length || 0} orders
       </td>
 
       <td className="p-unit-md font-semibold text-on-surface">
-        {formatRupiah(merchant.total_revenue)}
+      {/* merchant.total_revenue */}
+        {formatRupiah(1000000)}
       </td>
 
       <td className="p-unit-md">
         <span
           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getStatusClass(
-            merchant.status
+            merchant.kyc_status
+            
           )}`}
         >
-          {merchant.status}
+          {merchant.kyc_status}
         </span>
       </td>
 

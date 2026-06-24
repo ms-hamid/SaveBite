@@ -8,8 +8,9 @@ import React, {
 } from "react";
 
 import { supabase } from "../../lib/supabase";
-import { format_price } from "../../app/page";
+import { format_price } from "../../app/home/page";
 import { Formatted, Order, Payment } from "../../types";
+import { getOrderByPublicId } from "@/services/order";
 
 type PaymentContextType = {
   payment: Payment | undefined | null;
@@ -27,7 +28,7 @@ export function PaymentProvider({
   order_id,
 }: {
   children: React.ReactNode;
-  order_id: number | string | undefined;
+  order_id: string ;
 }) {
   const [payment, setPayment] = useState<Payment | null>();
   const [order, setOrder] = useState<Order | null>();
@@ -45,7 +46,6 @@ export function PaymentProvider({
       console.log("order_id")
       console.log(order_id)
 
-      const parsedOrderId = Number(order_id);
 
       // if (Number.isNaN(parsedOrderId)) {
       //   console.error("order_id must be a valid number:", order_id);
@@ -53,41 +53,8 @@ export function PaymentProvider({
       //   return;
       // }
 
-      const { data, error } = await supabase
-      .from("orders")
-      .select(`
-        id,
-        qty,
-        total_amount,
-        qr_token,
-        status,
-        created_at,
-        updated_at,
-        deleted_at,
-        listing_id,
-        customer_id,
-        public_id,
-        payments(*),
-        listings:listing_id (
-          name,
-          description,
-          discount_price,
-          discount_percentage,
-          original_price,
-          merchant_id,
-          merchants:merchant_id (
-            merchant_name,
-            address
-          )
-        )
-      `).eq("public_id", order_id).single().returns<Order & {formatted: Formatted | undefined}>();
-
-      if (error) {
-        console.error("Failed to fetch payment:", error);
-        setPayment(undefined);
-        return;
-      }
-
+      const res = await getOrderByPublicId(order_id);
+      const data = res.data;
       if (!data) {
         setPayment(undefined);
         return;

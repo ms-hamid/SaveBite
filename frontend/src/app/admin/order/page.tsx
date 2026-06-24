@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import AdminLayout from "../../../components/admin/AdminLayout";
 import { supabase } from "../../../lib/supabase";
 import OrderMonitoringTableRow, { Order, OrderStatus } from "../../../components/admin/OrderMonitoringTableRow";
+import { getAllOrder } from "@/services/order";
 
 type StatusFilter = "all" | OrderStatus;
 
@@ -24,6 +25,9 @@ const status_filters: {
 ];
 
 export default function Page() {
+
+    console.log('start')
+
   const [orders, set_orders] = useState<Order[]>([]);
   const [selected_status, set_selected_status] = useState<StatusFilter>("all");
   const [current_page, set_current_page] = useState<number>(1);
@@ -40,56 +44,26 @@ export default function Page() {
   const end_entry = Math.min(current_page * PAGE_SIZE, total_count);
 
   async function get_orders() {
+    console.log('start')
     set_loading(true);
     set_error_message("");
 
     const from = (current_page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
-    let query = supabase
-      .from("orders")
-      .select(
-        `
-        id,
-        qty,
-        total_amount,
-        qr_token,
-        status,
-        created_at,
-        updated_at,
-        deleted_at,
-        listing_id,
-        public_id,
-        merchant_id,
-        customer_id
-      `,
-        { count: "exact" }
-      )
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .range(from, to);
+    const data = await getAllOrder();
 
-    if (selected_status !== "all") {
-      query = query.eq("status", selected_status);
-    }
+    console.log(data)
 
-    const { data, error, count } = await query.returns<Order[]>();
-
-    if (error) {
-      console.log(error);
-      set_error_message(error.message);
-      set_orders([]);
-      set_total_count(0);
-      set_loading(false);
-      return;
-    }
-
-    set_orders(data ?? []);
-    set_total_count(count ?? 0);
+    set_orders(data.data ?? []);
+    set_total_count(data.data.length ?? 0);
     set_loading(false);
   }
 
   useEffect(() => {
+    console.log('start')
+
+
     get_orders();
   }, [selected_status, current_page]);
 

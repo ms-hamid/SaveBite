@@ -10,7 +10,7 @@ export default async function Page() {
 
   return (
     <AdminLayout>
-      <CustomerDetailClient public_id={params.public_id} />
+      <CustomerDetailClient public_id={params.public_id as string} />
     </AdminLayout>
   );
 }

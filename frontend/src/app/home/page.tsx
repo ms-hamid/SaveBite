@@ -6,21 +6,7 @@ import { useRouter } from "next/navigation";
 import CustomerNavbar from "../../components/navbar/customer_navbar";
 import { supabase } from "../../lib/supabase";
 import Link from "next/link";
-
-type FoodItem = {
-  id: number;
-  title: string;
-  store: string;
-  originalPrice: string;
-  price: string;
-  saveText: string;
-  savePercent: string;
-  pickupTime: string;
-  endingText: string;
-  bagsLeft: string;
-  distance: string;
-  image: string;
-};
+import { getListingAll } from "@/services/listing";
 
 export type ListingProps = {
   id: number, 
@@ -40,7 +26,10 @@ export type ListingProps = {
   img_url: string,
   merchants: {
     merchant_name: string;
-  }
+    category?: string;
+    address?: string;
+  },
+  distance_km?: number | string;
 }
 
 export function set_to_hour(timestamps: string) :string 
@@ -88,26 +77,39 @@ export default function HomePage() {
   const router = useRouter();
 
   const [food_items, set_food_items] = useState<ListingProps[]>([]);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+
+  useEffect(() => {
+    // Attempt to get user GPS coordinates on mount
+    if (typeof window !== "undefined" && navigator.geolocation) {
+      setLocationLoading(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLatitude(position.coords.latitude);
+          setLongitude(position.coords.longitude);
+          setLocationLoading(false);
+        },
+        (error) => {
+          console.error("GPS location permission or error:", error);
+          setLocationLoading(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+  }, []);
 
   useEffect(() => {
     async function get_data() {
-      const { data, error } = await supabase
-        .from("listings")
-        .select("*, merchants (merchant_name)")
-        .returns<ListingProps[]>();
-
-      if (error) {
-        console.log("error:", error);
-        return;
-      }
-
-      console.log("data dari supabase:", data);
-
-      set_food_items(data);
+      // If latitude and longitude are available, fetch nearest listings first
+      const data = await getListingAll(latitude || undefined, longitude || undefined);
+      console.log("data dari backend:", data.data);
+      set_food_items(data.data || []);
     }
 
     get_data();
-  }, []);
+  }, [latitude, longitude]);
 
   useEffect(() => {
     console.log("food_items berubah:", food_items);
@@ -126,15 +128,37 @@ export default function HomePage() {
   ];
 
   const filteredItems = food_items.filter((item) => {
-      const keyword = search.toLowerCase();
+    const keyword = search.toLowerCase();
 
-      return (
-        item.name.toLowerCase().includes(keyword) ||
-        item.merchants.merchant_name.toLowerCase().includes(keyword)
+    // 1. Search filter
+    const matchesSearch = (item.name ?? "").toLowerCase().includes(keyword) ||
+      (item.merchants?.merchant_name || "").toLowerCase().includes(keyword);
 
-      );
-    });
+    if (!matchesSearch) return false;
 
+    // 2. Category filters
+    if (selectedCategory === "Under 20k") {
+      return Number(item.discount_price) <= 20000;
+    }
+    if (selectedCategory === "Bakery") {
+      const cat = (item.merchants?.category || "").toLowerCase();
+      const itemName = (item.name || "").toLowerCase();
+      return cat.includes("bakery") || itemName.includes("bread") || itemName.includes("cake") || itemName.includes("donut") || itemName.includes("pastry");
+    }
+    if (selectedCategory === "Meals") {
+      const cat = (item.merchants?.category || "").toLowerCase();
+      const itemName = (item.name || "").toLowerCase();
+      // Simple classifier: meals are generally not bakery items
+      return !cat.includes("bakery") && !itemName.includes("bread") && !itemName.includes("cake");
+    }
+
+    return true;
+  });
+
+  // Client-side sort for "Ending soon" category
+  if (selectedCategory === "Ending soon") {
+    filteredItems.sort((a, b) => new Date(a.close_time).getTime() - new Date(b.close_time).getTime());
+  }
 
   function toggleFavorite(id: number) {
     setFavorites((prev) =>
@@ -164,7 +188,13 @@ export default function HomePage() {
                   location_on
                 </span>
 
-                <span>Batam, ID</span>
+                <span>
+                  {latitude && longitude
+                    ? `GPS: ${latitude.toFixed(2)}, ${longitude.toFixed(2)}`
+                    : locationLoading
+                    ? "Locating..."
+                    : "Batam, ID"}
+                </span>
 
                 <span className="material-symbols-outlined text-[18px] text-slate-400">
                   expand_more
@@ -251,7 +281,7 @@ export default function HomePage() {
               >
                 <div className="relative h-40 w-full mb-3 overflow-hidden rounded-lg">
                   <Image
-                    src={item.img_url}
+                    src={item.img_url ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
                     alt={item.name}
                     fill
                     className="object-cover hover:scale-105 transition-transform duration-500"
@@ -288,7 +318,7 @@ export default function HomePage() {
                       </h3>
 
                       <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">
-                        {item.merchants.merchant_name}
+                        {item.merchants?.merchant_name}
                       </p>
                     </div>
 
@@ -302,7 +332,7 @@ export default function HomePage() {
                       </span>
 
                       <span className="block text-[10px] text-green-600 dark:text-green-400 font-semibold mt-0.5 bg-green-50 dark:bg-green-900/30 px-1.5 rounded-sm">
-                        Save Rp {format_price(item.original_price - item.discount_price)}
+                        Save {format_price(item.original_price - item.discount_price)}
                       </span>
                     </div>
                   </div>
@@ -335,7 +365,9 @@ export default function HomePage() {
                         distance
                       </span>
 
-                      {/* {item.distance} 5km */} 5km
+                      {item.distance_km != null
+                        ? `${Number(item.distance_km).toFixed(1)} km`
+                        : "tidak dapat lokasi"}
                     </div>
                   </div>
                 </div>

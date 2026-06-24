@@ -3,7 +3,7 @@ import AuthInputComponent from "../auth/input_column";
 
 type UserMainData = {
     input_value: RegisterData
-    update_function: <K extends keyof RegisterData>(key: K, value: RegisterData[K]) => void
+    update_function: <K extends keyof RegisterData>(key: K, value: RegisterData) => void
     errors: Partial<Record<keyof RegisterData | "general", string>>
 };
 

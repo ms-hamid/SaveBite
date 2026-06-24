@@ -51,7 +51,7 @@ export default function PaymentConfirmedScreen() {
                   </p>
 
                   <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                    {order?.listings.name}
+                    {order?.listing?.name}
                   </h3>
                 </div>
 
@@ -111,7 +111,7 @@ export default function PaymentConfirmedScreen() {
                   alt="Order QR Code"
                   className="w-full h-full object-contain mix-blend-multiply opacity-90"
                   data-alt="QR Code for order redemption"
-                  src={qrCodeUrl}
+                  src={qrCodeUrl ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
                 />
               </div>
 

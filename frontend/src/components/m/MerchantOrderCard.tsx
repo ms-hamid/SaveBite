@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { Order, OrderStatus } from "../providers/OrderProvider";
+import { Order, OrderStatus } from "@/types";
 
 
 type CustomerTagVariant = "repeat" | "priority" | "pickupSoon";
@@ -202,14 +201,14 @@ export default function MerchantOrderCard({ order, onAction }: OrderCardProps) {
 
         <div className="flex-1">
           <p className="text-[14px] font-bold text-sb-primary-text">
-            {order.listings.name}
+            {order.listing?.name}
             <span className="text-sb-secondary-text ml-1">
               x{order.qty}
             </span>
           </p>
 
           <p className="text-[13px] font-medium text-sb-secondary-text mt-0.5">
-            {order.listings.discount_price}
+            {order.listing?.discountPrice}
           </p>
         </div>
       </div>

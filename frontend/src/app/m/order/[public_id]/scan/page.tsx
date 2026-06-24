@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { supabase } from "../../../lib/supabase";
-import QRPickupScanner from "../../../components/m/QRPIckupScanner";
+import { supabase } from "../../../../../lib/supabase";
+import QRPickupScanner from "../../../../../components/m/QRPIckupScanner";
 import Link from "next/link";
 
 export default function ScanPickupCodeRefinedMinimalistPage() {

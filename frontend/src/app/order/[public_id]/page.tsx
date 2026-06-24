@@ -11,7 +11,13 @@ import { useOrder } from "../../../components/providers/OrderProvider";
 import { PageHeader } from "../../../components/shared";
 
 export default function OrderDetailPage() {
-  const { order, listing, merchant } = useOrder();
+  const { order, listing, merchant, payment} = useOrder();
+
+
+  if (order?.status === 'pending_payment' && order.payment?.pg_status !== 'settlement') {
+    window.location.href = `/order/${order.public_id}/serve`;
+    return null;
+  }
 
   const page = {
     cancelled: <CancelledOrderPage order={order} />,
