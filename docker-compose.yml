@@ -1,0 +1,193 @@
+# =============================================================================
+# SaveBite — Monorepo Docker Compose (Development Orchestration)
+# =============================================================================
+# Usage:
+#   docker compose up --build          # first run / after dependency changes
+#   docker compose up                  # subsequent runs (uses cached layers)
+#   docker compose down -v             # stop + remove containers & volumes
+#
+# Prerequisites:
+#   - Copy backend-core/.env.example  → backend-core/.env
+#   - Copy backend-ai/.env.example    → backend-ai/.env
+#   - Copy frontend/.env.example      → frontend/.env.local
+#
+# Service URLs (from your browser / host machine):
+#   Frontend    →  http://localhost:3000
+#   backend-core→  http://localhost:5000
+#   backend-ai  →  http://localhost:8000
+# =============================================================================
+
+name: savebite
+
+services:
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # backend-ai  (FastAPI / Python 3.11)
+  # Built from backend-ai/Dockerfile (multi-stage: builder + runner)
+  # ─────────────────────────────────────────────────────────────────────────────
+  backend-ai:
+    build:
+      context: ./backend-ai        # Docker build context = backend-ai/
+      dockerfile: Dockerfile
+    container_name: savebite-backend-ai
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend-ai/.env          # copy from backend-ai/.env.example
+    environment:
+      # Override service-to-service URL so backend-ai can reach backend-core
+      # inside the Docker bridge network using the service name, not localhost.
+      BACKEND_CORE_URL: "http://backend-core:5000"
+      # Allow requests from the frontend container and host browser
+      ALLOWED_ORIGINS: '["http://localhost:3000","http://frontend:3000","http://backend-core:5000"]'
+      HOST: "0.0.0.0"
+      PORT: "8000"
+    volumes:
+      # ── Source hot-reload: map local code into the container ────────────────
+      - ./backend-ai/app:/app/app
+      - ./backend-ai/main.py:/app/main.py
+      # ── ML model cache persistence across container restarts ────────────────
+      # Mount a named volume so trained models survive `docker compose restart`.
+      - ai_model_cache:/app/data/processed
+    networks:
+      - savebite-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s             # extra time for Prophet/XGBoost model load
+
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # backend-core  (Express / Node.js 22 ESM)
+  # Built from backend-core/Dockerfile (multi-stage: deps + runner)
+  # ─────────────────────────────────────────────────────────────────────────────
+  backend-core:
+    build:
+      context: ./backend-core      # Docker build context = backend-core/
+      dockerfile: Dockerfile
+    container_name: savebite-backend-core
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend-core/.env        # copy from backend-core/.env.example
+    environment:
+      NODE_ENV: "development"
+      PORT: "5000"
+      # Override AI service URL so backend-core reaches backend-ai via the
+      # internal Docker bridge network (not host localhost).
+      AI_SERVICE_URL: "http://backend-ai:8000"
+      # Allow CORS from the frontend container and host browser.
+      FRONTEND_URL: "http://localhost:3000"
+    volumes:
+      # ── Source hot-reload: map local source into the running container ──────
+      - ./backend-core/src:/app/src
+      - ./backend-core/prisma:/app/prisma
+      # ── Architecture conflict guard (CRITICAL for Windows hosts) ────────────
+      # The production Dockerfile installs Linux node_modules inside the image.
+      # Without this anonymous override the Windows host's node_modules (which
+      # contain win32 binaries like @rolldown/binding-win32-x64-msvc) would be
+      # bind-mounted OVER the container's Linux binaries, breaking the runtime.
+      # This anonymous volume "shadows" the host mount for /app/node_modules,
+      # keeping the container's Linux packages intact.
+      - /app/node_modules
+    networks:
+      - savebite-net
+    depends_on:
+      backend-ai:
+        condition: service_healthy
+    healthcheck:
+      # wget is built into node:22-alpine — no ESM/CJS ambiguity, no runtime flags needed.
+      # -q = quiet, --spider = HEAD-only request (no download), -T = timeout in seconds.
+      # Exit code 0 on HTTP 2xx/3xx, non-zero on connection error or 4xx/5xx.
+      test: ["CMD", "wget", "-qO-", "--spider", "-T", "5", "http://localhost:5000/api/health"]
+      interval: 20s
+      timeout: 8s
+      retries: 5
+      start_period: 20s
+
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # frontend  (Next.js 16 / React 19 / Tailwind CSS 4)
+  # No Dockerfile exists → built inline from node:22-alpine.
+  # Runs `next dev --webpack` for hot-module replacement in development.
+  # ─────────────────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile_inline: |
+        FROM node:22-alpine
+        WORKDIR /app
+        # Copy manifests first — maximises Docker layer cache reuse.
+        COPY package.json package-lock.json* ./
+        # Install ALL deps (including devDependencies needed by Next.js dev server)
+        RUN npm install
+        # Copy the rest of the source (overridden by bind-mount at runtime)
+        COPY . .
+        EXPOSE 3000
+        # next dev --webpack matches the script in frontend/package.json.
+        # HOSTNAME=0.0.0.0 is required so the dev server is reachable from
+        # outside the container (Docker port-forwarding needs it).
+        ENV HOSTNAME=0.0.0.0
+        ENV PORT=3000
+        CMD ["npm", "run", "dev"]
+    container_name: savebite-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./frontend/.env.local      # copy from frontend/.env.example
+    environment:
+      # Override API URL so Next.js server-side fetches hit backend-core inside
+      # the Docker network. Client-side fetches from the browser still go via
+      # the host-mapped port (localhost:5000).
+      NEXT_PUBLIC_API_URL: "http://localhost:5000"
+      NODE_ENV: "development"
+      HOSTNAME: "0.0.0.0"
+      PORT: "3000"
+      # Disable Next.js telemetry inside the container
+      NEXT_TELEMETRY_DISABLED: "1"
+    volumes:
+      # ── Source hot-reload: bind-mount entire frontend source ────────────────
+      - ./frontend:/app
+      # ── Architecture conflict guard #1 — node_modules (CRITICAL) ───────────
+      # Prevents the Windows host's node_modules (containing win32 binaries
+      # such as lightningcss.win32-x64-msvc) from overriding the container's
+      # Linux-compiled packages. The anonymous volume preserves the Linux
+      # node_modules installed during `docker build`.
+      - /app/node_modules
+      # ── Architecture conflict guard #2 — .next build cache ─────────────────
+      # Prevents any stale Windows-generated .next/ artefacts from leaking into
+      # the Linux container's incremental compilation cache, which would cause
+      # webpack/turbopack to emit incorrect platform-specific chunks.
+      - /app/.next
+    networks:
+      - savebite-net
+    depends_on:
+      backend-core:
+        condition: service_healthy
+
+
+# =============================================================================
+# Named Volumes
+# =============================================================================
+volumes:
+  # Persists trained ML models (Prophet, XGBoost) across backend-ai restarts.
+  # Use `docker compose down` (without -v) to keep models between sessions.
+  ai_model_cache:
+    driver: local
+
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  savebite-net:
+    driver: bridge
+    # All three services share this bridge network.
+    # Service-to-service calls use the service NAME as the hostname:
+    #   backend-core → http://backend-ai:8000
+    #   frontend SSR → http://backend-core:5000  (server-side only)

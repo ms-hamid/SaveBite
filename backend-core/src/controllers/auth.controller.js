@@ -48,23 +48,29 @@ export async function register(
   }
 
 
+// ── FR-U-01 — Merchant registration ──────────────────────────────────────────
+
+/**
+ * POST /auth/merch_reg
+ * Registers a new MERCHANT account (with merchant profile).
+ * Responds 201 on success, 409 on duplicate email.
+ */
 export async function merchant_register(req, res) {
-    try {
-        const body = req.body;
+  try {
+    const new_user = await register_user(req.body, "MERCHANT");
 
-        const new_user = await register_user(body, "MERCHANT");
-
-        return res.status(201).json({
-            message: "Berhasil mendaftarkan akun merhcant",
-            user: new_user
-        });
-
-    } catch (e) {
-        return res.status(500).json({
-            message: "Internal Server Error",
-            error: e.message
-        });
-    }
+    return res.status(201).json({
+      message: "Merchant account created successfully.",
+      user: new_user, // password_hash already stripped in service
+    });
+  } catch (err) {
+    const status = error_status(err);
+    if (status === 500) console.error("[merchant_register]", err);
+    return res.status(status).json({
+      error: err.name,
+      message: err.message,
+    });
+  }
 }
 
 export async function login(req, res) {

@@ -22,9 +22,27 @@ yarn-error.log*
 # ─── OS ──────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+.npmrc
 
 # ─── Editor ──────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
+
+# ─── Python (backend-ai) ──────────────────────────────────────────────────────
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# ─── Deployment Artefacts ─────────────────────────────────────────────────────
+frontend/.next/
+frontend/out/
+frontend/.env.local
+.vercel/

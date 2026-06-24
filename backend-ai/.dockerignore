@@ -1,0 +1,44 @@
+# ─── Python artefacts ─────────────────────────────────────────────────────────
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# ─── Virtual environments ─────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ─── Environment secrets ──────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ─── Test artefacts ───────────────────────────────────────────────────────────
+tests/
+.pytest_cache/
+pytest.ini
+*.egg-info/
+
+# ─── Jupyter Notebooks (R&D only) ────────────────────────────────────────────
+notebooks/
+
+# ─── ML training data (large binary files — use volumes instead) ──────────────
+data/raw/
+
+# ─── Git ──────────────────────────────────────────────────────────────────────
+.git/
+.gitignore
+
+# ─── Editor / OS ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log

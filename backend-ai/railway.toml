@@ -1,0 +1,16 @@
+# Railway deployment configuration for backend-ai (FastAPI / Uvicorn)
+# Docs: https://docs.railway.app/reference/config-as-code
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "backend-ai/Dockerfile"
+# Build context is the backend-ai directory
+dockerContextPath = "backend-ai"
+
+[deploy]
+# CMD is defined in the Dockerfile; override here if needed:
+# startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT --workers 2"
+healthcheckPath = "/health"
+healthcheckTimeout = 60   # longer timeout: Prophet/XGBoost models take time to load
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
