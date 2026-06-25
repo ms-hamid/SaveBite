@@ -8,8 +8,8 @@
 
 // Provide a deterministic test secret — never a real production key
 process.env.JWT_SECRET =
-  "test-secret-do-not-use-in-production-needs-to-be-at-least-64-bytes-long-abcdef";
+  "your-very-long-random-secret-here-min-64-bytes";
 
 // Prevent Prisma from trying to connect to a DB during unit tests
 process.env.DATABASE_URL =
-  "postgresql://test:test@localhost:5432/test_db?schema=public";
+  "postgresql://postgres.stoayeuztudofwpbqijf:SaveBiteProject!1610@aws-1-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true";

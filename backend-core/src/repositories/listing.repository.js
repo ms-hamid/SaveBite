@@ -24,7 +24,7 @@ export async function find_listing_by_id(listingId) {
  * @param {{ lat?: number, lng?: number, radius_km?: number, limit?: number }} opts
  * @returns {Promise<Listing[]>}
  */
-export async function find_active_listings({ lat, lng, radius_km = 100, limit = 20 } = {}) {
+export async function find_active_listings({ lat, lng, radius_km = 1000, limit = 20 } = {}) {
 
   if (lat != null && lng != null) {
     // Haversine distance formula in PostgreSQL

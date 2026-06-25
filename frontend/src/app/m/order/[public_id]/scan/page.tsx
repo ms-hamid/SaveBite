@@ -1,58 +1,43 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { supabase } from "../../../../../lib/supabase";
 import QRPickupScanner from "../../../../../components/m/QRPIckupScanner";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { pickupOrder } from "@/services/order";
+import { getApiErrorMessage } from "@/lib/api";
 
 export default function ScanPickupCodeRefinedMinimalistPage() {
   const params = useParams();
-  const [message, setMessage] = useState("Align customer QR code within the frame");
+  const router = useRouter();
+  const [message, setMessage] = useState("Arahkan QR code customer ke dalam frame");
   const [status, setStatus] = useState<"idle" | "success" | "error" | "loading">(
     "idle"
   );
 
+  // Menggunakan pickupOrder dari API (sesuai ADR-001 — backend-only mutation)
+  // qrToken = Order.qr_token (schema: orders.qr_token)
+  // order_public_id = params.public_id (schema: orders.public_id)
   const updateOrderToCompleted = useCallback(async (qrToken: string) => {
     try {
       setStatus("loading");
-      setMessage("Checking pickup code...");
+      setMessage("Memeriksa kode pickup...");
 
-      console.log("QR TOKEN UNTUK UPDATE:", qrToken);
-
-      const { data, error } = await supabase
-        .from("orders")
-        .update({
-          status: "completed",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("qr_token", qrToken)
-        .select("id, status, qr_token")
-        .maybeSingle();
-
-      console.log("SUPABASE UPDATE DATA:", data);
-      console.log("SUPABASE UPDATE ERROR:", error);
-
-      if (error) {
-        setStatus("error");
-        setMessage("Failed to update order.");
-        return;
-      }
-
-      if (!data) {
-        setStatus("error");
-        setMessage("QR valid terbaca, tapi order tidak ditemukan.");
-        return;
-      }
+      // pickupOrder mengirim { pickup_code, order_public_id } ke POST /order/pickup
+      // pickup_code = Order.order_code (schema) yang di-embed dalam QR token
+      await pickupOrder(qrToken, params.public_id as string);
 
       setStatus("success");
-      setMessage("Pickup confirmed. Order completed.");
+      setMessage("Pickup dikonfirmasi. Pesanan selesai.");
+
+      // Redirect ke daftar order setelah sukses
+      setTimeout(() => router.push("/m/order"), 1500);
     } catch (error) {
       console.error(error);
       setStatus("error");
-      setMessage("Unexpected error while updating order.");
+      setMessage(getApiErrorMessage(error) || "Gagal memverifikasi pickup.");
     }
-  }, []);
+  }, [params.public_id, router]);
 
   return (
     <div className="bg-background text-text-primary h-full font-sans antialiased">
@@ -105,10 +90,12 @@ export default function ScanPickupCodeRefinedMinimalistPage() {
             <p
               className={`text-sm flex items-center justify-center gap-2 ${
                 status === "success"
-                  ? "text-primary"
+                  ? "text-emerald-600"
                   : status === "error"
                   ? "text-red-500"
-                  : "text-text-secondary"
+                  : status === "loading"
+                  ? "text-slate-500"
+                  : "text-slate-500"
               }`}
             >
               <span
@@ -116,7 +103,7 @@ export default function ScanPickupCodeRefinedMinimalistPage() {
                 data-icon="qr_code_scanner"
                 style={{ fontVariationSettings: "'FILL' 1" }}
               >
-                qr_code_scanner
+                {status === "success" ? "check_circle" : status === "error" ? "error" : "qr_code_scanner"}
               </span>
 
               {message}
@@ -149,14 +136,9 @@ export default function ScanPickupCodeRefinedMinimalistPage() {
           </Link>
 
           <div className="mt-auto pt-6 w-full text-center mb-6">
-            <p className="text-xs text-text-secondary flex items-center justify-center gap-1.5 font-medium">
-              <span
-                className="material-symbols-outlined text-[14px]"
-                data-icon="info"
-              >
-                info
-              </span>
-              Only scan codes for orders marked Ready.
+            <p className="text-xs text-slate-500 flex items-center justify-center gap-1.5 font-medium">
+              <span className="material-symbols-outlined text-[14px]" data-icon="info">info</span>
+              Hanya scan QR dari order berstatus Ready.
             </p>
           </div>
         </main>

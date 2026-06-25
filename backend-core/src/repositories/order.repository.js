@@ -356,6 +356,7 @@ export async function find_orders_by_merchant(merchant_id) {
           discount_price: true,
           discount_percentage: true,
           original_price: true,
+          open_time: true
         },
       },
     },

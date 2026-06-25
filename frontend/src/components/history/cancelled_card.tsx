@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 export default function CancelledCard ({id, name, image, date, product, order_number, product_pid}: {id: string, name: string, image: string, date: string | null, product: string, order_number: string, product_pid: string}) {
+    
     return (<div
         className="bg-surface-light dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
         <div className="flex items-start justify-between mb-3">

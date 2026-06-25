@@ -25,7 +25,7 @@ export type Order = {
   // Relations
   listing: Listing | null;
   merchant: Merchant | null;
-  customers: Customer | null;
+  customer: Customer | null;
   payment: Payment | null;
   formatted: Formatted | null;
 };

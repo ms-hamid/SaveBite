@@ -1,21 +1,11 @@
-type ListingStatus = "selling" | "ended";
+import { get_close_text } from "@/app/home/page";
+import { Listing } from "@/types";
 
-export type ActiveListingData = {
-  id: number;
-  name: string;
-  imageUrl: string;
-  imageAlt: string;
-  price: number;
-  status: ListingStatus;
-  timeLabel: string;
-  soldTotal: number;
-  stockTotal: number;
-};
 
 type ActiveListingCardProps = {
-  listing: ActiveListingData;
-  // onPrimaryAction?: (listing: ActiveListingData) => void;
-  // onViewDetails?: (listing: ActiveListingData) => void;
+  listing: Listing;
+  onPrimaryAction?: () => void;
+  onViewDetails?: () => void;
 };
 
 function formatRupiah(value: number) {
@@ -28,16 +18,16 @@ function formatRupiah(value: number) {
 
 export default function ActiveListingCard({
   listing,
-  // onPrimaryAction,
-  // onViewDetails,
+  onPrimaryAction,
+  onViewDetails,
 }: ActiveListingCardProps) {
-  const isSelling = listing.status === "selling";
+  const isSelling = listing?.status === "open";
 
-  const stockLeft = listing.stockTotal - listing.soldTotal;
+  const stockLeft = listing?.stock_total - listing.sold_total;
 
   const progressPercentage =
-    listing.stockTotal > 0
-      ? Math.min((listing.soldTotal / listing.stockTotal) * 100, 100)
+    listing.stock_total > 0
+      ? Math.min((listing.sold_total / listing.stock_total) * 100, 100)
       : 0;
 
   return (
@@ -45,10 +35,10 @@ export default function ActiveListingCard({
       <div className="flex gap-4 items-center">
         <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 border border-slate-100">
           <img
-            alt={listing.imageAlt}
+            alt={listing.name ??""}
             className="w-full h-full object-cover"
-            data-alt={listing.imageAlt}
-            src={listing.imageUrl ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
+            // data-alt={listing.imageAlt}
+            src={listing.img_url ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
           />
         </div>
 
@@ -81,13 +71,13 @@ export default function ActiveListingCard({
                   : "text-xs font-medium text-slate-500 mt-1"
               }
             >
-              {listing.timeLabel}
+              {get_close_text(listing?.close_time ?? "")}
             </p>
           </div>
 
           <div className="flex justify-between items-end mt-auto">
             <span className="text-lg leading-none font-bold text-slate-900">
-              {formatRupiah(listing.price)}
+              {formatRupiah(Number(listing?.discount_price))}
             </span>
           </div>
         </div>
@@ -100,8 +90,8 @@ export default function ActiveListingCard({
 
           <span className="font-semibold">
             {isSelling
-              ? `${stockLeft} left (of ${listing.stockTotal})`
-              : `${listing.soldTotal} sold (of ${listing.stockTotal})`}
+              ? `${stockLeft} left (of ${listing.stock_total})`
+              : `${listing.sold_total} sold (of ${listing.stock_total})`}
           </span>
         </div>
 
@@ -118,14 +108,14 @@ export default function ActiveListingCard({
 
         <div className="flex gap-2 mt-2">
           <button
-            // onClick={() => onPrimaryAction?.(listing)}
+            onClick={() => onPrimaryAction?.()}
             className="flex-1 py-1.5 px-3 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
           >
             {isSelling ? "Edit" : "Re-list"}
           </button>
 
           <button
-            // onClick={() => onViewDetails?.(listing)}
+            onClick={() => onViewDetails?.()}
             className="flex-1 py-1.5 px-3 rounded-lg bg-emerald-50 border border-emerald-100 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
           >
             View details

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export default function OrderList ({id, name, image, date, product, order_number, status, active_tab}: {id: string, name: string, image: string, date: string, product: string, order_number: string, status:string, active_tab: string}) {
+export default function OrderList ({id, name, image, date, product, order_number, status, active_tab, onRefresh}: {id: string, name: string, image: string, date: string, product: string, order_number: string, status:string, active_tab: string, onRefresh?: () => void}) {
     return <>
     <div
     key={id}

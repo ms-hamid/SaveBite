@@ -1,5 +1,6 @@
 "use client";
 
+import { get_close_text } from "@/app/home/page";
 import { Order, OrderStatus } from "@/types";
 
 
@@ -113,25 +114,10 @@ export const statusConfig: Record<OrderStatus, StatusConfigItem> = {
   },
 };
 
-const customerTagConfig = {
-  repeat:
-    "text-amber-700 bg-amber-50 border border-amber-100",
-  priority:
-    "text-red-700 bg-red-50 border border-red-100",
-  pickupSoon:
-    "text-[#047857] bg-[#D1FAE5] border border-[#A7F3D0]",
-} as const;
-
-function formatRupiah(value: number) {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 export default function MerchantOrderCard({ order, onAction }: OrderCardProps) {
-  const config = statusConfig[order.status];
+
+  const config = statusConfig[order.status ?? "cancelled"];
   const isCompleted = order.status === "completed";
   const contentOffset = config.hasLeftAccent ? "ml-2" : "";
   const headerOffset = config.hasLeftAccent ? "pl-2" : "";
@@ -157,7 +143,7 @@ export default function MerchantOrderCard({ order, onAction }: OrderCardProps) {
           </div>
 
           <h3 className="text-[16px] font-bold text-sb-primary-text flex items-center gap-2">
-            {order.customer_id}
+            {order.customer?.full_name}
 
             {/* {order.customerTag && (
               <span
@@ -208,7 +194,7 @@ export default function MerchantOrderCard({ order, onAction }: OrderCardProps) {
           </p>
 
           <p className="text-[13px] font-medium text-sb-secondary-text mt-0.5">
-            {order.listing?.discountPrice}
+            {order.listing?.formatted?.dis_price}
           </p>
         </div>
       </div>
@@ -238,7 +224,12 @@ export default function MerchantOrderCard({ order, onAction }: OrderCardProps) {
               <span className="material-symbols-outlined text-[16px]">
                 schedule
               </span>
-              Pickup: "order.pickuptime"
+              Pickup: {new Date(order.listing?.open_time??"").toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+                day: "2-digit",
+                month: "2-digit"
+              })}
             </div>
 
             <div
@@ -247,7 +238,7 @@ export default function MerchantOrderCard({ order, onAction }: OrderCardProps) {
               <span className="material-symbols-outlined text-[16px]">
                 {/* {order.statusNoteIcon} */}
               </span>
-              {/* {order.statusNote} */}
+              {order.status}
             </div>
           </div>
 

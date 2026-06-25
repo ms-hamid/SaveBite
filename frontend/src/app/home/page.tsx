@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import CustomerNavbar from "../../components/navbar/customer_navbar";
 import Link from "next/link";
 import { getListingAll } from "@/services/listing";
+import { getMyProfile } from "@/services/user";
 
 export type ListingProps = {
   id: number, 
@@ -53,22 +54,20 @@ export function get_close_text(close_time: string) : string {
   const close = new Date(close_time);
 
   const diff_ms = close.getTime() - now.getTime();
-  const diff_mnt = Math.floor((diff_ms) / 1000 / 60 + 1850);
+  const diff_total_mnt = Math.floor(diff_ms / 1000 / 60);
 
-  console.log(diff_mnt)
-
-  if (diff_mnt <= 0) {
+  if (diff_total_mnt <= 0) {
     return "Ended";
   }
 
-  if (diff_mnt < 60) {
-    return `Ends in ${diff_mnt}m`;
+  if (diff_total_mnt < 60) {
+    return `Ends in ${diff_total_mnt}m`;
   }
 
-  const diff_hour = Math.floor(diff_mnt / 60)
-  const mnt_left = diff_mnt % 60;
+  const diff_hour = Math.floor(diff_total_mnt / 60);
+  const mnt_left = diff_total_mnt % 60;
 
-  return `Ends in ${diff_hour}h ${diff_mnt}m`;
+  return `Ends in ${diff_hour}h ${mnt_left}m`;
 }
 
 
@@ -79,6 +78,24 @@ export default function HomePage() {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [isLoadingListings, setIsLoadingListings] = useState(true);
+  // full_name dari Customer.full_name (schema: customers.full_name)
+  const [userName, setUserName] = useState<string | null>(null);
+
+  useEffect(() => {
+    getMyProfile()
+      .then((res) => {
+        // res.data.customer?.full_name (relasi Customer dari AuthUser)
+        const name =
+          res?.data?.customer?.full_name ??
+          res?.data?.profile?.full_name ??
+          null;
+        setUserName(name);
+      })
+      .catch(() => {
+        // Gagal ambil profil — abaikan, tetap tampilkan halaman
+      });
+  }, []);
 
   useEffect(() => {
     // Attempt to get user GPS coordinates on mount
@@ -101,10 +118,18 @@ export default function HomePage() {
 
   useEffect(() => {
     async function get_data() {
-      // If latitude and longitude are available, fetch nearest listings first
-      const data = await getListingAll(latitude || undefined, longitude || undefined);
-      console.log("data dari backend:", data.data);
-      set_food_items(data.data || []);
+      setIsLoadingListings(true);
+      try {
+        // If latitude and longitude are available, fetch nearest listings first
+        const data = await getListingAll(latitude || undefined, longitude || undefined);
+        console.log("data dari backend:", data.data);
+        set_food_items(data.data || []);
+      } catch (err) {
+        console.error("Failed to load listings:", err);
+        set_food_items([]);
+      } finally {
+        setIsLoadingListings(false);
+      }
     }
 
     get_data();
@@ -179,7 +204,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex flex-col gap-1">
               <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Hi, Alex 👋
+                {userName ? `Hi, ${userName.split(" ")[0]} 👋` : "Hi there 👋"}
               </h1>
 
               <button className="flex items-center gap-1.5 mt-1 bg-white dark:bg-card-dark px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm text-slate-700 dark:text-slate-200 hover:border-primary transition-colors text-sm font-semibold">
@@ -264,7 +289,46 @@ export default function HomePage() {
 
         {/* LIST */}
         <section className="px-5 grid gap-4 pb-4">
-          {filteredItems.map((item) => {
+          {isLoadingListings ? (
+            // Skeleton loading cards
+            [1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="bg-white dark:bg-card-dark rounded-xl p-3 shadow-sm border border-slate-100 dark:border-slate-800 animate-pulse"
+              >
+                <div className="h-40 w-full mb-3 rounded-lg bg-slate-200 dark:bg-slate-700" />
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex flex-col gap-2 flex-1 mr-4">
+                    <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-3/4" />
+                    <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-1/2" />
+                  </div>
+                  <div className="flex flex-col gap-1 items-end">
+                    <div className="h-3 w-16 bg-slate-100 dark:bg-slate-800 rounded" />
+                    <div className="h-5 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mt-2">
+                  <div className="h-7 w-28 bg-slate-100 dark:bg-slate-800 rounded" />
+                  <div className="h-4 w-14 bg-slate-100 dark:bg-slate-800 rounded" />
+                </div>
+              </div>
+            ))
+          ) : filteredItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+              <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center">
+                <span className="material-symbols-outlined text-[32px] text-slate-400">
+                  search_off
+                </span>
+              </div>
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                No listings found
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Try adjusting your search or category filter
+              </p>
+            </div>
+          ) : (
+          filteredItems.map((item) => {
 
             // console.log(item.img_url?)
 
@@ -372,7 +436,7 @@ export default function HomePage() {
                 </div>
               </Link>
             );
-          })}
+          }))}
         </section>
       </div>
 
