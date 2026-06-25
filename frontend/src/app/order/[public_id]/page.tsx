@@ -13,6 +13,7 @@ import { PageHeader } from "../../../components/shared";
 export default function OrderDetailPage() {
   const { order, listing, merchant, payment} = useOrder();
 
+  console.log(order)
 
   if (order?.status === 'pending_payment' && order.payment?.pg_status !== 'settlement') {
     window.location.href = `/order/${order.public_id}/serve`;

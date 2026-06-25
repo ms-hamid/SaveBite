@@ -1,11 +1,10 @@
 import api from "@/lib/api";
 
-export async function create_payment(order_id: string ) {
-    console.log("order_id", order_id);  
+export async function create_payment(order_id: string, payment_method: string = "qris") {
     const response = await api.post(`/payment`, {
         order_id,
+        payment_method,
     });
-    console.log("response", response)
 
     return response.data;
 }

@@ -69,13 +69,9 @@ export async function confirm_payment(order_id, requestingUserId, paymentMethod)
   // Fetch to verify ownership before mutating
   const existing = await find_order_by_id(order_id);
 
-  console.log(existing)
 
   if (!existing) throw createError("Order not found", 404);
 
-  console.log(existing.user_id !== requestingUserId)
-  console.log(existing.user_id)
-  console.log(requestingUserId)
 
   if (existing.customerId !== requestingUserId) {
     throw createError("You are not authorized to modify this order", 403);
@@ -100,15 +96,10 @@ export async function confirm_payment(order_id, requestingUserId, paymentMethod)
  */
 export async function cancel_order_svc(order_id, requestingUserId, requestingRole) {
   const existing = await find_order_by_id(order_id);
-  console.log("order_id")
 
-  console.log(order_id)
 
   if (!existing) throw createError("Order not found", 404);
 
-  console.log(existing.customerId !== requestingUserId)
-  console.log(existing.customerId)
-  console.log(requestingUserId)
 
 
   // Ownership check — admins can always cancel (FR-A-03)
@@ -134,8 +125,6 @@ export async function get_order(order_id, requestingUserId, requestingRole) {
 
   if (!order) throw createError("Order not found", 404);
 
-  console.log(order.customer_id)
-  console.log(requestingUserId)
   if (requestingRole !== "ADMIN" && order.customer_id !== requestingUserId && order.merchant_id !== requestingUserId) {
     
     throw createError("Forbidden", 403);

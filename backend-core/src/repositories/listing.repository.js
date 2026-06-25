@@ -24,7 +24,8 @@ export async function find_listing_by_id(listingId) {
  * @param {{ lat?: number, lng?: number, radius_km?: number, limit?: number }} opts
  * @returns {Promise<Listing[]>}
  */
-export async function find_active_listings({ lat, lng, radius_km = 10000000, limit = 20 } = {}) {
+export async function find_active_listings({ lat, lng, radius_km = 100, limit = 20 } = {}) {
+
   if (lat != null && lng != null) {
     // Haversine distance formula in PostgreSQL
     // Returns listings within `radius_km` km, ordered nearest-first
@@ -65,7 +66,7 @@ export async function find_active_listings({ lat, lng, radius_km = 10000000, lim
 
 SELECT *
 FROM listings_with_distance
-WHERE distance_km >= ${radius_km}
+WHERE distance_km <= ${radius_km}
 ORDER BY distance_km ASC
 LIMIT ${limit};
     `;
@@ -115,10 +116,8 @@ LIMIT ${limit};
  * @param {object} data - title, original_price, discount_price, stock_total, close_time
  */
 export async function create_listing(data) {
-  console.log("create listing 4");
 
   const listing = await prisma.listing.findMany();
-  console.log(listing)
 
   return await prisma.listing.create({
     data,

@@ -117,7 +117,7 @@ const [error, set_error] =
           </section>
           {/* AI Prediction */}
           <section>
-            <AIPredictionCard confidence={100} />
+            <AIPredictionCard confidence={0} />
           </section>
           {/* Quick Actions */}
           <section>

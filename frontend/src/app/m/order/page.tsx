@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import MerchantOrderCard, { OrderCardData } from "../../../components/m/MerchantOrderCard";
+import MerchantOrderCard from "../../../components/m/MerchantOrderCard";
 import DashboardBottomNav from "../../../components/m/DashboardBottomNav";
 import DashboardTopAppBar from "../../../components/m/DashboardTopAppBar";
 import { getApiErrorMessage } from "../../../lib/api";

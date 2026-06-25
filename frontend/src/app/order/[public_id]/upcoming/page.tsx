@@ -114,10 +114,10 @@ export default function UpcomingOrderPage() {
         {/* Merchant Card */}
         <div className="px-4 mt-6">
           <MerchantCard
-            storeName={order.listings.merchants.merchant_name}
-            address={order.listings.merchants.address}
+            storeName={order.listing?.merchant?.merchant_name ?? ""}
+            address={order.listing?.merchant?.address}
             distance={"order.distance"}
-            imageUrl={order.listings.img_url}
+            imageUrl={order.listing?.img_url ?? ""}
             onGetDirections={handleGetDirections}
           />
         </div>
@@ -129,7 +129,7 @@ export default function UpcomingOrderPage() {
           </h3>
           <OrderSummary
             item={order}
-            amountSaved={order.formatted.saved_price}
+            amountSaved={order.formatted?.saved_price ?? ""}
           />
         </div>
 

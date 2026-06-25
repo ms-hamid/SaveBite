@@ -15,8 +15,6 @@ export async function get_merchant_order() {
     "/order/merchant"
   );
 
-  console.log(response)
-
   return response.data;
 }
 
@@ -55,8 +53,6 @@ export async function getAllOrder() {
     "/order/admin"
   );
 
-  console.log(response)
-
   return response.data;
 }
 
@@ -73,8 +69,6 @@ export async function getOrderByPublicId(publicId: string) {
   const response = await api.get(
     `/order/${publicId}`
   );
-
-  console.log(response)
 
   return response.data;
 }

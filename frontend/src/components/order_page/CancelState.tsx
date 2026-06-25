@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 // import { PageHeader, MerchantCard, OrderSummary, OrderDetailsInfo } from '../../../../components/shared';
-import { Order } from '../providers/OrderProvider';
 import { MerchantCard, OrderDetailsInfo, OrderSummary } from '../shared';
+import { Order } from '@/types';
 
-export default function CancelledOrderPage({order}: {order: Order | undefined}) {
+export default function CancelledOrderPage({order}: {order: Order | undefined | null}) {
   // Payment data is included in the order response from GET /order/:id
-  const payment_method = order?.payment?.[0]?.payment_type ?? undefined;
+  console.log(order)
+  const payment_method = order?.payment?.payment_method ?? undefined;
 
 
   return (
@@ -36,10 +37,10 @@ export default function CancelledOrderPage({order}: {order: Order | undefined}) 
         {/* Merchant Card */}
         <div className="px-6 mb-6 mt-6">
           <MerchantCard
-            storeName={order?.listings.merchants.merchant_name}
-            address={order?.listings.merchants.address}
-            distance={"123km"}
-            imageUrl={order?.listings.img_url}
+            storeName={order?.merchant?.merchant_name ?? ""}
+            address={order?.merchant?.address}
+            distance={""}
+            imageUrl={order?.listing?.img_url ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
           />
         </div>
 
@@ -51,7 +52,7 @@ export default function CancelledOrderPage({order}: {order: Order | undefined}) 
           <OrderSummary
             item={order}
             // perlu diubah lagi ini
-            amountSaved={order?.formatted.saved_price}
+            amountSaved={order?.formatted?.saved_price ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
           />
         </div>
 

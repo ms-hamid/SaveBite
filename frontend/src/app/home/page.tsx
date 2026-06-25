@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import CustomerNavbar from "../../components/navbar/customer_navbar";
-import { supabase } from "../../lib/supabase";
 import Link from "next/link";
 import { getListingAll } from "@/services/listing";
 

@@ -57,6 +57,8 @@ export async function getListingAll(
   radius_km?: number
 ) {
   const params: Record<string, number> = {};
+
+
   if (lat !== undefined && lat !== null) params.lat = lat;
   if (lng !== undefined && lng !== null) params.lng = lng;
   if (radius_km !== undefined && radius_km !== null) params.radius_km = radius_km;

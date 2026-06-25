@@ -1,17 +1,45 @@
 'use client';
 
+import { usePayment } from '@/components/providers/PaymentProvider';
+import { check_payment_status } from '@/services/payment';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+// import { check_payment_status } from '../../../services/payment';
+// import { usePayment } from '../../../components/providers/PaymentProvider';
+
 export default function PaymentProcessingScreen() {
   const router = useRouter();
   const params = useParams();
+  const { order } = usePayment();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      router.push(`/pay/${params.public_id}/done`);
-    }, 3000); // 3000ms = 3 detik
+    let attempts = 0;
+    const maxAttempts = 10; // 10 x 2s = 20s max
 
-    return () => clearTimeout(timer);
+    const poll = setInterval(async () => {
+      attempts++;
+      try {
+        const res = await check_payment_status(params.public_id as string);
+        if (res.success && res.data) {
+          const { pg_status, order_status } = res.data;
+          if (pg_status === 'settlement' || order_status === 'paid_reserved') {
+            clearInterval(poll);
+            router.push(`/pay/${params.public_id}/done`);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+
+      if (attempts >= maxAttempts) {
+        clearInterval(poll);
+        // Assume paid, move to done
+        router.push(`/pay/${params.public_id}/done`);
+      }
+    }, 2000);
+
+    return () => clearInterval(poll);
   }, [router, params.public_id]);
   
   return (
@@ -60,7 +88,7 @@ export default function PaymentProcessingScreen() {
                 </div>
 
                 <span className="text-2xl font-bold text-slate-900 dark:text-white">
-                  $4.99
+                  {order?.formatted?.total_amount ?? "—"}
                 </span>
               </div>
 
@@ -74,14 +102,8 @@ export default function PaymentProcessingScreen() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center justify-center h-6 px-1.5 bg-black text-white rounded-[4px] border border-black dark:border-slate-700">
-                    <span className="text-[11px] font-bold leading-none tracking-wide">
-                      Pay
-                    </span>
-                  </div>
-
-                  <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Apple Pay
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white capitalize">
+                    {order?.payment?.payment_method?.replace("_", " ").replace("va ", "").toUpperCase() ?? "—"}
                   </span>
                 </div>
               </div>

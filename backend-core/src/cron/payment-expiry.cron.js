@@ -16,12 +16,6 @@ export async function expirePendingPayments() {
             }
         });
 
-        if (result.count > 0) {
-            console.log(
-                `[CRON] ${result.count} payment(s) expired`
-            );
-        }
-
     } catch (error) {
         console.error(
             "[CRON] expirePendingPayments error:",

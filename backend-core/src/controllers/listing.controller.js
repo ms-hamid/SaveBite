@@ -17,6 +17,7 @@ import { serializeBigInt } from "../utils/json.js";
 /** GET /api/listings?lat=&lng=&radius_km= */
 export async function get_listings_handler(req, res) {
   const { lat, lng, radius_km } = req.query;
+
   const listings = await get_active_listings({
     lat: lat ? Number(lat) : undefined,
     lng: lng ? Number(lng) : undefined,
@@ -33,7 +34,6 @@ export async function get_listing_handler(req, res) {
 
 /** POST /api/listings — merchant only */
 export async function create_listing_handler(req, res) {
-  console.log("create listing 1")
   const listing = await publish_listing(req.user.id, req.body);
   return res.status(201).json({ message: "Listing published", data: serializeBigInt(listing) });
 }
@@ -83,7 +83,6 @@ export async function get_my_listings_handler(
   req,
   res
 ) {
-  console.log("asdas")
   const merchant_id = req.user.id;
 
   const listings =

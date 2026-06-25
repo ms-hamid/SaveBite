@@ -216,7 +216,6 @@ export async function cancel_order(
   orderId
 ) {
   return prisma.$transaction(async (tx) => {
-    // console.log("orderId repo: ", orderId)
 
     const order =
       await tx.order.findUnique({
@@ -387,14 +386,10 @@ export async function update_order_status(
           },
           data: {
             status: status,
-
-            order_code:
-              generate_order_code(),
-
+            order_code: generate_order_code(),
             order_code_active: true,
-
-            order_code_expires_at:
-              expiresAt
+            order_code_expires_at: expiresAt,
+            updated_at: new Date()
           },
 
           include: {

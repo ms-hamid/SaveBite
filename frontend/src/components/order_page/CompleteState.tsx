@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { MerchantCard, OrderDetailsInfo, OrderSummary } from '../shared';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Order } from '@/types';
 
 export default function CompletedOrderPage({
 order}: {
-order: Order | undefined}) {
+order: Order | undefined | null}) {
 const params = useParams()
+const router = useRouter()
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark flex flex-col max-w-md mx-auto">
 
@@ -28,52 +29,20 @@ const params = useParams()
               Order Completed
             </h2>
             <p className="text-text-sub-light dark:text-text-sub-dark font-medium">
-              {"///completed time"}
+              {new Date(order?.updated_at ?? "").toDateString()}
             </p>
           </div>
         </div>
 
-        {/* Impact Card */}
-        <div className="px-4 pb-4">
-          <div className="relative overflow-hidden bg-primary/5 dark:bg-primary/10 border border-primary/10 rounded-xl p-5">
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="material-symbols-outlined text-primary filled text-[20px]">
-                  eco
-                </span>
-                <h4 className="text-xs font-bold text-primary uppercase tracking-wider">
-                  Your Impact
-                </h4>
-              </div>
-              <div className="grid grid-cols-1 gap-3">
-                <div className="flex items-center justify-between border-b border-primary/10 pb-3 last:border-0 last:pb-0 border-dashed">
-                  <span className="text-sm font-medium text-text-sub-light dark:text-text-sub-dark">
-                    Food saved
-                  </span>
-                  <span className="text-lg font-extrabold text-text-main-light dark:text-text-main-dark text-right">
-                    {"//order.impact.foodSaved"} kg
-                  </span>
-                </div>
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-sm font-medium text-text-sub-light dark:text-text-sub-dark">
-                    CO₂ avoided
-                  </span>
-                  <span className="text-lg font-extrabold text-text-main-light dark:text-text-main-dark text-right">
-                    {"//order.impact.co2Avoided"} kg
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
+        
         {/* Merchant Card */}
         <div className="px-4 mb-6 mt-4">
           <MerchantCard
-            storeName={order?.listing?.merchant?.merchant_name ?? ""}
-            address={order?.listing?.merchant?.address}
+            storeName={order?.merchant?.merchant_name ?? ""}
+            address={order?.merchant?.address}
             distance={"distance"}
             imageUrl={'merchant_image_url'}
+            onGetDirections={() => router.push(`/merchant/${order?.public_id}`)}
           />
         </div>
 
@@ -92,7 +61,7 @@ const params = useParams()
         <div className="px-4 mb-6">
           <OrderDetailsInfo
             orderId={order?.public_id}
-            paymentMethod={'///payment method'}
+            paymentMethod={order?.payment?.payment_method ?? ""}
           />
         </div>
 

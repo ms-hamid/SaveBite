@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getMyProfile, updateCustomerProfile } from "@/services/user";
 import AuthInputComponent from "@/components/auth/input_column";
-import { RegisterData } from "@/app/sign-up/page";
 import CustomerNavbar from "@/components/navbar/customer_navbar";
+import { RegisterData } from "@/types";
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -50,7 +50,7 @@ export default function EditProfilePage() {
     loadProfile();
   }, []);
 
-  const handleChange = <K extends keyof RegisterData>(key: K, value: RegisterData[K]) => {
+  const handleChange = (key: string, value: any) => {
     setFormData((prev) => ({
       ...prev,
       [key]: value,

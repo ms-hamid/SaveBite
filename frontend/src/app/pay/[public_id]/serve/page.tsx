@@ -14,6 +14,7 @@ export default function ConfirmReservationPage() {
   const params = useParams();
   const { payment, order } = usePayment();
 
+  console.log(order?.status)
 
   const [selectedPayment, setSelectedPayment] =
     useState<PaymentMethod>("apple");
@@ -21,6 +22,13 @@ export default function ConfirmReservationPage() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [showError, setShowError] = useState(false);
+
+  useEffect(() => {
+    console.log(order?.status === "paid_reserved")
+    if (order?.status === "paid_reserved") {
+      router.push(`/pay/${params.public_id}/process`);
+    }
+  } ,[])
 
   // Auto hide error snackbar
   useEffect(() => {

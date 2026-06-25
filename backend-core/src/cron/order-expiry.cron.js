@@ -46,7 +46,6 @@ export async function expirePendingOrder() {
       });
     });
 
-    console.log(`[CRON] ${expiredOrders.length} order(s) expired`);
   } catch (error) {
     console.error("[CRON] expirePendingOrder error:", error);
   }

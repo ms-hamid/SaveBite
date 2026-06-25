@@ -35,7 +35,7 @@ const auth_route = express.Router();
 // ── FR-U-01 — Registration ────────────────────────────────────────────────────
 
 /** Register a consumer account */
-auth_route.post("/reg", validate_register, register);
+auth_route.post("/reg", register);
 
 /** Register a merchant account (same validation — service handles role-specific fields) */
 auth_route.post("/merch_reg", validate_register, merchant_register);
@@ -59,7 +59,7 @@ auth_route.post("/logout", (req, res) => {
 // ── FR-U-01 — Login ───────────────────────────────────────────────────────────
 
 /** Authenticate and receive a signed JWT */
-// auth_route.post("/login", validate_login, login);
+auth_route.post("/login", validate_login, login);
 
 // // ── FR-U-02 — Logout ──────────────────────────────────────────────────────────
 

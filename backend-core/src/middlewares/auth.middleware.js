@@ -17,10 +17,8 @@ import { verify_token } from "../lib/jwt.js";
  */
 export function authenticate(req, res, next) {
   const token = req.cookies.sb_access_token;
-  console.log(token)
 
   if (!token) {
-    console.log("Token tidak ditemukan")
     return res.status(401).json({
       error: "Unauthorized",
       message: "Missing or malformed Authorization header",
@@ -30,12 +28,9 @@ export function authenticate(req, res, next) {
   // const token = token; // Strip "Bearer "
 
   try {
-    console.log(" ditemukan")
 
     const decoded = verify_token(token);
-    console.log(decoded);
     req.user = decoded; // { id, email, role }
-    console.log("Decoded")
     next();
   } catch (err) {
     // Distinguish between expired and genuinely invalid tokens

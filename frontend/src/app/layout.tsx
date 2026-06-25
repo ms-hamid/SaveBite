@@ -6,6 +6,8 @@ import { PWA_CONFIG } from "../lib/pwa/pwa-config";
 import { PWAProvider } from "../components/pwa/PWAProvider";
 import "./globals.css"
 import Script from "next/script";
+import "leaflet/dist/leaflet.css";
+
 
 export const metadata: Metadata = {
   applicationName: PWA_CONFIG.appName,

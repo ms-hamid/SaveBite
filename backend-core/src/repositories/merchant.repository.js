@@ -27,6 +27,8 @@ export async function createMerchantData(
               category: payload.category,
   
               kyc_status: "pending",
+              latitude: payload.latitude,
+              longitude: payload.longitude
             },
           });
   
@@ -153,4 +155,4 @@ export async function updateMerchantProfile(userId, data) {
       merchant: merchantUpdate,
     };
   });
-}
+}

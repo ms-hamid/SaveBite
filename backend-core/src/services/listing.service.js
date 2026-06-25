@@ -30,7 +30,6 @@ export async function get_listing(listingPublicId) {
  */
 export async function get_active_listings(opts = {}) {
   const result = await find_active_listings(opts);
-  console.log(result)
   return result;
 }
 
@@ -44,7 +43,6 @@ export async function publish_listing(
   body
 ) {
 
-  console.log("create listing 2")
 
   const {
     name,
@@ -110,10 +108,7 @@ export async function publish_listing(
         Number(original_price)) *
         100
     );
-    console.log("create listing 3")
 
-    console.log(original_price)
-    console.log(discount_price)
 
   const listing = await create_listing({
     
@@ -249,7 +244,6 @@ export async function get_my_listings(
   merchant_id
 ) {
 
-  console.log(merchant_id)
   return await find_my_listings(
     merchant_id
   );

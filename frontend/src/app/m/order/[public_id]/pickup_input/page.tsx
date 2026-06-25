@@ -3,12 +3,13 @@
 import { useRef, useState } from "react";
 import { getApiErrorMessage } from "@/lib/api";
 import { pickupOrder } from "@/services/order";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 const CODE_LENGTH = 6;
 
 export default function ManualPickupCodeRefinedMinimalistPage() {
   const params = useParams();
+  const router = useRouter();
 
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""));
   const [activeIndex, setActiveIndex] = useState(0);
@@ -106,6 +107,7 @@ export default function ManualPickupCodeRefinedMinimalistPage() {
         "Order berhasil diselesaikan"
       );
   
+
       return result;
   
     } catch (error) {
@@ -120,8 +122,8 @@ export default function ManualPickupCodeRefinedMinimalistPage() {
 
 
   async function handleVerifyCode() {
-    const data = await verifyPickup(pickup_order)
-    console.log("Order completed:", data);
+    const data = await verifyPickup(pickup_order).then(() => router.push("/m/order"))
+
   }
 
   return (

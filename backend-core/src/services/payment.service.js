@@ -41,7 +41,6 @@ export async function createQrisTransaction(payment_id) {
         }
     });
 
-    console.log(transaction)
 
     return {
         result: transaction
@@ -52,12 +51,10 @@ export async function createQrisTransaction(payment_id) {
 
 export async function createPaymentTransaction(
     orderId,
-    customerId
+    customerId,
+    paymentMethod = "qris"
 ) {
     try {
-        console.log("=== CREATE PAYMENT TRANSACTION ===");
-        console.log("orderId:", orderId);
-        console.log("customerId:", customerId);
 
         const order = await find_order_by_id(orderId);
 
@@ -65,10 +62,8 @@ export async function createPaymentTransaction(
             throw new Error("Order not found");
         }
 
-        console.log(order)
 
-        const amount = 1000; 
-        // Number(order.total_amount) + 2000;
+        const amount = Number(order.total_amount) + 2000;
 
         const expiredAt = new Date(
             Date.now() + 15 * 60 * 1000
@@ -86,79 +81,116 @@ export async function createPaymentTransaction(
                 };
             }
             
-            console.log(last_existing_payment)
 
             if (last_existing_payment.pg_status === 'pending') {
-                return {
+                // Return existing payment data with relevant fields
+                const result = {
                     payment_id: last_existing_payment.id,
                     token: last_existing_payment.midtrans_trx_id,
-                    redirect_url: last_existing_payment.redirect_url,
-                    qris_url: last_existing_payment.qris_url,
-                    expired_at: last_existing_payment.expired_at
+                    redirected_url: last_existing_payment.redirect_url,
+                    expired_at: last_existing_payment.expired_at,
                 };
+                // Attach method-specific fields
+                if (last_existing_payment.payment_method === 'qris') {
+                    result.qris_url = last_existing_payment.qris_url;
+                } else {
+                    // VA — midtrans_trx_id stores the VA number
+                    result.va_number = last_existing_payment.midtrans_trx_id;
+                }
+                return result;
             }
         }
         
-        console.log("last_existing_payment")
-        console.log(last_existing_payment)
         
-        console.log(amount)
+
+        const isQris = paymentMethod === "qris";
+
+        // Map frontend method name to Midtrans bank
+        const VA_BANK_MAP = {
+            va_bca:     "bca",
+            va_mandiri: "mandiri",
+            va_bri:     "bri",
+            va_bni:     "bni",
+        };
 
         const payment = await createPayment({
             order_id: order.id,
             customer_id: customerId,
-            // midtrans_trx_id: transaction.token,
             amount,
-            payment_method: "other_qris",
+            payment_method: paymentMethod,
             time_limit: expiredAt,
             expired_at: expiredAt
         });
 
-        const parameter = {
-            payment_type: "qris",
+        const midtransOrderId = order.public_id + '@' + payment.id.toString();
 
-            transaction_details: {
-                order_id: order.public_id + '@' + payment.id.toString(),
-                gross_amount: 1000,
-            },
+        let transaction;
+        let qris_url = null;
+        let va_number = null;
 
-            qris: {
-                acquirer: "gopay"
-            },
-            callbacks: {
-                finish: "http://localhost:3000/home",
-                error: "http://localhost:3000",
-                pending: "http://localhost:3000/profile",
+        if (isQris) {
+            const parameter = {
+                payment_type: "qris",
+                transaction_details: {
+                    order_id: midtransOrderId,
+                    gross_amount: amount,
+                },
+                qris: {
+                    acquirer: "gopay"
+                },
+            };
+            transaction = await core_api.charge(parameter);
+            const qris_action = transaction.actions?.find(
+                (a) => a.name === "generate-qr-code"
+            );
+            qris_url = qris_action?.url ?? null;
+        } else {
+            // Virtual Account
+            const bankCode = VA_BANK_MAP[paymentMethod] ?? "bca";
+            const parameter = {
+                payment_type: "bank_transfer",
+                transaction_details: {
+                    order_id: midtransOrderId,
+                    gross_amount: amount,
+                },
+                bank_transfer: {
+                    bank: bankCode,
+                },
+            };
+            transaction = await core_api.charge(parameter);
+            // Extract VA number from response
+            if (bankCode === "mandiri") {
+                va_number = transaction.bill_key
+                    ? `${transaction.biller_code} ${transaction.bill_key}`
+                    : null;
+            } else {
+                const vaData = transaction.va_numbers?.[0];
+                va_number = vaData?.va_number ?? null;
             }
-        };
+        }
 
-        console.log("Payment created:", payment);
-        const transaction = await core_api.charge(parameter);
-            
-        console.log("Snap transaction created:");
-        console.log(transaction);
 
-        // Extract QRIS QR code URL from Midtrans response actions
-        const qris_action = transaction.actions?.find(
-            (a) => a.name === "generate-qr-code"
-        );
-        const qris_url = qris_action?.url ?? null;
-        
         await updatePayment(payment.id, {
-            midtrans_trx_id: transaction.order_id,
-            // token: transaction.token,
-            redirected_url: transaction.redirect_url,
+            midtrans_trx_id: isQris ? transaction.order_id : (va_number ?? transaction.order_id),
+            redirected_url: transaction.redirect_url ?? null,
             qris_url: qris_url
         });
 
-        return {
+        const result = {
             payment_id: payment.id.toString(),
             token: transaction.order_id,
-            redirect_url: transaction.redirect_url,
-            qris_url: qris_url,
+            redirected_url: transaction.redirect_url,
             expired_at: expiredAt.toISOString(),
             result: transaction
         };
+
+        if (isQris) {
+            result.qris_url = qris_url;
+        } else {
+            result.va_number = va_number;
+        }
+
+        return result;
 
     } catch (error) {
 
@@ -187,7 +219,6 @@ export async function updatePaymentStatus(data) {
     fraud_status
   } = data;
 
-  console.log(data)
 
 
   if (

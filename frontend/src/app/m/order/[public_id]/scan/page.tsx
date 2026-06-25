@@ -4,8 +4,10 @@ import { useCallback, useState } from "react";
 import { supabase } from "../../../../../lib/supabase";
 import QRPickupScanner from "../../../../../components/m/QRPIckupScanner";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 
 export default function ScanPickupCodeRefinedMinimalistPage() {
+  const params = useParams();
   const [message, setMessage] = useState("Align customer QR code within the frame");
   const [status, setStatus] = useState<"idle" | "success" | "error" | "loading">(
     "idle"
@@ -136,7 +138,7 @@ export default function ScanPickupCodeRefinedMinimalistPage() {
             )}
           </div>
 
-          <Link href={'/m/pickup_input'} className="w-full max-w-[280px] py-3 px-4 rounded-xl border border-border bg-surface text-text-primary hover:bg-gray-50 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-sm font-semibold shadow-sm">
+          <Link href={`/m/order/${params.public_id}/pickup_input`} className="w-full max-w-[280px] py-3 px-4 rounded-xl border border-border bg-surface text-text-primary hover:bg-gray-50 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-sm font-semibold shadow-sm">
             <span
               className="material-symbols-outlined text-text-secondary text-lg"
               data-icon="keyboard"

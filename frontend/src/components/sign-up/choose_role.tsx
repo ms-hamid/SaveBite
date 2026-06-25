@@ -1,10 +1,12 @@
 "use client";
 
+import { Role } from "@/types";
+
 export default function SignUpRole({
   choosed_role,
   change_role,
 }: {
-  choosed_role: "MERCHANT" | "CUSTOMER";
+  choosed_role: Role;
   change_role: (new_role: "MERCHANT" | "CUSTOMER") => void;
 }) {
 

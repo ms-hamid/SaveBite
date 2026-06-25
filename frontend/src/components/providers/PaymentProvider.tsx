@@ -43,8 +43,6 @@ export function PaymentProvider({
         setPayment(undefined);
         return;
       }
-      console.log("order_id")
-      console.log(order_id)
 
 
       // if (Number.isNaN(parsedOrderId)) {
@@ -72,7 +70,6 @@ export function PaymentProvider({
       const saved_price = ((data.listing?.original_price ?? 0 )- (data.listing?.discount_price ?? 0)) * (order?.qty ?? 1)
       if (saved_price !== 0) formatted_data["saved_price"] = format_price(saved_price);
 
-      console.log(data)
       data.formatted = formatted_data;
 
       setPayment(data.payment);

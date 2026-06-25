@@ -15,7 +15,6 @@ export function MerchantCard({
   imageUrl,
   onGetDirections,
 }: MerchantCardProps) {
-  console.log(imageUrl)
   return (
     <div className="bg-surface-light dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
       <div className="flex gap-4">

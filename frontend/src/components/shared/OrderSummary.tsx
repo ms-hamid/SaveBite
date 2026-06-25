@@ -1,10 +1,11 @@
 'use client';
 
+import { format_price } from "@/app/home/page";
 import { Order } from "@/types";
 
 
 interface OrderSummaryProps {
-  item: Order | undefined;
+  item: Order | undefined | null;
   amountSaved?: string | undefined;
 }
 
@@ -36,6 +37,26 @@ export function OrderSummary({
             {item?.formatted?.dis_price}
           </p>
         </div>
+        <div
+          // key={idx}
+          className={`flex justify-between items-start mb-4 pb-4 border-b border-gray-100 dark:border-gray-800/50`}
+        >
+          <div className="flex gap-3">
+            <div className="w-6 h-6 rounded flex items-center justify-center bg-background-light dark:bg-background-dark text-xs font-bold text-text-sub-light dark:text-text-sub-dark">
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-text-main-light dark:text-text-main-dark">
+                Service Fee
+              </p>
+              <p className="text-xs text-text-sub-light dark:text-text-sub-dark mt-0.5">
+                fee for the service
+              </p>
+            </div>
+          </div>
+          <p className="text-sm font-medium text-text-main-light dark:text-text-main-dark">
+            {format_price(2000)}
+          </p>
+        </div>
 
       {/* Total Row */}
       <div className="flex justify-between items-center pt-2">
@@ -43,7 +64,7 @@ export function OrderSummary({
           Total Paid
         </p>
         <p className="text-lg font-bold text-text-main-light dark:text-text-main-dark">
-          {item?.formatted?.total_amount}
+          {format_price((Number(item?.payment?.amount) ?? 0))}
         </p>
       </div>
 

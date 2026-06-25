@@ -10,7 +10,14 @@ import { useOrder } from "@/components/providers/OrderProvider";
 import { create_payment } from "@/services/payment";
 import QrisPaymentPopup from "@/components/QrisPaymentPopup";
 
-type PaymentMethod = "other_qris" | "visa";
+type PaymentMethod = "qris" | "va_bca" | "va_mandiri" | "va_bri" | "va_bni";
+
+const VA_OPTIONS: { value: PaymentMethod; label: string; bank: string; color: string; bg: string }[] = [
+  { value: "va_bca", label: "BCA Virtual Account", bank: "BCA", color: "text-blue-600", bg: "bg-blue-600" },
+  { value: "va_mandiri", label: "Mandiri Virtual Account", bank: "MANDIRI", color: "text-yellow-600", bg: "bg-yellow-500" },
+  { value: "va_bri", label: "BRI Virtual Account", bank: "BRI", color: "text-blue-800", bg: "bg-blue-800" },
+  { value: "va_bni", label: "BNI Virtual Account", bank: "BNI", color: "text-orange-600", bg: "bg-orange-500" },
+];
 
 export default function ConfirmReservationPage() {
   const router = useRouter();
@@ -18,7 +25,7 @@ export default function ConfirmReservationPage() {
   const { order, payment } = useOrder();
 
   const [selectedPayment, setSelectedPayment] =
-    useState<PaymentMethod>("other_qris");
+    useState<PaymentMethod>("qris");
 
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -28,6 +35,14 @@ export default function ConfirmReservationPage() {
   const [showQris, setShowQris] = useState(false);
   const [qrisUrl, setQrisUrl] = useState<string | null>(null);
   const [qrisExpiredAt, setQrisExpiredAt] = useState<string | null>(null);
+
+  
+  useEffect(() => {
+    console.log(order?.status === "paid_reserved")
+    if (order?.status === "paid_reserved") {
+      router.push(`/pay/${params.public_id}/process`);
+    }
+  } ,[order])
 
   // Auto-open QRIS popup if existing payment is pending and not expired
   useEffect(() => {
@@ -64,21 +79,20 @@ export default function ConfirmReservationPage() {
     setIsProcessing(true);
 
     try {
-      console.log("tekan")
-      console.log(order?.id)
-
-      // Backend atomically: updates payment_method + generates
-      const response = await create_payment(order?.public_id ?? "");
-      console.log("Response", response.data);
-      console.log(response)
-
+      const isQris = selectedPayment === "qris";
+      const response = await create_payment(order?.public_id ?? "", selectedPayment);
       const paymentData = response.data;
 
-      // Open QRIS popup with returned data
-      if (paymentData?.qris_url) {
-        setQrisUrl(paymentData.qris_url);
-        setQrisExpiredAt(paymentData.expired_at ?? null);
-        setShowQris(true);
+      if (isQris) {
+        // Open QRIS popup
+        if (paymentData?.qris_url) {
+          setQrisUrl(paymentData.qris_url);
+          setQrisExpiredAt(paymentData.expired_at ?? null);
+          setShowQris(true);
+        }
+      } else {
+        // VA — navigate to VA payment page
+        router.push(`/pay/${params.public_id}?method=${selectedPayment}`);
       }
     } catch (err) {
       console.error("Payment confirmation failed:", err);
@@ -358,36 +372,35 @@ useEffect(() => {
               </h3>
 
               <div className="flex flex-col gap-0 bg-white dark:bg-[#1a2c26] rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
-                {/* Apple Pay */}
+                {/* QRIS */}
                 <button
-                  onClick={() => setSelectedPayment("other_qris")}
+                  onClick={() => setSelectedPayment("qris")}
                   className={`w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:bg-slate-100 dark:active:bg-slate-700 relative border-l-4 ${
-                    selectedPayment === "other_qris"
+                    selectedPayment === "qris"
                       ? "border-emerald-500"
                       : "border-transparent"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-7 bg-black text-white rounded flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-[18px]">
-                        ios
+                    <div className="w-10 h-7 bg-white border border-slate-200 rounded flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-[18px] text-emerald-600">
+                        qr_code
                       </span>
                     </div>
 
                     <div className="flex flex-col items-start">
                       <span className="text-sm font-bold text-slate-900 dark:text-white">
-                        Apple Pay
+                        QRIS
                       </span>
-
                       <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                        Default method
+                        GoPay, OVO, DANA, ShopeePay & more
                       </span>
                     </div>
                   </div>
 
                   <div
                     className={`w-5 h-5 rounded-full flex items-center justify-center bg-white dark:bg-[#1a2c26] ${
-                      selectedPayment === "other_qris"
+                      selectedPayment === "qris"
                         ? "border-[5px] border-emerald-500"
                         : "border border-slate-300 dark:border-slate-600"
                     }`}
@@ -396,52 +409,47 @@ useEffect(() => {
 
                 <div className="h-px bg-slate-100 dark:bg-slate-800 mx-4"></div>
 
-                {/* Visa */}
-                <button
-                  onClick={() => setSelectedPayment("visa")}
-                  className={`w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:bg-slate-100 dark:active:bg-slate-700 relative border-l-4 ${
-                    selectedPayment === "visa"
-                      ? "border-emerald-500"
-                      : "border-transparent"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-7 bg-slate-100 dark:bg-slate-200 rounded flex items-center justify-center shrink-0">
-                      <img
-                        alt="Visa"
-                        className="h-3.5 object-contain opacity-80"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1kVLh8KW7vEZ4yEFV0Fos-lKwCxr1IP0aF07k2sMKI1DLuYLS26Oefhk-bBnETo3_37-xs-yZ5ZLwoGzWKdaPB2LcOEPbogTfumuTtuSI6GfYsBrt7o5GOium5V4se-CmE83Q51tEC4FuSs9LNdzRll7-km4Bluv0oR8wHmCEmnIQCv6GLfW2A3Nng-o78CP0JJWGaC_yWnRKMjYuIhDiRfRaPdgmiuABr5RfJBHDir4bOiB7_BJJ2LvPGuwi5glrOuWMO45tekYJ"
-                      />
-                    </div>
+                {/* VA Options */}
+                {VA_OPTIONS.map((opt, idx) => (
+                  <div key={opt.value}>
+                    <button
+                      onClick={() => setSelectedPayment(opt.value)}
+                      className={`w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:bg-slate-100 dark:active:bg-slate-700 relative border-l-4 ${
+                        selectedPayment === opt.value
+                          ? "border-emerald-500"
+                          : "border-transparent"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-7 ${opt.bg} rounded flex items-center justify-center shrink-0`}>
+                          <span className="text-white text-[9px] font-extrabold tracking-wide">
+                            {opt.bank}
+                          </span>
+                        </div>
 
-                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                      Visa •••• 1234
-                    </span>
+                        <div className="flex flex-col items-start">
+                          <span className="text-sm font-bold text-slate-900 dark:text-white">
+                            {opt.label}
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                            Transfer dalam 15 menit
+                          </span>
+                        </div>
+                      </div>
+
+                      <div
+                        className={`w-5 h-5 rounded-full flex items-center justify-center bg-white dark:bg-[#1a2c26] ${
+                          selectedPayment === opt.value
+                            ? "border-[5px] border-emerald-500"
+                            : "border border-slate-300 dark:border-slate-600"
+                        }`}
+                      ></div>
+                    </button>
+                    {idx < VA_OPTIONS.length - 1 && (
+                      <div className="h-px bg-slate-100 dark:bg-slate-800 mx-4"></div>
+                    )}
                   </div>
-
-                  <div
-                    className={`w-5 h-5 rounded-full flex items-center justify-center bg-white dark:bg-[#1a2c26] ${
-                      selectedPayment === "visa"
-                        ? "border-[5px] border-emerald-500"
-                        : "border border-slate-300 dark:border-slate-600"
-                    }`}
-                  ></div>
-                </button>
-
-                <div className="h-px bg-slate-100 dark:bg-slate-800 mx-4"></div>
-
-                {/* Add Card */}
-                <button className="w-full p-4 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:bg-slate-100 dark:active:bg-slate-700 border-l-4 border-transparent text-emerald-500">
-                  <div className="w-10 h-7 rounded border border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center shrink-0 text-slate-400">
-                    <span className="material-symbols-outlined text-[16px]">
-                      add
-                    </span>
-                  </div>
-
-                  <span className="text-sm font-medium">
-                    Add new card
-                  </span>
-                </button>
+                ))}
               </div>
             </div>
 
@@ -473,11 +481,11 @@ useEffect(() => {
 
               <div className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[14px] text-emerald-500">
-                  qr_code
+                  {selectedPayment === "qris" ? "qr_code" : "account_balance"}
                 </span>
 
                 <span className="font-medium">
-                  QR code instantly
+                  {selectedPayment === "qris" ? "QR code instantly" : "Virtual Account"}
                 </span>
               </div>
             </div>

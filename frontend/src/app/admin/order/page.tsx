@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "../../../components/admin/AdminLayout";
 import { supabase } from "../../../lib/supabase";
-import OrderMonitoringTableRow, { Order, OrderStatus } from "../../../components/admin/OrderMonitoringTableRow";
+import OrderMonitoringTableRow from "../../../components/admin/OrderMonitoringTableRow";
 import { getAllOrder } from "@/services/order";
+import { Order, OrderStatus } from "@/types";
 
 type StatusFilter = "all" | OrderStatus;
 

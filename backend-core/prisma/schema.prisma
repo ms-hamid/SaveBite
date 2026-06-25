@@ -6,7 +6,7 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
-  schemas  = ["auth", "public"]
+  schemas   = ["auth", "public"]
 }
 
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
@@ -70,30 +70,31 @@ model AuthUser {
 }
 
 model Merchant {
-  merchant_name             String?      @db.VarChar(70)
+  merchant_name             String?              @db.VarChar(70)
   latitude                  Float?
   longitude                 Float?
-  kyc_status                kyc_status?  @default(pending)
+  kyc_status                kyc_status?          @default(pending)
   google_map_url            String?
-  virtual_balance           Decimal?     @db.Decimal(8, 2)
+  virtual_balance           Decimal?             @db.Decimal(8, 2)
   address                   String?
-  bank_name                 String?      @db.VarChar(50)
-  bank_account              String?      @db.VarChar(20)
-  user_id                   String       @id @default(dbgenerated("auth.uid()")) @db.Uuid
-  category                  String?      @db.VarChar
+  bank_name                 String?              @db.VarChar(50)
+  bank_account              String?              @db.VarChar(20)
+  user_id                   String               @id @default(dbgenerated("auth.uid()")) @db.Uuid
+  category                  String?              @db.VarChar
   desc                      String?
   pickup_instruction        String?
-  contactless_pickup        Boolean      @default(false)
-  notify_staff_upon_arrival Boolean      @default(false)
-  pickup_open               DateTime?    @db.Time(6)
-  pickup_close              DateTime?    @db.Time(6)
-  same_day_pickup           Boolean      @default(false)
+  contactless_pickup        Boolean              @default(false)
+  notify_staff_upon_arrival Boolean              @default(false)
+  pickup_open               DateTime?            @db.Time(6)
+  pickup_close              DateTime?            @db.Time(6)
+  same_day_pickup           Boolean              @default(false)
   max_prep_time             BigInt?
-  rating                    Float?       @db.Real
-  rating_times              BigInt       @default(0)
+  rating                    Float?               @db.Real
+  rating_times              BigInt               @default(0)
   profile_pic               String?
+  ai_feature_history        ai_feature_history[]
   listings                  Listing[]
-  auth_user                 AuthUser     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  auth_user                 AuthUser             @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   orders                    Order[]
   withdrawals               Withdrawal[]
 
@@ -124,24 +125,25 @@ model Admin {
 }
 
 model Listing {
-  id                  BigInt         @id(map: "listing_pkey") @default(autoincrement())
-  name                String?        @db.VarChar(50)
-  open_time           DateTime?      @db.Timestamptz(6)
-  close_time          DateTime?      @db.Timestamptz(6)
-  sold_total          Int            @default(0)
+  id                  BigInt               @id(map: "listing_pkey") @default(autoincrement())
+  name                String?              @db.VarChar(50)
+  open_time           DateTime?            @db.Timestamptz(6)
+  close_time          DateTime?            @db.Timestamptz(6)
+  sold_total          Int                  @default(0)
   stock_total         Int
   description         String?
   is_open             Boolean?
-  original_price      Decimal?       @db.Decimal(10, 2)
-  discount_price      Decimal?       @db.Decimal(10, 2)
+  original_price      Decimal?             @db.Decimal(10, 2)
+  discount_price      Decimal?             @db.Decimal(10, 2)
   discount_percentage Int?
-  deleted_at          DateTime?      @db.Timestamptz(6)
-  merchant_id         String?        @default(dbgenerated("auth.uid()")) @db.Uuid
+  deleted_at          DateTime?            @db.Timestamptz(6)
+  merchant_id         String?              @default(dbgenerated("auth.uid()")) @db.Uuid
   img_url             String?
-  public_id           String         @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  status              listing_status @default(close)
-  users               AuthUser?      @relation(fields: [merchant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  merchant            Merchant?      @relation(fields: [merchant_id], references: [user_id], onDelete: Cascade, map: "listings_merchant_id_fkey1")
+  public_id           String               @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status              listing_status       @default(close)
+  ai_feature_history  ai_feature_history[]
+  user                AuthUser?            @relation(fields: [merchant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  merchant            Merchant?            @relation(fields: [merchant_id], references: [user_id], onDelete: Cascade, map: "listings_merchant_id_fkey1")
   orders              Order[]
 
   @@map("listings")
@@ -188,6 +190,7 @@ model Payment {
   expired_at      DateTime?  @db.Timestamptz(6)
   paid_at         DateTime?  @db.Timestamptz(6)
   qris_url        String?
+  redirected_url  String?
   auth_user       AuthUser?  @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   order           Order      @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -712,6 +715,38 @@ model device_tokens {
   token      String?
   users      AuthUser @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@schema("public")
+}
+
+model ai_feature_history {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  merchant_id        String    @db.Uuid
+  listing_id         BigInt?
+  feature_date       DateTime  @db.Date
+  actual_surplus     Int       @default(0)
+  sold_qty           Int       @default(0)
+  production_qty     Int       @default(0)
+  day_of_week        Int       @db.SmallInt
+  is_weekend         Boolean?  @default(false)
+  rain_intensity     Int?      @default(0) @db.SmallInt
+  promo_active       Boolean?  @default(false)
+  prophet_prediction Float?
+  xgb_residual       Float?
+  predicted_surplus  Float?
+  sold_previous_day  Int?      @default(0)
+  sold_last_7_days   Int?      @default(0)
+  sold_last_30_days  Int?      @default(0)
+  avg_weekly_sales   Float?
+  sell_through_rate  Float?
+  surplus_rate       Float?
+  created_at         DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime? @default(now()) @db.Timestamptz(6)
+  listings           Listing?  @relation(fields: [listing_id], references: [id], onUpdate: NoAction, map: "fk_ai_history_listing")
+  merchants          Merchant  @relation(fields: [merchant_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ai_history_merchant")
+
+  @@unique([merchant_id, listing_id, feature_date], map: "unique_ai_daily_history")
+  @@index([listing_id, feature_date(sort: Desc)], map: "idx_ai_history_listing_date")
+  @@index([merchant_id, feature_date(sort: Desc)], map: "idx_ai_history_merchant_date")
   @@schema("public")
 }
 

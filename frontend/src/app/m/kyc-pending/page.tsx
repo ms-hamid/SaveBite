@@ -1,4 +1,7 @@
 "use client"
+import { Button } from "@/components/shared";
+import { logout } from "@/services/auth";
+import { getMyProfile } from "@/services/user";
 // import DashboardTopAppBar from "../../components/m/DashboardTopAppBar";
 // import DashboardBottomNav from "../../components/m/DashboardBottomNav";
 import Link from "next/link";
@@ -117,97 +120,20 @@ export default function KYCPendingPage() {
               </ul>
             </div>
 
-            {/* Need Help Card */}
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 mb-6">
-              <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                <span className="material-symbols-outlined text-slate-600 text-xl">help</span>
-                Pertanyaan atau Masalah?
-              </h3>
-              <p className="text-sm text-slate-700 mb-4">
-                Jika Anda memiliki pertanyaan tentang status verifikasi KYC atau memerlukan bantuan, hubungi tim support kami.
-              </p>
-              <a
-                href="mailto:support@savebite.com"
-                className="inline-flex items-center justify-center gap-2 w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg h-10 transition-colors active:scale-95 duration-200"
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>
-                  mail
-                </span>
-                Hubungi Support
-              </a>
-            </div>
-
             {/* Action Buttons */}
             <div className="space-y-3">
-              <Link
-                href="/m"
-                className="block text-center bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg h-12 flex items-center justify-center transition-colors active:scale-95 duration-200"
+              <Button
+                onClick={async () => {await logout().then(() => {router.push("/login")}); }}
+                className="w-full block text-center bg-prima ry hover:bg-primary/90 text-white font-semibold rounded-lg h-12 flex items-center justify-center transition-colors active:scale-95 duration-200"
               >
                 <span className="material-symbols-outlined mr-2" style={{ fontSize: "20px" }}>
                   home
                 </span>
                 Kembali ke Beranda
-              </Link>
-              <button
-                onClick={() => window.location.reload()}
-                className="w-full border border-slate-200 hover:bg-slate-50 text-slate-900 font-semibold rounded-lg h-12 transition-colors active:scale-95 duration-200 flex items-center justify-center gap-2"
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>
-                  refresh
-                </span>
-                Refresh Status
-              </button>
+              </Button>
             </div>
           </section>
 
-          {/* Timeline Section */}
-          <section className="pb-8">
-            <h2 className="text-lg font-bold text-slate-900 mb-4 tracking-tight">
-              Timeline Proses
-            </h2>
-            <div className="space-y-4">
-              {/* Step 1 */}
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 border-2 border-emerald-600 flex items-center justify-center flex-shrink-0">
-                    <span className="material-symbols-outlined text-emerald-600 text-sm">check</span>
-                  </div>
-                  <div className="w-0.5 h-12 bg-slate-200 mt-2"></div>
-                </div>
-                <div className="pb-4">
-                  <p className="font-semibold text-slate-900">Data Diterima</p>
-                  <p className="text-sm text-slate-600">Kami telah menerima data KYC Anda</p>
-                </div>
-              </div>
-
-              {/* Step 2 */}
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <div className="w-10 h-10 rounded-full bg-amber-100 border-2 border-amber-600 flex items-center justify-center flex-shrink-0">
-                    <span className="material-symbols-outlined text-amber-600 text-sm">schedule</span>
-                  </div>
-                  <div className="w-0.5 h-12 bg-slate-200 mt-2"></div>
-                </div>
-                <div className="pb-4">
-                  <p className="font-semibold text-slate-900">Sedang Diverifikasi</p>
-                  <p className="text-sm text-slate-600">Tim kami sedang memeriksa dokumen Anda</p>
-                </div>
-              </div>
-
-              {/* Step 3 */}
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 border-2 border-slate-400 flex items-center justify-center flex-shrink-0">
-                    <span className="material-symbols-outlined text-slate-600 text-sm">pending_actions</span>
-                  </div>
-                </div>
-                <div>
-                  <p className="font-semibold text-slate-900">Menunggu Persetujuan</p>
-                  <p className="text-sm text-slate-600">Kami akan memberitahu hasil verifikasi</p>
-                </div>
-              </div>
-            </div>
-          </section>
         </main>
 
         {/* <DashboardBottomNav page="store" /> */}

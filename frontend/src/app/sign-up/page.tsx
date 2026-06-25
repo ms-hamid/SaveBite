@@ -9,22 +9,9 @@ import MerchantChooseLocation from "../../components/sign-up/location_merchant";
 import api, { getApiErrorMessage } from "../../lib/api";
 import { useRouter } from "next/navigation";
 import { register } from "@/services/auth";
+import { RegisterData } from "@/types";
 
-type Role = "MERCHANT" | "CUSTOMER";
 
-type RegisterData = {
-  role: Role;
-  full_name: string;
-  email: string;
-  password: string;
-  confirm_password: string;
-  merchant_name: string;
-  category: string;
-  desc: string;
-  location: string;
-  address: string;
-  phone: string;
-};
 
 type Errors = Partial<Record<keyof RegisterData | "general", string>>;
 
@@ -46,11 +33,13 @@ export default function HomePage() {
     location: "",
     address: "",
     phone: "",
+    latitude: 0,
+    longitude: 0
   });
 
-  function update_input<K extends keyof RegisterData>(
-    key: K,
-    value: RegisterData[K]
+  function update_input(
+    key: string,
+    value: any
   ) {
     set_input_data((prev) => ({
       ...prev,
@@ -262,9 +251,11 @@ export default function HomePage() {
       desc: "Customers will use this to find your store.",
       component: (
         <MerchantChooseLocation
-          // location={input_data.location}
-          // change_location={(value: string) => update_input("location", value)}
-          // errors={errors}
+        latitude={input_data.latitude}
+        longitude={input_data.longitude}
+        address={input_data.address}
+        update_function={update_input}
+        errors={errors}
         />
       ),
     },

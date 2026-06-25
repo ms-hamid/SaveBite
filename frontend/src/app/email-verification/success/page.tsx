@@ -22,8 +22,8 @@ export default function EmailVerificationSuccessPage() {
           </div>
         </main>
         <footer className="flex-none px-6 pb-8 pt-4 w-full max-w-md mx-auto bg-white dark:bg-surface-dark">
-          <Link href={"/home"} className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary h-14 px-6 text-white text-lg font-bold shadow-lg shadow-primary/20 active:scale-[0.98] transition-transform duration-100 hover:bg-primary/90 focus:outline-none focus:ring-4 focus:ring-primary/30">
-            <span>Explore nearby food</span>
+          <Link href={"/login"} className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary h-14 px-6 text-white text-lg font-bold shadow-lg shadow-primary/20 active:scale-[0.98] transition-transform duration-100 hover:bg-primary/90 focus:outline-none focus:ring-4 focus:ring-primary/30">
+            <span>Log in to your account</span>
             <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
           </Link>
         </footer>

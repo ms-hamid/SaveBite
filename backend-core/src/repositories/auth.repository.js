@@ -6,17 +6,7 @@ import {prisma} from "../lib/prisma.js";
 import crypto from "crypto";
 
 
-export async function get_acc_by_email(email) {
-    return await prisma.authUser.findFirst({
-        where: {
-        email,
-        },
-        include: {
-        profile: true,
-        merchant: true
-    },
-    });
-}
+
 /**
  * @file src/repositories/auth.repository.js
  * @description Data access layer for authentication operations.
@@ -29,7 +19,6 @@ export async function get_acc_by_email(email) {
  *  - Added: update_password_by_email, create_reset_token, get_reset_token_by_hash, delete_reset_token
  */
 
-import { prisma } from "../lib/prisma.js";
 
 // ── User creation ─────────────────────────────────────────────────────────────
 
@@ -73,11 +62,16 @@ export async function create_user(user_field, account_type = "CONSUMER", merchan
  * @returns {Promise<object|null>}
  */
 export async function get_acc_by_email(email) {
-  return await prisma.user.findUnique({
-    where: { email },
+  return await prisma.authUser.findFirst({
+      where: {
+      email,
+      },
+      include: {
+      profile: true,
+      merchant: true
+  },
   });
 }
-
 // ── Merchant helpers ──────────────────────────────────────────────────────────
 
 /**

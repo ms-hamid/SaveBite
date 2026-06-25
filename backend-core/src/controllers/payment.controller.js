@@ -27,20 +27,17 @@ export async function createPaymentHandler(
     res
 ) {
     try {
-        console.log("controller masuk")
-        const { order_id } = req.body;
+        const { order_id, payment_method } = req.body;
 
         const customerId = req.user.id;
 
-        console.log('customerId')
         const result =
             await createPaymentTransaction(
                 order_id,
-                customerId
+                customerId,
+                payment_method ?? "qris"
             );
 
-        console.log(result)
-        console.log("controller keluar")
 
         return res.status(201).json({
             success: true,
@@ -59,12 +56,6 @@ export async function createPaymentHandler(
 
 export async function handleMidtransCallback(req, res) {
   try {
-    // for (let i = 0; i <=10; i++) console.log("berhasil")
-    // res.status(200).json({
-    //   message: "callback received"
-    // });
-
-
     const notification = req.body;
 
     await updatePaymentStatus(notification);

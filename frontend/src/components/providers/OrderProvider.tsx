@@ -45,7 +45,6 @@ export function OrderProvider({
     try {
       setIsLoading(true);
 
-      console.log(order_id)
 
       if (!order_id) {
         console.error("Invalid order_id:", order_id);
@@ -55,13 +54,11 @@ export function OrderProvider({
 
       const data = (await getOrderByPublicId(order_id)).data;
 
-      console.log("order; ", data);
       
       data.total_amount = Number(data.total_amount)
       data.listing.original_price = Number(data.listing?.original_price)
       data.listing.discount_price = Number(data.listing?.discount_price)
       
-      console.log("dirubah datanya jadi bigint: ", data)
 
       const formatted_data = {
         "total_amount" : format_price(data.total_amount),
@@ -79,7 +76,6 @@ export function OrderProvider({
       setPayment(data?.payment)
       
       data.formatted = formatted_data;
-      console.log(data)
       setOrder(data);
     
     } catch (error) {

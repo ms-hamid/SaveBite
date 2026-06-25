@@ -25,7 +25,6 @@ export async function completeRegister(
       role,
     } = payload;
   
-    console.log(payload);
 
     if (role === "CUSTOMER") {
       return createCustomerData(
@@ -163,34 +162,29 @@ export async function register_user(body, account_type = "CONSUMER") {
  * @returns {Promise<{ token: string, user: object }>}
  */
 export async function get_token(body) {
-  const acc = await get_acc_by_email(body.email.trim().toLowerCase());
+  const acc = await get_acc_by_email(body.email);
 
-  // ✅ Guard: user not found — do not reveal whether email exists (timing-safe)
-  if (!acc) {
-    throw new AuthError("Incorrect email or password.");
-  }
-
-  // ✅ FIX: was missing `await` — bcrypt.compare is async
-  const password_match = await verify_password(body.password, acc.password_hash);
+  const password_match = await verify_password(body.password, acc.encrypted_password);
 
   if (!password_match) {
-    throw new AuthError("Incorrect email or password.");
+      throw Error("Incorrect Username or Password!");
   }
 
   const payload = {
-    id: acc.id,
-    email: acc.email,
-    full_name: acc.full_name,
-    role: acc.role,
+      email: acc.email,
+      full_name: acc.profile.full_name, 
+      id: acc.id,
+      role: acc.profile.role, 
+      kyc_status: acc.merchant ? acc.merchant.kyc_status : "",
+      email_verified: Boolean(acc.email_confirmed_at)
   };
 
   const token = generate_token(payload);
 
-  return {
-    token,
-    user: strip_sensitive(acc),
-  };
+  return {token: token, role: payload.role};
 }
+
+
 
 // ── FR-U-02 — Logout ──────────────────────────────────────────────────────────
 
@@ -311,33 +305,6 @@ export async function confirm_merchant(id){
     const merchant_data = await confirm_merchant_acc(id);
 
     return merchant_data;
-}
-
-export async function get_token(body) {
-    const acc = await get_acc_by_email(body.email);
-
-    console.log(acc)
-    const password_match = await verify_password(body.password, acc.encrypted_password);
-    
-    console.log(password_match ? "password sesuai" : "password tidak sesuai");
-
-
-    if (!password_match) {
-        throw Error("Incorrect Username or Password!");
-    }
-
-    const payload = {
-        email: acc.email,
-        full_name: acc.profile.full_name, 
-        id: acc.id,
-        role: acc.profile.role, 
-        kyc_status: acc.merchant ? acc.merchant.kyc_status : "",
-        email_verified: Boolean(acc.email_confirmed_at)
-    };
-
-    const token = generate_token(payload);
-
-    return {token: token, role: payload.role};
 }
 
 /**
@@ -513,7 +480,3 @@ export async function reset_password_service(resetToken, password, confirmPasswo
         message: "Password reset successfully. Please log in with your new password"
     };
   }
-
-export async function confirm_merchant(id) {
-  return await confirm_merchant_acc(id);
-}

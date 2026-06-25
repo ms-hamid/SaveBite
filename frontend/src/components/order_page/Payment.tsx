@@ -2,7 +2,7 @@ import { Order } from "@/types";
 import api, { getApiErrorMessage } from "../../lib/api";
 
 
-export default function PaymentOrderPage({order}: {order: Order | undefined}) {
+export default function PaymentOrderPage({order}: {order: Order | undefined | null}) {
   async function handle_tranfer() {
     try {
       await api.patch(`/order/${order?.id}/confirm-transfer`, { payment_method: "bank_transfer" });

@@ -22,21 +22,16 @@ export function ListingProvider({children, public_id} : {children: React.ReactNo
             set_is_loading(true);
 
             const data = (await getListingByPublicID(public_id)).data
-            console.log("price: ", data.original_price)
             const others_data = {
                 ori_price: format_price(data.original_price),
                 dis_price: format_price(data.discount_price),
                 price_diff: format_price(data.original_price - data.discount_price)
             }
-            // console.log(data.stock_total - data.sold_total)
             data["others"] = others_data
 
-            console.log("ini data dari provider");
-            console.log(data);
 
             set_listing(data);
         } catch(error) {
-            console.log(error);
         } finally {
             set_is_loading(false)
         }
