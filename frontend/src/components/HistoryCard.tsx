@@ -6,12 +6,12 @@ export default function OrderList ({id, name, image, date, product, order_number
     key={id}
     className="group bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all hover:shadow-md"
   >
-    <Link href={`/${status === "pending_payment" ? "pay" : "order"}/${id}`}>
+    <Link href={`/order/${id}`}>
       <div className="flex justify-between items-start mb-3">
         <div className="flex gap-3">
           <div className="h-14 w-14 rounded-lg overflow-hidden bg-slate-100 dark:bg-white/10 shrink-0">
             <img
-              src={image}
+              src={image ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
               alt={product}
               className="w-14 h-14 rounded-xl bg-slate-200 dark:bg-slate-700 bg-cover bg-center shrink-0"
           />

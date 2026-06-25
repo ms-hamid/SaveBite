@@ -16,28 +16,31 @@ import { verify_token } from "../lib/jwt.js";
  * Returns 401 if the token is missing or invalid/expired.
  */
 export function authenticate(req, res, next) {
-  const authHeader = req.headers["authorization"];
+  const token = req.cookies.sb_access_token;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  if (!token) {
     return res.status(401).json({
       error: "Unauthorized",
       message: "Missing or malformed Authorization header",
     });
   }
 
-  const token = authHeader.slice(7); // Strip "Bearer "
+  // const token = token; // Strip "Bearer "
 
   try {
+
     const decoded = verify_token(token);
     req.user = decoded; // { id, email, role }
     next();
   } catch (err) {
     // Distinguish between expired and genuinely invalid tokens
+    console.log(err)
     const message =
       err.name === "TokenExpiredError"
         ? "Token has expired — please log in again"
         : "Invalid token";
 
+    res.clearCookie("sb_access_token");
     return res.status(401).json({ error: "Unauthorized", message });
   }
 }

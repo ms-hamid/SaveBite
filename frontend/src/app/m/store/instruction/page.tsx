@@ -10,8 +10,8 @@ export default function PickupInstructionsRefinedStylePage() {
     ""
   );
 
-  const [contactless_pickup, set_contactless_pickup] = useState();
-  const [notify_staff_upon_arrival, set_notify_staff_upon_arrival] = useState();
+  const [contactless_pickup, set_contactless_pickup] = useState<boolean>();
+  const [notify_staff_upon_arrival, set_notify_staff_upon_arrival] = useState<boolean>();
   const [is_saving, set_is_saving] = useState<boolean>(false);
   const [user_id, set_user_id] = useState<string>("");
 

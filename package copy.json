@@ -1,0 +1,34 @@
+{
+  "name": "savebite-monorepo",
+  "version": "1.0.0",
+  "description": "SaveBite — Food Waste Recovery Platform (Monorepo)",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend-core"
+  ],
+  "scripts": {
+    "dev": "concurrently -n FRONT,CORE,AI -c cyan,green,magenta \"npm run dev:frontend\" \"npm run dev:backend-core\" \"npm run dev:backend-ai\"",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend-core": "npm run dev --workspace=backend-core",
+    "dev:backend-ai": "uvicorn main:app --reload --port 8000 --app-dir backend-ai",
+    "install:python": "pip install -r backend-ai/requirements.txt",
+    "test": "echo \"Run tests per workspace: npm test --workspace=<name>\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "@prisma/extension-accelerate": "^3.0.1",
+    "@tailwindcss/container-queries": "^0.1.1",
+    "@tailwindcss/forms": "^0.5.11",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "html5-qrcode": "^2.3.8",
+    "jsonwebtoken": "^9.0.3"
+  }
+}

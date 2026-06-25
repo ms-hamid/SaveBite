@@ -1,4 +1,5 @@
 import type { ListingStatus } from "./enum";
+import { Formatted } from "./Formatted";
 import type { Merchant } from "./merchant";
 
 export type Listing = {
@@ -21,4 +22,6 @@ export type Listing = {
 
   // Relation
   merchant?: Merchant | null;
+  formatted: Formatted | null;
+
 };

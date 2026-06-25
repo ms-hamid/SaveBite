@@ -9,6 +9,7 @@ import CustomerNavbar from "../../components/navbar/customer_navbar";
 import { supabase } from "../../lib/supabase";
 import OrderList from "../../components/HistoryCard";
 import { Order } from "../../types";
+import { getCustomerOrder } from "@/services/order";
 
 type TabId = "upcoming" | "completed" | "cancelled";
 
@@ -40,42 +41,14 @@ export default function HistoryPage() {
   useEffect(() => {
     async function get_ordere() {
       
-      const { data, error } = await supabase
-      .from("orders")
-      .select(`
-        id,
-        qty,
-        total_amount,
-        qr_token,
-        status,
-        created_at,
-        updated_at,
-        deleted_at,
-        listing_id,
-        customer_id,
-        public_id,
-        listings:listing_id (
-          name,
-          img_url,
-          public_id,
-          merchants:merchant_id (
-            merchant_name
-          )
-        )
-      `)
-      .returns<Order[]>();
-    
-      if (error) {
-        console.error(error);
-        return;
-      }
+      const data = (await getCustomerOrder()).data;
     
       let filtered_orders: Record<TabId, Order[]>= {
         cancelled: [],
         upcoming: [],
         completed: []
       };
-      data.map((order) => {
+      data.map((order: Order) => {
         if (order.status === "cancelled") {
           filtered_orders.cancelled.unshift(order)
         } else if (order.status === "completed") {

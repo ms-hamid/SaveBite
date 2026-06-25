@@ -7,7 +7,7 @@
  *
  * Route Map:
  *   POST   /api/orders              → create order (locks stock atomically)
- *   GET    /api/orders              → list customer's orders
+ *   GET    /api/orders              → list CUSTOMER's orders
  *   GET    /api/orders/:id          → single order detail (+ payment + listing)
  *   PATCH  /api/orders/:id/confirm-transfer → mark as PAID_RESERVED, gen QR code
  *   PATCH  /api/orders/:id/cancel   → cancel order (releases stock)
@@ -19,10 +19,14 @@ import { authorize } from "../../middlewares/rbac.middleware.js";
 import { asyncHandler } from "../../middlewares/error.middleware.js";
 import {
   cancel_order_handler,
+  change_order_status_handler,
   confirm_transfer_handler,
   create_order_handler,
+  get_all_order_handler,
   get_customer_orders_handler,
+  get_merchant_orders_handler,
   get_order_handler,
+  pickup_order_handler,
 } from "../../controllers/order.controller.js";
 
 const order_route = express.Router();
@@ -30,32 +34,58 @@ const order_route = express.Router();
 // All routes below require a valid JWT
 order_route.use(authenticate);
 
+order_route.get(
+  "/admin",
+  authorize("ADMIN"),
+  asyncHandler(get_all_order_handler)
+);
+
+order_route.get(
+  "/merchant",
+  authorize("MERCHANT"),
+  asyncHandler(get_merchant_orders_handler)
+);
+
+
 order_route.post(
   "/",
-  authorize("CONSUMER"),
+  authorize("CUSTOMER"),
   asyncHandler(create_order_handler)
 );
 
 order_route.get(
   "/",
-  authorize("CONSUMER"),
+  authorize("CUSTOMER"),
   asyncHandler(get_customer_orders_handler)
 );
 
 order_route.get(
-  "/:id",
-  asyncHandler(get_order_handler) // ADMIN + CONSUMER — role check in service
+  "/:public_id",
+  // authenticate,
+  asyncHandler(get_order_handler) // ADMIN + CUSTOMER — role check in service
 );
 
 order_route.patch(
-  "/:id/confirm-transfer",
-  authorize("CONSUMER"),
+  "/:public_id/confirm-transfer",
+  authorize("CUSTOMER"),
   asyncHandler(confirm_transfer_handler)
 );
 
 order_route.patch(
-  "/:id/cancel",
-  asyncHandler(cancel_order_handler) // Both CONSUMER (self) + ADMIN — auth in svc
+  "/:public_id/cancel",
+  asyncHandler(cancel_order_handler) // Both CUSTOMER (self) + ADMIN — auth in svc
+);
+
+order_route.patch(
+  "/:id/status",
+  authorize("MERCHANT"),
+  asyncHandler(change_order_status_handler)
+);
+
+order_route.post(
+  "/pickup",
+  authorize("MERCHANT"),
+  asyncHandler(pickup_order_handler)
 );
 
 export default order_route;

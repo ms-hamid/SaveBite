@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { login } from "@/services/auth";
+import { Role } from "@/types";
+import { enablePushNotification } from "../../lib/firebase/messaging";
 import { useRouter } from "next/navigation";
 import api, { getApiErrorMessage } from "../../lib/api";
 import AuthPageLayout from "../../components/auth/page_layout";
@@ -26,79 +29,130 @@ type LoginFormData = {
  * in compliance with ADR-002 (Custom JWT over Supabase JWT).
  */
 export default function LoginPage() {
-  const router = useRouter();
 
-  const [form_data, set_form_data] = useState<LoginFormData>({
+  const router = useRouter();
+  
+  const [is_loading, set_is_loading] = useState(false)
+  
+  const [input_data, set_input_data] = useState<LoginFormData>({
     email: "",
     password: "",
   });
 
-  const [error_message, set_error_message] = useState<string>("");
-  const [is_loading, set_is_loading] = useState(false);
+  const [errors, setErrors] = useState({
+    email: "",
+    password: "",
+    general: "",
+  });
 
-  // ── Input handler ──────────────────────────────────────────────────────────
+  // valid email akan kosong ketika belum ada input dan juga ketika email sudah memenuhi syarat valid
+  // valid email akan terisi ketika button submit button ditekan dan email tidak memenuhi syarat valid
+  // const is_email_valid = input_data.email.includes("@") && input_data.email.includes(".");
 
-  function update_input<K extends keyof LoginFormData>(
-    key: K,
-    value: LoginFormData[K]
+  async function handle_submit(
+    e: React.MouseEvent
   ) {
-    set_form_data((prev) => ({ ...prev, [key]: value }));
-    // Clear error on any input change
-    if (error_message) set_error_message("");
-  }
-
-  // ── Submit ─────────────────────────────────────────────────────────────────
-
-  async function handle_submit(e: React.MouseEvent | React.FormEvent) {
     e.preventDefault();
-
-    if (is_loading) return;
-
-    // Basic client-side guard before hitting the network
-    if (!form_data.email.trim() || !form_data.password.trim()) {
-      set_error_message("Please enter your email and password.");
-      return;
-    }
-
-    set_is_loading(true);
-    set_error_message("");
-
+  
+    const valid = validateForm();
+  
+    if (!valid) return;
+  
     try {
-      /**
-       * POST /auth/login — custom Express endpoint (ADR-002).
-       * Response shape: { message, token, user: { id, email, full_name, role } }
-       */
-      const { data } = await api.post("/auth/login", {
-        email: form_data.email.trim().toLowerCase(),
-        password: form_data.password,
-      });
+      set_is_loading(true)
 
-      // ── Store the custom JWT (ADR-002) ────────────────────────────────────
-      if (data.token) {
-        localStorage.setItem("sb_access_token", data.token);
+      const login_data = await login(
+        input_data.email,
+        input_data.password
+      );
+
+      localStorage.setItem("email", input_data.email);
+
+      // Enable push notification sync with user account
+      try {
+        enablePushNotification();
+      } catch (err) {
+        console.error("Failed to enable push notifications on login:", err);
       }
 
-      // ── Role-based redirect ───────────────────────────────────────────────
-      const role: string = data.user?.role ?? "CONSUMER";
-
-      if (role === "MERCHANT") {
-        router.push("/m");
-      } else if (role === "ADMIN") {
-        router.push("/admin");
-      } else {
-        // CONSUMER (default)
-        router.push("/home");
-      }
-    } catch (err) {
-      // getApiErrorMessage extracts the user-facing message from Axios error shapes
-      set_error_message(getApiErrorMessage(err));
-    } finally {
-      set_is_loading(false);
+      if (login_data.role === "CUSTOMER") router.push("/home");
+      else if (login_data.role === "MERCHANT") router.push("/m");
+      else router.push("/admin");
+      
+    } catch (error: any) {
+      console.log(error)
+      setErrors((prev) => ({
+        ...prev,
+        general:
+          error?.response?.data?.message ||
+          "Email atau password salah",
+      }));
+    }finally{
+      set_is_loading(false)
     }
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  function update_input(
+  key: string,
+  value: any
+) : void{
+  set_input_data((prev) => ({
+    ...prev,
+    [key]: value,
+  }));
 
+  if (key === "email") {
+    setErrors((prev) => ({
+      ...prev,
+      email: "",
+      general: "",
+    }));
+  }
+
+  if (key === "password") {
+    setErrors((prev) => ({
+      ...prev,
+      password: "",
+      general: "",
+    }));
+  }
+}
+
+function validateForm() {
+  const newErrors = {
+    email: "",
+    password: "",
+    general: "",
+  };
+
+  let isValid = true;
+
+  const emailRegex =
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!input_data.email.trim()) {
+    newErrors.email = "Email wajib diisi";
+    isValid = false;
+  } else if (!emailRegex.test(input_data.email)) {
+    newErrors.email =
+      "Format email tidak valid";
+    isValid = false;
+  }
+
+  if (!input_data.password.trim()) {
+    newErrors.password =
+      "Password wajib diisi";
+    isValid = false;
+  } else if (input_data.password.length < 6) {
+    newErrors.password =
+      "Password minimal 6 karakter";
+    isValid = false;
+  }
+
+  setErrors(newErrors);
+
+  return isValid;
+}
   return (
     <AuthPageLayout
       title="Welcome back"
@@ -110,27 +164,14 @@ export default function LoginPage() {
     >
       <form
         id="login-form"
-        onSubmit={handle_submit}
+        // onSubmit={handle_submit}
         className="flex flex-col gap-5 flex-1"
         noValidate
       >
-        <AuthInputComponent
-          label="Email"
-          name="email"
-          placeholder="Enter your email"
-          onChange={update_input}
-          value={form_data.email}
-          type="email"
-        />
-
-        <AuthInputComponent
-          label="Password"
-          name="password"
-          placeholder="Enter your password"
-          onChange={update_input}
-          value={form_data.password}
-          type="password"
-        />
+          <AuthInputComponent error={errors.email} label="Email" name="email" placeholder="Enter your email" onChange={update_input} value={input_data.email} type="email"/>
+          
+          <AuthInputComponent error={errors.password} label="Password" name="password" placeholder="Enter your password" onChange={update_input} value={input_data.password} type="password"/>
+          
 
         {/* Forgot password link */}
         <div className="flex justify-end -mt-2">
@@ -144,22 +185,25 @@ export default function LoginPage() {
         </div>
 
         {/* Error message */}
-        {error_message && (
+        {errors.general && (
           <p
             id="login-error-msg"
             role="alert"
             className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2"
           >
-            {error_message}
+            {errors.general}
           </p>
         )}
 
         {/* Sign in button */}
         <button
+          onClick={ (e) =>
+            handle_submit(e)
+          }
           id="login-submit-btn"
           type="submit"
           disabled={is_loading}
-          className="mt-4 w-full bg-primary text-white h-12 rounded-lg font-semibold text-base shadow-none transition-all flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+          className="mt-100 w-full bg-primary text-white h-12 rounded-lg font-semibold text-base shadow-none transition-all flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {is_loading ? (
             <>

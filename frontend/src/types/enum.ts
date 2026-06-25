@@ -27,6 +27,6 @@ export type PgStatus =
 
 export type WithdrawStatus =
   | "pending"
-  | "approved"
-  | "rejected"
-  | "completed";
+  | "completed"
+  | "declinec"
+  | "cancelled";

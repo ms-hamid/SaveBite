@@ -97,8 +97,8 @@ export default function CompletedOrderPage() {
         {/* Merchant Card */}
         <div className="px-4 mb-6 mt-4">
           <MerchantCard
-            storeName={order?.listings.merchants.merchant_name}
-            address={order?.listings.merchants.address}
+            storeName={order?.listing?.merchant?.merchant_name ?? ""}
+            address={order?.listing?.merchant?.address}
             distance={"distance"}
             imageUrl={'merchant_image_url'}
           />
@@ -111,7 +111,7 @@ export default function CompletedOrderPage() {
           </h3>
           <OrderSummary
             item={order}
-            amountSaved={order?.formatted.saved_price}
+            amountSaved={order?.formatted?.saved_price ?? ""}
           />
         </div>
 

@@ -12,11 +12,16 @@
 
 import {
   cancel_order_svc,
+  change_order_status,
   confirm_payment,
   create_order,
+  get_all_order_svc,
   get_customer_orders,
+  get_merchant_orders,
   get_order,
+  pickup_order,
 } from "../services/order.service.js";
+import { serializeBigInt } from "../utils/json.js";
 
 /**
  * POST /api/orders
@@ -31,7 +36,7 @@ export async function create_order_handler(req, res) {
 
   return res.status(201).json({
     message: "Order created successfully",
-    order,
+    data: serializeBigInt(order),
   });
 }
 
@@ -41,7 +46,7 @@ export async function create_order_handler(req, res) {
  */
 export async function get_customer_orders_handler(req, res) {
   const orders = await get_customer_orders(req.user.id);
-  return res.status(200).json({ orders });
+  return res.status(200).json({ data: serializeBigInt(orders) });
 }
 
 /**
@@ -49,8 +54,9 @@ export async function get_customer_orders_handler(req, res) {
  * Get a single order by ID (with listing + payment info).
  */
 export async function get_order_handler(req, res) {
-  const order = await get_order(req.params.id, req.user.id, req.user.role);
-  return res.status(200).json({ order });
+  const order = await get_order(req.params.public_id, req.user.id, req.user.role);
+
+  return res.status(200).json({ data: serializeBigInt(order) });
 }
 
 /**
@@ -61,11 +67,11 @@ export async function get_order_handler(req, res) {
  */
 export async function confirm_transfer_handler(req, res) {
   const { payment_method } = req.body;
-  const order = await confirm_payment(req.params.id, req.user.id, payment_method);
+  const order = await confirm_payment(req.params.public_id, req.user.id, payment_method);
 
   return res.status(200).json({
     message: "Payment confirmed — your QR pickup code is ready",
-    order,
+    data: serializeBigInt(order),
   });
 }
 
@@ -74,10 +80,116 @@ export async function confirm_transfer_handler(req, res) {
  * Cancel an order and release reserved stock.
  */
 export async function cancel_order_handler(req, res) {
-  const order = await cancel_order_svc(req.params.id, req.user.id, req.user.role);
+  const order = await cancel_order_svc(req.params.public_id, req.user.id, req.user.role);
 
   return res.status(200).json({
     message: "Order cancelled",
-    order,
+    data: serializeBigInt(order),
   });
+}
+
+export async function get_merchant_orders_handler(
+  req,
+  res,
+  next
+) {
+  try {
+    const merchant_id = req.user.id;
+
+    const orders =
+      await get_merchant_orders(
+        merchant_id
+      );
+
+    return res.status(200).json({
+      success: true,
+      data: serializeBigInt(orders),
+    });
+
+  } catch (error) {
+    console.log(error)
+    next(error);
+  }
+}
+
+export async function change_order_status_handler(
+  req,
+  res,
+  next
+) {
+  try {
+    const merchant_id =
+      req.user.id;
+
+    const { id } = req.params;
+
+    const { status } = req.body;
+
+    const order =
+      await change_order_status(
+        id,
+        merchant_id,
+        status
+      );
+
+    return res.json({
+      success: true,
+      message:
+        "Order status updated",
+      data: serializeBigInt(order),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function pickup_order_handler(
+  req,
+  res,
+  next
+) {
+  try {
+
+    const merchant_id =
+      req.user.id;
+
+    const { pickup_code, order_public_id } =
+      req.body;
+
+    const order =
+      await pickup_order(
+        pickup_code,
+        merchant_id,
+        order_public_id
+      );
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Order completed successfully",
+      data: serializeBigInt(order),
+    });
+
+  } catch (error) {
+    next(error);
+  }
+}
+
+
+export async function get_all_order_handler(
+  req,
+  res,
+  next
+) {
+  try {
+    const orders =
+      await get_all_order_svc();
+
+    return res.json({
+      success: true,
+      data: serializeBigInt(orders),
+    });
+  } catch (error) {
+    next(error);
+  }
 }

@@ -1,27 +1,45 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useOrder } from "../../../../components/providers/OrderProvider";
 import api, { getApiErrorMessage } from "../../../../lib/api";
 import { useParams } from "next/navigation";
 import { usePayment } from "../../../../components/providers/PaymentProvider";
+import { check_payment_status } from "../../../../services/payment";
+import { useState } from "react";
 
 
 export default function PaymentOrderPage() {
   const {order} = usePayment();
   const router = useRouter();
   const params = useParams();
+  const [isChecking, setIsChecking] = useState(false);
+
   async function handle_tranfer() {
+    if (isChecking) return;
+    setIsChecking(true);
     try {
-      await api.patch(`/order/${order?.id}/confirm-transfer`, { payment_method: "bank_transfer" });
+      await api.patch(`/order/${order?.public_id}/confirm-transfer`, { payment_method: "bank_transfer" });
+      
+      const response = await check_payment_status(params.public_id as string);
+      if (response.success && response.data) {
+        const pgStatus = response.data.pg_status;
+        const orderStatus = response.data.order_status;
+        if (pgStatus === "settlement" || orderStatus === "paid_reserved") {
+          router.push(`/pay/${params.public_id}/done`);
+          return;
+        }
+      }
+      
       router.push(`/pay/${params.public_id}/done`);
     } catch (err) {
       console.error("Confirm transfer failed:", getApiErrorMessage(err));
+    } finally {
+      setIsChecking(false);
     }
   }
 
   async function handle_cancel() {
     try {
-      await api.patch(`/order/${order?.id}/cancel`);
+      await api.patch(`/order/${order?.public_id}/cancel`);
       router.push(`/order/${params.public_id}/cancel`);
     } catch (err) {
       console.error("Cancel order failed:", getApiErrorMessage(err));
@@ -185,14 +203,17 @@ export default function PaymentOrderPage() {
               <div className="block">
                 <button
                  onClick={handle_tranfer}
-                 className="main-cta relative flex w-full cursor-pointer select-none items-center justify-center rounded-lg bg-primary px-6 py-3.5 text-base font-bold text-slate-900 shadow-sm transition-all hover:bg-green-400 hover:shadow-md active:scale-[0.98]" 
-                // htmlFor="loading-trigger"
+                 disabled={isChecking}
+                 className="main-cta relative flex w-full cursor-pointer select-none items-center justify-center rounded-lg bg-primary px-6 py-3.5 text-base font-bold text-slate-900 shadow-sm transition-all hover:bg-green-400 hover:shadow-md active:scale-[0.98] disabled:opacity-80 disabled:cursor-not-allowed" 
                 >
-                  <span className="default-text">I have transferred</span>
-                  <div className="loading-text hidden items-center gap-2">
-                    <span className="animate-spin material-symbols-outlined text-xl">progress_activity</span>
-                    <span>Checking payment...</span>
-                  </div>
+                  {!isChecking ? (
+                    <span className="default-text">I have transferred</span>
+                  ) : (
+                    <div className="loading-text flex items-center gap-2">
+                      <span className="animate-spin material-symbols-outlined text-xl">progress_activity</span>
+                      <span>Checking payment...</span>
+                    </div>
+                  )}
                 </button>
                 <button 
                   onClick={handle_cancel}

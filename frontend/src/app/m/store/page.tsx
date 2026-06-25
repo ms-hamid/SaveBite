@@ -4,60 +4,17 @@ import Link from "next/link";
 // import React from "react";
 import OrdersBottomNav from "../../../components/m/OrdersBottomNav";
 import DashboardBottomNav from "../../../components/m/DashboardBottomNav";
+import { useRouter } from "next/navigation";
+import { logout } from "@/services/auth";
 
 export default function MerchantStoreRefinedPolishedLayoutPage() {
-  return (
-    <>
-      <title>Store Management - SaveBite Merchant</title>
-      <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-      <script id="tailwind-config" dangerouslySetInnerHTML={{ __html: `tailwind.config = {
-                  darkMode: "class",
-                  theme: {
-                      extend: {
-                          "colors": {
-                              "primary-emerald": "#16C47F",
-                              "sb-bg": "#F7FAF8",
-                              "sb-primary-text": "#111827",
-                              "sb-secondary-text": "#6B7280",
-                              "sb-border": "#EAEAEA"
-                          },
-                          "borderRadius": {
-                              "DEFAULT": "0.25rem",
-                              "lg": "0.5rem",
-                              "xl": "0.75rem",
-                              "2xl": "1rem",
-                              "3xl": "1.5rem",
-                              "full": "9999px"
-                          },
-                          "fontFamily": {
-                              "sans": ["Plus Jakarta Sans", "sans-serif"]
-                          }
-                      }
-                  }
-              }` }} />
-      <style dangerouslySetInnerHTML={{ __html: `body { 
-              font-family: 'Plus Jakarta Sans', sans-serif; 
-              -webkit-tap-highlight-color: transparent;
-          }
-          .material-symbols-outlined {
-              font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-          }
-          .no-scrollbar::-webkit-scrollbar {
-              display: none;
-          }
-          .no-scrollbar {
-              -ms-overflow-style: none;
-              scrollbar-width: none;
-          }
-          body {
-            min-height: max(884px, 100dvh);
-          }` }} />
-      <meta charSet="utf-8" />
-      <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport" />
-      <link href="https://fonts.googleapis.com" rel="preconnect" />
-      <link crossOrigin="" href="https://fonts.gstatic.com" rel="preconnect" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
-      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+    const router = useRouter();
+    async function handleLogout() {
+        await logout();
+        router.push("/login")
+    }
+    return (
+   <>
       <div className={"text-sb-primary-text min-h-screen flex justify-center antialiased bg-white"}>
           <div
               className="w-full max-w-[448px] bg-[#F7FAF8] relative flex flex-col min-h-screen shadow-xl pb-[80px] bg-white">
@@ -103,6 +60,7 @@ export default function MerchantStoreRefinedPolishedLayoutPage() {
                           </div>
                       </div>
                       <button
+                          onClick={() => router.push("/m/store/edit-profile")}
                           className="w-full bg-transparent border border-sb-border text-sb-secondary-text hover:text-sb-primary-text text-[13px] font-bold py-2 rounded-xl hover:bg-slate-50 transition-colors active:scale-[0.98]">
                           Edit Profile
                       </button>
@@ -290,6 +248,22 @@ export default function MerchantStoreRefinedPolishedLayoutPage() {
                                   className="material-symbols-outlined text-sb-secondary-text text-[20px]">chevron_right</span>
                           </Link>
                           <Link
+                            href={'/m/withdrawal'}
+                              className="flex items-center justify-between p-4 border-b border-sb-border hover:bg-slate-50 transition-colors active:bg-slate-100">
+                              <div className="flex items-center gap-3">
+                                  <div
+                                      className="w-8 h-8 rounded-xl bg-primary-emerald/10 flex items-center justify-center text-primary-emerald">
+                                      <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+                                  </div>
+                                  <div className="flex flex-col items-start">
+                                      <span className="text-[13px] font-semibold text-sb-primary-text">Withdrawals</span>
+                                      <span className="text-[11px] text-sb-secondary-text">Request and track payouts</span>
+                                  </div>
+                              </div>
+                              <span
+                                  className="material-symbols-outlined text-sb-secondary-text text-[20px]">chevron_right</span>
+                          </Link>
+                          <Link
                             href={'/m/store/payment'}
                               className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors active:bg-slate-100">
                               <div className="flex items-center gap-3">
@@ -354,6 +328,8 @@ export default function MerchantStoreRefinedPolishedLayoutPage() {
                               <span className="material-symbols-outlined text-sb-secondary-text text-[18px]">chat</span>
                           </button>
                           <button
+                                onClick={handleLogout}
+
                               className="flex items-center justify-between p-4 hover:bg-red-50 transition-colors text-red-600 active:bg-red-100">
                               <span className="text-[13px] font-semibold">Logout</span>
                               <span className="material-symbols-outlined text-[18px]">logout</span>
@@ -367,3 +343,56 @@ export default function MerchantStoreRefinedPolishedLayoutPage() {
     </>
   );
 }
+
+// tambahkan yang di bawah ini ke dalam taiwlind.config.ts
+
+// <title>Store Management - SaveBite Merchant</title>
+// <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+// <script id="tailwind-config" dangerouslySetInnerHTML={{ __html: `tailwind.config = {
+//             darkMode: "class",
+//             theme: {
+//                 extend: {
+//                     "colors": {
+//                         "primary-emerald": "#16C47F",
+//                         "sb-bg": "#F7FAF8",
+//                         "sb-primary-text": "#111827",
+//                         "sb-secondary-text": "#6B7280",
+//                         "sb-border": "#EAEAEA"
+//                     },
+//                     "borderRadius": {
+//                         "DEFAULT": "0.25rem",
+//                         "lg": "0.5rem",
+//                         "xl": "0.75rem",
+//                         "2xl": "1rem",
+//                         "3xl": "1.5rem",
+//                         "full": "9999px"
+//                     },
+//                     "fontFamily": {
+//                         "sans": ["Plus Jakarta Sans", "sans-serif"]
+//                     }
+//                 }
+//             }
+//         }` }} />
+// <style dangerouslySetInnerHTML={{ __html: `body { 
+//         font-family: 'Plus Jakarta Sans', sans-serif; 
+//         -webkit-tap-highlight-color: transparent;
+//     }
+//     .material-symbols-outlined {
+//         font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+//     }
+//     .no-scrollbar::-webkit-scrollbar {
+//         display: none;
+//     }
+//     .no-scrollbar {
+//         -ms-overflow-style: none;
+//         scrollbar-width: none;
+//     }
+//     body {
+//       min-height: max(884px, 100dvh);
+//     }` }} />
+// <meta charSet="utf-8" />
+// <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport" />
+// <link href="https://fonts.googleapis.com" rel="preconnect" />
+// <link crossOrigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+// <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
+// <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />

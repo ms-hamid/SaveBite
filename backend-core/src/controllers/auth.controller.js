@@ -1,70 +1,52 @@
-/**
- * @file src/controllers/auth.controller.js
- * @description HTTP request handlers for /auth routes.
- *              This is the thin layer — all business logic lives in auth.service.js.
- *
- * Error mapping:
- *  AuthError     → 401 Unauthorized
- *  ConflictError → 409 Conflict
- *  TokenError    → 400 Bad Request
- *  ValidationErr → 400 (handled by validator middleware upstream)
- *  All others    → 500 Internal Server Error (no details leaked)
- *
- * Security:
- *  - password_hash is never included in any response (stripped in service layer).
- *  - Error messages do not distinguish "user not found" from "wrong password"
- *    to prevent user enumeration.
- */
-
-import {
-  AuthError,
-  ConflictError,
-  TokenError,
-  get_token,
-  logout_user,
-  register_user,
-  request_password_reset,
-  reset_password,
+import { 
+    completeRegister, 
+    get_token, 
+    register_user,
+    forgot_password_service,
+    verify_reset_otp_service,
+    reset_password_service
 } from "../services/auth.service.js";
+import { supabase } from "../lib/supabase.js";
+// import { kyc_status } from "@prisma/client";
+import { serializeBigInt } from "../utils/json.js";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// export async function register(req, res) {
+//     try {
+//         const new_user = await register_user(req.body);
+//         return res.status(201).json({
+//             user: new_user,
+//             message: "Berhasil mendaftarkan akun"
+//         })
+//     } catch (e) {
+//         return res.status(500).json({
+//             error: e.message,
+//             message: "Internal Server Error"
+//         });
+//     }
+// }
 
-/**
- * Map a service-layer typed error to the appropriate HTTP status code.
- * @param {Error} err
- * @returns {number}
- */
-function error_status(err) {
-  if (err instanceof AuthError) return 401;
-  if (err instanceof ConflictError) return 409;
-  if (err instanceof TokenError) return 400;
-  return 500;
-}
 
-// ── FR-U-01 — Consumer registration ──────────────────────────────────────────
-
-/**
- * POST /auth/reg
- * Registers a new CONSUMER account.
- * Responds 201 on success, 409 on duplicate email.
- */
-export async function register(req, res) {
-  try {
-    const new_user = await register_user(req.body);
-
-    return res.status(201).json({
-      message: "Account created successfully.",
-      user: new_user, // password_hash already stripped in service
-    });
-  } catch (err) {
-    const status = error_status(err);
-    if (status === 500) console.error("[register]", err);
-    return res.status(status).json({
-      error: err.name,
-      message: err.message,
-    });
+export async function register(
+    req,
+    res
+  ) {
+    try {
+      const result = await completeRegister(
+          req.body
+        );
+      return res.status(201).json({
+        success: true,
+        data: serializeBigInt (result),
+      });
+    } catch (error) {
+      console.log(error)
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
   }
-}
+
 
 // ── FR-U-01 — Merchant registration ──────────────────────────────────────────
 
@@ -91,97 +73,148 @@ export async function merchant_register(req, res) {
   }
 }
 
-// ── FR-U-01 — Login ───────────────────────────────────────────────────────────
-
-/**
- * POST /auth/login
- * Authenticates credentials and returns a signed JWT.
- * Responds 200 on success, 401 on invalid credentials.
- */
 export async function login(req, res) {
-  try {
-    const { token, user } = await get_token(req.body);
+    try {
+        const {token, role} = await get_token(req.body);
 
-    return res.status(200).json({
-      message: "Login successful.",
-      token, // HS256 JWT — store as sb_access_token (ADR-002)
-      user,  // Safe user object (no password_hash)
-    });
-  } catch (err) {
-    const status = error_status(err);
-    if (status === 500) console.error("[login]", err);
-    return res.status(status).json({
-      error: err.name,
-      message: err.message,
-    });
-  }
+        res.cookie("sb_access_token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 24 * 60 * 60 * 1000,
+        });
+
+        return res.status(200).json({
+            token: token,
+            role: role, 
+        });
+    } catch (e) {
+      console.log(e);  
+      return res.status(500).json({
+            error: e.message,
+            message: "Internal Server Error"
+        })
+    }
 }
 
-// ── FR-U-02 — Logout ──────────────────────────────────────────────────────────
-
-/**
- * POST /auth/logout
- * Server-side logout: clears device_token (FCM stub).
- * The client must delete the sb_access_token from localStorage.
- * Requires valid JWT Bearer token (authenticate middleware).
- */
 export async function logout(req, res) {
-  try {
-    await logout_user(req.user.id);
-
-    return res.status(200).json({
-      message: "Logged out successfully. Please clear your local token.",
-    });
-  } catch (err) {
-    console.error("[logout]", err);
-    return res.status(500).json({
-      error: "InternalError",
-      message: "An unexpected error occurred during logout.",
-    });
-  }
+    try {
+      res.clearCookie("sb_access_token");
+  
+      return res.status(200).json({
+        success: true,
+        message: "Logout berhasil",
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Logout gagal",
+      });
+    }
 }
-
-// ── FR-U-03 — Forgot password ─────────────────────────────────────────────────
 
 /**
  * POST /auth/forgot-password
- * Generates a reset token (hashed in DB) and sends it via email.
- * Always responds 200 regardless of whether the email exists (prevents enumeration).
+ * Initiate password reset by sending OTP to email
  */
 export async function forgot_password(req, res) {
-  try {
-    const result = await request_password_reset(req.body.email);
+    try {
+        const { email } = req.body;
 
-    return res.status(200).json(result);
-  } catch (err) {
-    // Deliberately broad catch — we must not leak "email not found"
-    console.error("[forgot_password]", err);
-    return res.status(200).json({
-      message: "If that email is registered, a reset link has been sent.",
-    });
-  }
+        // Call service with Supabase client
+        const result = await forgot_password_service(email, supabase);
+
+        // Always return 200 to prevent email enumeration
+        return res.status(200).json({
+            success: true,
+            message: "OTP telah dikirim ke email jika terdaftar"
+        });
+
+    } catch (error) {
+        // Even on validation error, return same response
+        console.error("Forgot password error:", error.message);
+        return res.status(200).json({
+            success: true,
+            message: "OTP telah dikirim ke email jika terdaftar"
+        });
+    }
 }
 
-// ── FR-U-03 — Reset password ──────────────────────────────────────────────────
+/**
+ * POST /auth/verify-reset-otp
+ * Verify OTP and generate reset token
+ */
+export async function verify_reset_otp(req, res) {
+    try {
+        const { email, otp } = req.body;
+
+        if (!email || !otp) {
+            return res.status(400).json({
+                success: false,
+                error: "validation_error",
+                message: "Email dan OTP wajib diisi"
+            });
+        }
+
+        // Call service with Supabase client
+        const result = await verify_reset_otp_service(email, otp, supabase);
+
+        return res.status(200).json({
+            success: true,
+            resetToken: result.resetToken,
+            message: result.message
+        });
+
+    } catch (error) {
+        const statusCode = error.message.includes("invalid")
+            ? 401
+            : error.message.includes("not found")
+            ? 404
+            : 400;
+
+        return res.status(statusCode).json({
+            success: false,
+            error: "auth_error",
+            message: error.message
+        });
+    }
+}
 
 /**
  * POST /auth/reset-password
- * Validates the reset token and updates the user's password.
- * Responds 400 on invalid/expired token, 200 on success.
+ * Reset password using verified reset token
  */
-export async function reset_password_handler(req, res) {
-  try {
-    await reset_password(req.body.token, req.body.new_password);
+export async function reset_password(req, res) {
+    try {
+        const { resetToken, password, confirmPassword } = req.body;
 
-    return res.status(200).json({
-      message: "Password has been reset successfully. Please log in with your new password.",
-    });
-  } catch (err) {
-    const status = error_status(err);
-    if (status === 500) console.error("[reset_password]", err);
-    return res.status(status).json({
-      error: err.name,
-      message: err.message,
-    });
-  }
+        if (!resetToken || !password || !confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                error: "validation_error",
+                message: "Reset token, password, dan konfirmasi password wajib diisi"
+            });
+        }
+
+        // Call service
+        const result = await reset_password_service(resetToken, password, confirmPassword);
+
+        return res.status(200).json({
+            success: true,
+            message: result.message
+        });
+
+    } catch (error) {
+        const statusCode = error.message.includes("invalid") ||
+            error.message.includes("expired") ||
+            error.message.includes("not found")
+            ? 401
+            : 400;
+
+        return res.status(statusCode).json({
+            success: false,
+            error: "auth_error",
+            message: error.message
+        });
+    }
 }

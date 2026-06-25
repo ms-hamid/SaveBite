@@ -12,10 +12,15 @@
 
 import {
   cancel_order,
+  complete_order,
   confirm_order_payment,
   create_order_atomic,
+  fetch_all_order,
+  find_order_by_code,
   find_order_by_id,
+  find_orders_by_merchant,
   find_orders_by_user,
+  update_order_status,
 } from "../repositories/order.repository.js";
 import { orderEmitter } from "../events/order.events.js";
 import { createError } from "../middlewares/error.middleware.js";
@@ -55,22 +60,24 @@ export async function create_order(userId, listingId, qty) {
  * In production, this will be replaced by the Midtrans webhook handler
  * (FR-S-01). This endpoint is used for manual "I have transferred" flow.
  *
- * @param {string} orderId
+ * @param {string} order_id
  * @param {string} requestingUserId
  * @param {string} paymentMethod
  * @returns {Promise<Order>}
  */
-export async function confirm_payment(orderId, requestingUserId, paymentMethod) {
+export async function confirm_payment(order_id, requestingUserId, paymentMethod) {
   // Fetch to verify ownership before mutating
-  const existing = await find_order_by_id(orderId);
+  const existing = await find_order_by_id(order_id);
+
 
   if (!existing) throw createError("Order not found", 404);
 
-  if (existing.user_id !== requestingUserId) {
+
+  if (existing.customerId !== requestingUserId) {
     throw createError("You are not authorized to modify this order", 403);
   }
 
-  const updated = await confirm_order_payment(orderId, paymentMethod ?? "bank_transfer");
+  const updated = await confirm_order_payment(order_id, paymentMethod ?? "bank_transfer");
 
   orderEmitter.emit("order:completed", updated);
 
@@ -82,22 +89,25 @@ export async function confirm_payment(orderId, requestingUserId, paymentMethod) 
  *
  * Implements FR-S-02 logic (timeout-based cancellation uses the cron job).
  *
- * @param {string} orderId
+ * @param {string} order_id
  * @param {string} requestingUserId
  * @param {string} requestingRole - 'CONSUMER' | 'ADMIN'
  * @returns {Promise<Order>}
  */
-export async function cancel_order_svc(orderId, requestingUserId, requestingRole) {
-  const existing = await find_order_by_id(orderId);
+export async function cancel_order_svc(order_id, requestingUserId, requestingRole) {
+  const existing = await find_order_by_id(order_id);
+
 
   if (!existing) throw createError("Order not found", 404);
 
+
+
   // Ownership check — admins can always cancel (FR-A-03)
-  if (requestingRole !== "ADMIN" && existing.user_id !== requestingUserId) {
+  if (requestingRole !== "ADMIN" && existing.customerId !== requestingUserId) {
     throw createError("You are not authorized to cancel this order", 403);
   }
 
-  const cancelled = await cancel_order(orderId, requestingUserId);
+  const cancelled = await cancel_order(order_id, requestingUserId);
 
   orderEmitter.emit("order:cancelled", cancelled);
 
@@ -106,16 +116,17 @@ export async function cancel_order_svc(orderId, requestingUserId, requestingRole
 
 /**
  * Get a single order by ID with all relations.
- * @param {string} orderId
+ * @param {string} order_id
  * @param {string} requestingUserId
  * @param {string} requestingRole
  */
-export async function get_order(orderId, requestingUserId, requestingRole) {
-  const order = await find_order_by_id(orderId);
+export async function get_order(order_id, requestingUserId, requestingRole) {
+  const order = await find_order_by_id(order_id);
 
   if (!order) throw createError("Order not found", 404);
 
-  if (requestingRole !== "ADMIN" && order.user_id !== requestingUserId) {
+  if (requestingRole !== "ADMIN" && order.customer_id !== requestingUserId && order.merchant_id !== requestingUserId) {
+    
     throw createError("Forbidden", 403);
   }
 
@@ -128,4 +139,122 @@ export async function get_order(orderId, requestingUserId, requestingRole) {
  */
 export async function get_customer_orders(userId) {
   return find_orders_by_user(userId);
+}
+
+export async function get_merchant_orders(
+  merchant_id
+) {
+  return find_orders_by_merchant(
+    merchant_id
+  );
+}
+
+
+export async function change_order_status(
+  order_id,
+  merchant_id,
+  new_status
+) {
+  const order =
+    await find_order_by_id(order_id);
+
+  if (!order) {
+    throw createError(
+      "Order not found",
+      404
+    );
+  }
+
+  if (
+    order.merchant_id !== merchant_id
+  ) {
+    throw createError(
+      "Forbidden",
+      403
+    );
+  }
+
+  const allowedTransitions = {
+    paid_reserved: ["preparing"],
+    preparing: ["ready_to_pickup"],
+    ready_to_pickup: ["completed"],
+  };
+
+  const currentStatus =
+    order.status;
+
+  const allowed =
+    allowedTransitions[
+      currentStatus
+    ] || [];
+
+  if (
+    !allowed.includes(new_status)
+  ) {
+    throw createError(
+      `Cannot change status from '${currentStatus}' to '${new_status}'`,
+      409
+    );
+  }
+
+  return update_order_status(
+    order_id,
+    new_status
+  );
+}
+
+
+export async function pickup_order(
+  pickup_code,
+  merchant_id,
+  order_public_id
+) {
+  const order =
+    await find_order_by_code(
+      pickup_code,
+    );
+
+  if (!order) {
+    throw createError(
+      "Invalid pickup code",
+      404
+    );
+  }
+
+  if (
+    order.merchant_id !== merchant_id
+  ) {
+    throw createError(
+      "This order does not belong to your store",
+      403
+    );
+  }
+
+  // if (
+  //   !order.orderCodeExpiresAt
+  // ) {
+  //   throw createError(
+  //     "Pickup code expired",
+  //     409
+  //   );
+  // }
+
+  // if (
+  //   order.orderCodeExpiresAt <
+  //   new Date()
+  // ) {
+  //   throw createError(
+  //     "Pickup code expired",
+  //     409
+  //   );
+  // }
+
+  return complete_order(
+    order.id
+  );
+}
+
+
+export async function get_all_order_svc() {
+  return await fetch_all_order();
 }

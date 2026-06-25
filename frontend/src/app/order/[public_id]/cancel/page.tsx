@@ -8,7 +8,7 @@ import CustomerNavbar from '../../../../components/navbar/customer_navbar';
 export default function CancelledOrderPage() {
   const { order, isLoading } = useOrder();
   // Payment method is embedded in the order response from GET /order/:id
-  const payment_method = order?.payment?.[0]?.payment_type ?? undefined;
+  const payment_method = order?.payment?.payment_method ?? undefined;
 
 
 
@@ -54,10 +54,10 @@ export default function CancelledOrderPage() {
         {/* Merchant Card */}
         <div className="px-6 mb-6 mt-6">
           <MerchantCard
-            storeName={order?.listing.merchants.merchant_name}
-            address={order?.listing.merchants.address}
+            storeName={order?.listing?.merchant?.merchant_name ??""}
+            address={order?.listing?.merchant?.address}
             distance={"123km"}
-            imageUrl={order?.listing.img_url}
+            imageUrl={order?.listing?.img_url ?? ""}
           />
         </div>
 
@@ -69,7 +69,7 @@ export default function CancelledOrderPage() {
           <OrderSummary
             item={order}
             // perlu diubah lagi ini
-            amountSaved={order?.formatted.saved_price}
+            amountSaved={order?.formatted?.saved_price ?? ""}
           />
         </div>
 

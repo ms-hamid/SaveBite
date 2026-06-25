@@ -282,67 +282,148 @@ Whenever any of the following events occur in the codebase, the Agent **MUST** a
 
 > Auto-update trigger: Any change to `prisma/schema.prisma`
 
-```mermaid
-erDiagram
-    USER {
-        uuid id PK
-        string email UK
-        string password_hash
-        enum role "CUSTOMER | MERCHANT | ADMIN"
+```erDiagram
+    %% Hubungan dengan tabel eksternal auth.users (Supabase)
+    AUTH_USERS ||--|| MERCHANTS : "extends (user_id)"
+    AUTH_USERS ||--|| CUSTOMERS : "extends (user_id)"
+    AUTH_USERS ||--|| ADMINS : "extends (user_id)"
+    AUTH_USERS ||--|| PROFILES : "extends (user_id)"
+    AUTH_USERS ||--o{ PAYMENTS : "makes"
+
+    USERS {
+        bigint id PK
         timestamp created_at
-    }
-    MERCHANT_PROFILE {
-        uuid id PK
-        uuid user_id FK
-        string store_name
-        string address
-        float latitude
-        float longitude
-    }
-    LISTING {
-        uuid id PK
-        uuid merchant_id FK
-        string title
-        float original_price
-        float surplus_price
-        int quantity
-        timestamp expires_at
-        enum status "ACTIVE | SOLD_OUT | EXPIRED"
-    }
-    ORDER {
-        uuid id PK
-        uuid customer_id FK
-        uuid listing_id FK
-        int quantity
-        float total_price
-        string qr_payload
-        enum status "PENDING_PAYMENT | PAID | COMPLETED | CANCELLED"
-        timestamp created_at
-        timestamp expires_at
-    }
-    PAYMENT {
-        uuid id PK
-        uuid order_id FK
-        string midtrans_token
-        string midtrans_transaction_id
-        enum status "PENDING | SUCCESS | FAILED | EXPIRED"
-        timestamp paid_at
-    }
-    REVIEW {
-        uuid id PK
-        uuid order_id FK
-        uuid customer_id FK
-        int rating
-        string comment
-        timestamp created_at
+        timestamp updated_at
+        timestamp deleted_at
+        character_varying full_name
+        character_varying email
+        character_varying password
+        USER-DEFINED role
+        boolean is_suspended
     }
 
-    USER ||--o{ MERCHANT_PROFILE : "has"
-    MERCHANT_PROFILE ||--o{ LISTING : "creates"
-    USER ||--o{ ORDER : "places"
-    LISTING ||--o{ ORDER : "fulfils"
-    ORDER ||--|| PAYMENT : "has"
-    ORDER ||--o| REVIEW : "receives"
+    MERCHANTS {
+        uuid user_id PK, FK
+        character_varying merchant_name
+        double_precision latitude
+        double_precision longitude
+        USER-DEFINED kyc_status
+        text google_map_url
+        numeric virtual_balance
+        text address
+        character_varying bank_name
+        character_varying bank_account
+        character_varying category
+        text desc
+        text pickup_instruction
+        boolean contactless_pickup
+        boolean notify_staff_upon_arrival
+        time pickup_open
+        time pickup_close
+        boolean same_day_pickup
+        bigint max_prep_time
+        real rating
+        bigint rating_times
+        text profile_pic
+    }
+
+    CUSTOMERS {
+        uuid user_id PK, FK
+        character_varying full_name
+        integer exp
+        integer strike_count
+    }
+
+    ADMINS {
+        uuid user_id PK, FK
+        timestamp last_login
+    }
+
+    PROFILES {
+        uuid user_id PK, FK
+        character_varying full_name
+        USER-DEFINED role
+    }
+
+    LISTINGS {
+        bigint id PK
+        uuid public_id UK
+        character_varying name
+        timestamp open_time
+        timestamp close_time
+        integer sold_total
+        integer stock_total
+        text description
+        boolean is_open
+        numeric original_price
+        numeric discount_price
+        integer discount_percentage
+        timestamp deleted_at
+        uuid merchant_id FK
+        text img_url
+        USER-DEFINED status
+    }
+
+    ORDERS {
+        bigint id PK
+        uuid public_id UK
+        integer qty
+        numeric total_amount
+        text qr_token
+        USER-DEFINED status
+        timestamp created_at
+        timestamp updated_at
+        timestamp deleted_at
+        bigint listing_id FK
+        uuid merchant_id FK
+        uuid customer_id FK
+        character order_code
+        timestamp order_code_expires_at
+        boolean order_code_active
+    }
+
+    PAYMENTS {
+        bigint id PK
+        numeric amount
+        character_varying midtrans_trx_id
+        USER-DEFINED pg_status
+        timestamp time_limit
+        timestamp created_at
+        timestamp updated_at
+        bigint order_id FK
+        uuid customer_id FK
+        text payment_method
+    }
+
+    REVIEWS {
+        bigint id PK
+        timestamp created_at
+        text img_url
+        smallint rating
+        date review
+        uuid merchant_id FK
+    }
+
+    WITHDRAWALS {
+        bigint id PK
+        timestamp created_at
+        timestamp updated_at
+        uuid merchant_id FK
+        uuid admin_id FK
+        USER-DEFINED status
+        numeric amount
+        bigint qty
+    }
+
+    %% Relasi antar tabel aplikasi
+    MERCHANTS ||--o{ LISTINGS : "owns"
+    MERCHANTS ||--o{ ORDERS : "receives"
+    CUSTOMERS ||--o{ ORDERS : "places"
+    LISTINGS ||--o{ ORDERS : "included_in"
+    ORDERS ||--o{ PAYMENTS : "paid_by"
+    PROFILES ||--o{ REVIEWS : "writes"
+    MERCHANTS ||--o{ WITHDRAWALS : "requests"
+    ADMINS ||--o{ WITHDRAWALS : "approves"
 ```
 
 ---
@@ -432,7 +513,7 @@ sequenceDiagram
 **Date:** 2026-06-14  
 **Status:** Accepted  
 **Context:** The codebase had two overlapping auth systems — Supabase JWT (from `supabase.auth.signUp`) and a custom HS256 JWT (from Express `auth.service.js`). This caused confusion and double-auth state.  
-**Decision:** The canonical authentication system is the **custom HS256 JWT** issued by `POST /auth/login` in Express, signed with `JWT_SECRET` and stored in `localStorage` as `sb_access_token`. TTL: 15 minutes (OWASP minimum recommendation).  
+**Decision:** The canonical authentication system is the **custom HS256 JWT** issued by `POST /auth/login` in Express, signed with `JWT_SECRET` and stored in `cookies` as `sb_access_token`. TTL: 15 minutes (OWASP minimum recommendation).  
 **Consequences:** Supabase Auth (`supabase.auth.signUp`) is no longer used for registration. Registration goes through `POST /auth/reg` → `auth.service.js` → Prisma `User.create`. The Supabase client in the frontend is retained for session reads only (transitional state until full custom auth is implemented).
 
 ### ADR-003 — Pessimistic Locking Strategy for Stock Management
@@ -483,7 +564,7 @@ sequenceDiagram
 ```
 Authorization: Bearer <jwt_access_token>
 ```
-Token is obtained from `POST /auth/login` and stored in `localStorage` as `sb_access_token`.
+Token is obtained from `POST /auth/login` and stored in `cookies` as `sb_access_token`.
 The Axios singleton in `frontend/src/lib/api.ts` injects this header automatically on every request.
 
 ### Standard Error Responses

@@ -1,4 +1,5 @@
 import type { KycStatus } from "./enum";
+import { Order } from "./order";
 
 export type Merchant = {
   merchant_name: string | null;
@@ -23,4 +24,6 @@ export type Merchant = {
   rating: number | null;
   rating_times: number;
   profile_pic: string | null;
+
+  orders?: Order[]
 };

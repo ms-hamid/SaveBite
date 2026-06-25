@@ -62,7 +62,7 @@ export default function RateStorePage() {
         rating,
         review,
         img_url: uploadedImageUrl || null,
-        merchant_id: order?.listings.merchant_id,
+        merchant_id: order?.listing?.merchant_id,
       };
   
       console.log("Review submitted:", reviewData);
@@ -85,9 +85,21 @@ export default function RateStorePage() {
     }
   };
 
+  function safeUUID() {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+
   const uploadReviewPhoto = async (file: File) => {
     const fileExt = file.name.split(".").pop();
-    const fileName = `${crypto.randomUUID()}.${fileExt}`;
+    const fileName = `${safeUUID()}.${fileExt}`;
   
     // Folder di dalam bucket
     const filePath = `reviews/${fileName}`;

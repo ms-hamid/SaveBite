@@ -9,6 +9,7 @@ export type { Profile } from "./profile";
 export type { Review } from "./review";
 export type { Withdrawal } from "./withdrawal";
 export type { Formatted } from "./Formatted";
+export type { RegisterData} from "./register_data"
 
 export type {
   Role,

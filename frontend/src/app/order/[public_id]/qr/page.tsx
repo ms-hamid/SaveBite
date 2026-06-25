@@ -26,7 +26,7 @@ export default function OrderQRPage() {
             <div className="flex justify-center">
               <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
                 <img
-                  src={qrCodeUrl}
+                  src={qrCodeUrl ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
                   alt="QR Code"
                   width={256}
                   height={256}

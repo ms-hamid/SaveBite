@@ -5,9 +5,20 @@ type DashboardBottomNavProps = {
 };
 
 export default function DashboardBottomNav({page}: DashboardBottomNavProps) {
+  
+  console.log("page skr", page === "order")
   return (<> 
-      
-      <nav className="fixed bottom-0 w-full z-50 max-w-[448px] mx-auto border-t border-slate-100 bg-white/95 backdrop-blur-md pb-safe">
+        <nav
+          className="
+            fixed bottom-0 inset-x-0
+            mx-auto
+            w-full max-w-[448px]
+            z-50
+            border-t border-slate-100
+            bg-white/95 backdrop-blur-md
+            pb-safe
+          "
+        >
         <div className="flex justify-around items-center h-16 w-full px-2">
           <a className={`flex flex-col items-center justify-center active:scale-90 transition-transform duration-200 w-16 ${page === "home" ? "text-primary" : "hover:text-slate-600 text-slate-400"}`} href="/m/">
             <span className="material-symbols-outlined" style={{ fontVariationSettings: page === "home" ? "'FILL' 1" : "" }}>home</span>

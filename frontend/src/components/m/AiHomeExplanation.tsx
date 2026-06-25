@@ -8,11 +8,11 @@ type AIPredictionCardProps = {
   };
   
   export default function AIPredictionCard({
-    confidence = null,
+    confidence = 100,
     peakDemand = "19:00 - 20:30",
     bestPublishTime = "18:00",
     estimatedSurplus = "~30–40 items expected",
-    possibleSurplusTime = "19:00",
+    possibleSurplusTime = "19:+0",
     onPrepareListing,
   }: AIPredictionCardProps) {
     const predictionState =

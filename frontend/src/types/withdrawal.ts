@@ -1,18 +1,17 @@
 import type { WithdrawStatus } from "./enum";
 import type { Merchant } from "./merchant";
-import type { Admin } from "./admin";
 
 export type Withdrawal = {
-  id: number;
+  id: string;
   created_at: string;
   updated_at: string | null;
-  customer_id: string;
+  merchant_id: string;
   admin_id: string;
   status: WithdrawStatus;
   amount: number;
-  qty: number;
-
-  // Relations
-  merchant?: Merchant | null;
-  admin?: Admin | null;
+  qty: string;
+  merchant?: Pick<
+    Merchant,
+    "merchant_name" | "bank_name" | "bank_account" | "address"
+  > | null;
 };

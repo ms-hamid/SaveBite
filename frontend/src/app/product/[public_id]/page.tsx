@@ -4,9 +4,12 @@ import Head from "next/head";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import api, { getApiErrorMessage } from "../../../lib/api";
-import { format_price, get_close_text, ListingProps } from "../../page";
+import { format_price, get_close_text, ListingProps } from "../../home/page";
 import { useListing } from "../../../components/providers/ListingProvider";
-import { Order, useOrder } from "../../../components/providers/OrderProvider";
+import { supabase } from "@/lib/supabase";
+import LoadingOverlay from "@/components/LoadingOverlay";
+import { create_order } from "@/services/order";
+// import { Order, useOrder } from "../../../components/providers/OrderProvider";
 
 export type OrderInput = {
   qty: number |undefined;
@@ -28,9 +31,8 @@ export default function ListingDetailPage() {
 
   const [isFavorite, setIsFavorite] = useState(false);
 
-  const {listing} = useListing();
-  const stock_left = listing?.others?.stock_left;
-
+  const {listing, is_loading} = useListing();
+  const stockLeft = (listing?.stock_total ?? 0 )- (listing?.sold_total ?? 0);
 
   function handleFavorite() {
     setIsFavorite((prev) => !prev);
@@ -49,20 +51,18 @@ export default function ListingDetailPage() {
    */
   async function handleReserve() {
     // Ensure user is authenticated (JWT must exist in localStorage)
-    const token = typeof window !== "undefined" ? localStorage.getItem("sb_access_token") : null;
-    if (!token) {
-      router.push("/sign-in");
-      return;
-    }
+    // const token = typeof window !== "undefined" ? localStorage.getItem("sb_access_token") : null;
+  
 
     try {
-      const { data } = await api.post("/order", {
-        listing_id: listing?.id,
-        qty: qty,
-      });
+      const data = await create_order(
+        listing?.public_id,
+        qty,
+      );
+      console.log(data)
 
       // Navigate to payment page using the order's public_id from the response
-      router.push(`/pay/${data.order.id}/serve`);
+      router.push(`/order/${data.data.public_id}/serve`);
     } catch (err) {
       console.error("Reserve failed:", getApiErrorMessage(err));
       // TODO: show user-facing error toast
@@ -91,44 +91,18 @@ export default function ListingDetailPage() {
 
   return (
     <>
-      <Head>
-        <title>SaveBite Listing Detail</title>
-
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1.0"
-        />
-
-        <link
-          rel="preconnect"
-          href="https://fonts.googleapis.com"
-        />
-
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-
-        <link
-          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
-
-        <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-          rel="stylesheet"
-        />
-      </Head>
 
       <main className="bg-[#f6f8f7] dark:bg-[#10221c] font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col antialiased selection:bg-emerald-500/30">
+      
+        <LoadingOverlay isLoading={is_loading}/> 
+
         <div className="flex-1 flex flex-col w-full max-w-md mx-auto bg-[#f6f8f7] dark:bg-[#10221c] pb-[100px]">
           {/* Hero */}
           <div className="relative w-full h-72">
             <img
               alt="Freshly baked artisan bread and croissants"
               className="h-full w-full object-cover rounded-b-3xl shadow-sm"
-              src={listing?.img_url}
+              src={listing?.img_url ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
             />
 
             {/* Gradient */}
@@ -177,7 +151,7 @@ export default function ListingDetailPage() {
                   </h1>
 
                   <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">
-                    {listing?.merchants.merchant_name}
+                    {listing?.merchant?.merchant_name}
                   </p>
                 </div>
               </div>
@@ -185,7 +159,7 @@ export default function ListingDetailPage() {
               <div className="flex items-end justify-between mt-2">
                 <div className="flex flex-col items-start gap-1">
                   <span className="text-slate-400 line-through font-medium text-sm">
-                    {listing?.others?.formatted_original_price}
+                    {listing?.others?.ori_price}
                   </span>
 
                   <div className="flex items-center gap-2">
@@ -195,7 +169,7 @@ export default function ListingDetailPage() {
                   </div>
 
                   <span className="text-4xl font-extrabold text-emerald-500 mt-1">
-                    {listing?.others?.formatted_discount_price}
+                    {listing?.others?.dis_price}
                   </span>
                 </div>
 
@@ -204,12 +178,12 @@ export default function ListingDetailPage() {
                     <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
 
                     <span className="text-base font-bold text-slate-800 dark:text-slate-100">
-                      {listing?.others?.stock_left} bags left
+                      {stockLeft} bags left
                     </span>
                   </div>
 
                   <span className="text-xs font-medium text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded-md">
-                    {listing?.others?.ended_time}
+                    {get_close_text(listing?.close_time ?? "")}
                   </span>
                 </div>
               </div>
@@ -337,7 +311,7 @@ export default function ListingDetailPage() {
       </span>
 
       <span className="text-2xl font-bold text-slate-900 dark:text-white">
-        {listing?.others?.formatted_discount_price}
+        {listing?.others.dis_price}
       </span>
     </div>
 
@@ -358,7 +332,7 @@ export default function ListingDetailPage() {
       <button
         type="button"
         onClick={handleIncreaseQty}
-        disabled={qty >= (stock_left || 0)}
+        disabled={qty >= (stockLeft || 0)}
         className="w-9 h-9 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white font-bold flex items-center justify-center active:scale-95 transition"
       >
         +

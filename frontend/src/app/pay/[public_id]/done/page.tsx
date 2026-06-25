@@ -51,7 +51,7 @@ export default function PaymentConfirmedScreen() {
                   </p>
 
                   <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                    {order?.listings.name}
+                    {order?.listing?.name}
                   </h3>
                 </div>
 
@@ -66,18 +66,27 @@ export default function PaymentConfirmedScreen() {
               </div>
 
               <div className="space-y-3">
-                <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+                  <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
                   <span className="material-symbols-outlined text-primary text-[20px]">
                     schedule
                   </span>
 
                   <div className="flex flex-col">
                     <span className="font-medium">
-                      Pickup: 18:00 – 19:30 (//ambil data ini dari tabel merchants)
+                      Pickup: {order?.merchant?.pickup_open
+                        ? new Date(order.merchant.pickup_open).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+                        : "--:--"
+                      } – {order?.merchant?.pickup_close
+                        ? new Date(order.merchant.pickup_close).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+                        : "--:--"
+                      }
                     </span>
 
                     <span className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-0.5">
-                      Reserved until 19:30 today
+                      Reserved until {order?.merchant?.pickup_close
+                        ? new Date(order.merchant.pickup_close).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+                        : "--:--"
+                      } today
                     </span>
                   </div>
                 </div>
@@ -87,7 +96,7 @@ export default function PaymentConfirmedScreen() {
                     storefront
                   </span>
 
-                  <span className="font-medium">123 Baker Street (//ambil data ini dari tabel merchants)</span>
+                  <span className="font-medium">{order?.merchant?.address ?? "—"}</span>
                 </div>
               </div>
             </div>
@@ -111,7 +120,7 @@ export default function PaymentConfirmedScreen() {
                   alt="Order QR Code"
                   className="w-full h-full object-contain mix-blend-multiply opacity-90"
                   data-alt="QR Code for order redemption"
-                  src={qrCodeUrl}
+                  src={qrCodeUrl ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
                 />
               </div>
 

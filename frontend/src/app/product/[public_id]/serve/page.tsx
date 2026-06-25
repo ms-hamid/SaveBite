@@ -146,9 +146,9 @@ export default function ConfirmReservationPage() {
               <div className="flex gap-4">
                 <div className="relative h-20 w-20 shrink-0">
                   <img
-                    alt={listing?.name}
+                    alt={listing?.name || "Image"}
                     className="h-full w-full object-cover rounded-xl bg-slate-100"
-                    src={listing?.img_url}
+                    src={listing?.img_url ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
                   />
 
                   <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm border border-white dark:border-[#1a2c26]">
@@ -162,7 +162,7 @@ export default function ConfirmReservationPage() {
                   </h3>
 
                   <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
-                    {listing?.merchants.merchant_name}
+                    {listing?.merchant?.merchant_name}
                   </p>
                 </div>
               </div>

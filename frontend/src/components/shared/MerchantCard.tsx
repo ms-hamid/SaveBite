@@ -22,7 +22,7 @@ export function MerchantCard({
           <img
             alt={storeName}
             className="w-full h-full object-cover"
-            src={imageUrl}
+            src={imageUrl || "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
           />
         </div>
         <div className="flex-1 flex flex-col justify-center">

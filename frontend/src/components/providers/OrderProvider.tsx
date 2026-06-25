@@ -9,8 +9,9 @@ import React, {
 
 // Sesuaikan path supabase client kamu
 import { supabase } from "../../lib/supabase";
-import { format_price } from "../../app/page";
-import { Formatted, Listing, Merchant, Order } from "../../types";
+import { format_price } from "../../app/home/page";
+import { Formatted, Listing, Merchant, Order, Payment } from "../../types";
+import { getOrderByPublicId } from "@/services/order";
 
 
 type OrderContextType = {
@@ -20,7 +21,8 @@ type OrderContextType = {
   setListing: React.Dispatch<React.SetStateAction<Listing | undefined | null>> | undefined;
   merchant: Merchant | undefined | null;
   setMerchant: React.Dispatch<React.SetStateAction<Merchant | undefined | null>> | undefined;
-
+  payment: Payment | undefined | null;
+  setPayment: React.Dispatch<React.SetStateAction<Payment | undefined | null>> | undefined;
   isLoading: boolean;
   refetchOrder: () => Promise<void>;
 };
@@ -35,7 +37,7 @@ export function OrderProvider({
   order_id: string;
 }) {
   const [order, setOrder] = useState<Order | null>();
-  // const [payment, setPayment] = useState<Payment>();
+  const [payment, setPayment] = useState<Payment | null>();
   const [merchant, setMerchant] = useState<Merchant | null>();
   const [isLoading, setIsLoading] = useState(true);
   const [listing, setListing] = useState<Listing | null>()
@@ -43,7 +45,6 @@ export function OrderProvider({
     try {
       setIsLoading(true);
 
-      console.log(order_id)
 
       if (!order_id) {
         console.error("Invalid order_id:", order_id);
@@ -51,52 +52,14 @@ export function OrderProvider({
         return;
       }
 
-      const { data, error } = await supabase
-      .from("orders")
-      .select(`
-        id,
-        qty,
-        total_amount,
-        qr_token,
-        status,
-        created_at,
-        updated_at,
-        deleted_at,
-        listing_id,
-        customer_id,
-        order_code,
-        order_code_expires_at,
-        order_code_active,
-        public_id,
-        listings:listing_id (
-          name,
-          description,
-          discount_price,
-          discount_percentage,
-          original_price,
-          merchant_id,
-          img_url,  
-          merchants:merchant_id (
-            merchant_name,
-            address,
-            profile_pic
-          )
-        )
-      `).eq("public_id", order_id).single().returns<Order & {formatted: Formatted}>();
-    
-      if (error) {
-        console.log(error);
-        return;
-      }
-      
-      console.log(data);
+      const data = (await getOrderByPublicId(order_id)).data;
 
-      if (error) {
-        console.error("Failed to fetch order:", error);
-        setOrder(undefined);
-        return;
-      }
       
+      data.total_amount = Number(data.total_amount)
+      data.listing.original_price = Number(data.listing?.original_price)
+      data.listing.discount_price = Number(data.listing?.discount_price)
+      
+
       const formatted_data = {
         "total_amount" : format_price(data.total_amount),
         "ori_price" : format_price(data.listing?.original_price),
@@ -109,10 +72,10 @@ export function OrderProvider({
       if (saved_price !== 0) formatted_data["saved_price"] = format_price(saved_price);
       
       setListing(data?.listing)
-      setMerchant(data?.listing?.merchant)
+      setMerchant(data?.merchant)
+      setPayment(data?.payment)
       
       data.formatted = formatted_data;
-      console.log(data)
       setOrder(data);
     
     } catch (error) {
@@ -136,6 +99,8 @@ export function OrderProvider({
         setListing,
         merchant,
         setMerchant,
+        payment,
+        setPayment,
         isLoading,
         refetchOrder,
       }}

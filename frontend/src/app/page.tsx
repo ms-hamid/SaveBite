@@ -2,8 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { enablePushNotification } from "../lib/firebase/messaging";
 
 export default function OnboardingPage() {
+
+
+  useEffect(()=>{
+
+    enablePushNotification();
+
+  },[]);
+
   const router = useRouter();
   const [currentSlide, setCurrentSlide] = useState(0);
   /**

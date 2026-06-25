@@ -17,113 +17,162 @@ export default function OrderDetailPage() {
   const status = String(order?.status ?? "accepted");
   const StatePage = orderStatePages[status] ?? orderStatePages.accepted;
 
-  return <StatePage />;
+  return <StatePage />; 
 }
 
 function OrderDetailAcceptedStandardizedPage() {
   return (
     <div className="bg-background text-on-surface antialiased pb-24">
 
-            <style>{`body { font-family: 'Plus Jakarta Sans', sans-serif; min-height: max(884px, 100dvh); }`}</style>
-
       {/* TopAppBar Component */}
       <header className="bg-surface fixed top-0 w-full z-50 border-b border-outline-variant shadow-sm">
-      <div className="flex items-center justify-between px-container-padding h-16 max-w-[448px] mx-auto">
-      <button className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-background transition-colors">
-      <span className="material-symbols-outlined text-on-surface" data-icon="arrow_back">arrow_back</span>
-      </button>
-      <h1 className="text-[18px] font-semibold text-on-surface">Order #SB-9021</h1>
-      <div className="flex items-center">
-      <span className="text-[11px] font-semibold tracking-wider bg-secondary-container text-secondary px-2.5 py-1 rounded-full uppercase">Accepted</span>
-      </div>
-      </div>
+        <div className="flex items-center justify-between px-container-padding h-16 max-w-[448px] mx-auto">
+          <button
+            className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-background transition-colors">
+            <span className="material-symbols-outlined text-on-surface" data-icon="arrow_back">arrow_back</span>
+          </button>
+          <h1 className="text-[18px] font-semibold text-on-surface">Order #SB-9021</h1>
+          <div className="flex items-center">
+            <span
+              className="text-[11px] font-semibold tracking-wider bg-secondary-container text-secondary px-2.5 py-1 rounded-full uppercase">Accepted</span>
+          </div>
+        </div>
       </header>
       {/* Main Content Canvas */}
-      <main className="pt-24 px-container-padding max-w-[448px] mx-auto flex flex-col gap-section-gap">{/* Success Banner */}
-      <section className="bg-secondary-container/30 border border-secondary-container rounded-xl p-4 flex items-center gap-3">
-      <div className="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
-      <span className="material-symbols-outlined text-secondary" data-icon="receipt" style={{fontVariationSettings: "'FILL' 1"}}>receipt</span>
-      </div>
-      <div>
-      <p className="text-[15px] font-semibold text-on-surface">Order accepted successfully.</p>
-      <p className="text-[13px] text-on-surface-variant mt-0.5">Customer order has been accepted and is now waiting for preparation.</p>
-      </div>
-      </section>
-      {/* Customer Info */}
-      <section className="flex flex-col gap-2">
-      <h2 className="text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider">CUSTOMER</h2>
-      <div className="bg-surface border border-outline-variant rounded-xl p-4 flex items-center justify-between gap-4">
-      <div className="flex items-center gap-4">
-      <div className="w-12 h-12 rounded-full bg-background flex items-center justify-center overflow-hidden shrink-0">
-      <img alt="Sarah Jenkins" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBoECNzhgIr0tVEQDfXysMc4GBrjXt2Qvg_BTbQGljO-uMlxe44yD9UrjGUl1-Wa_zpcioLtUvKjPhF11VwAf9B_N95pr6gAKRUEbtqVXlzr797RmP7hPQIizZp8PFGFirmF4IkJPB1HYHD5gvyHibJMbu0krTSJufymBoUfxnUu3Po294M20dCSRwAg31MA77hdR2IG7N86PaIS1UPe62B2UAeLYXX-ZrpYBW0TqzVZ8IyWR1c0AZmN2k99zW4nR1M4xLEfCBMexRe" />
-      </div>
-      <div>
-      <h3 className="text-[15px] font-semibold text-on-surface">Sarah Jenkins</h3>
-      <p className="text-[13px] text-on-surface-variant flex items-center gap-1 mt-0.5">Customer</p>
-      </div>
-      </div>
-      </div>
-      </section>
-      {/* Order Items */}
-      <section className="flex flex-col gap-2">
-      <h2 className="text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider">ORDER ITEMS</h2>
-      <div className="bg-surface border border-outline-variant rounded-xl overflow-hidden divide-y divide-outline-variant">
-      <div className="p-4 flex justify-between items-start">
-      <div className="flex items-start gap-3">
-      <div className="w-6 h-6 rounded bg-background border border-outline-variant flex items-center justify-center shrink-0 mt-0.5">
-      <span className="text-[12px] font-semibold text-on-surface">2x</span>
-      </div>
-      <div>
-      <p className="text-[15px] font-medium text-on-surface">Surplus Pastry Box</p>
-      <p className="text-[13px] text-on-surface-variant mt-0.5">Contains assorted daily pastries.</p>
-      </div>
-      </div>
-      <p className="text-[15px] font-semibold text-on-surface">Rp 45.000</p>
-      </div>
-      <div className="p-4 flex justify-between items-start">
-      <div className="flex items-start gap-3">
-      <div className="w-6 h-6 rounded bg-background border border-outline-variant flex items-center justify-center shrink-0 mt-0.5">
-      <span className="text-[12px] font-semibold text-on-surface">1x</span>
-      </div>
-      <div>
-      <p className="text-[15px] font-medium text-on-surface">Large Iced Latte</p>
-      <p className="text-[13px] text-on-surface-variant mt-0.5">Oat milk, sugar-free vanilla.</p>
-      </div>
-      </div>
-      <p className="text-[15px] font-semibold text-on-surface">Rp 15.000</p>
-      </div>
-      </div>
-      </section>
-      {/* Summary */}
-      <div className="flex flex-col gap-2">
-      <h2 className="text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider">PAYMENT SUMMARY</h2>
-      <div className="bg-surface border border-outline-variant rounded-xl p-4 flex flex-col gap-3">
-      <div className="flex justify-between items-center">
-      <span className="text-[14px] text-on-surface-variant">Subtotal</span>
-      <span className="text-[14px] text-on-surface">Rp 40.000</span>
-      </div>
-      <div className="flex justify-between items-center">
-      <span className="text-[14px] text-on-surface-variant">Platform Fee (5%)</span>
-      <span className="text-[14px] text-on-surface">-Rp 2.000</span>
-      </div>
-      <div className="flex justify-between items-center pt-3 border-t border-outline-variant">
-      <span className="text-[15px] font-semibold text-on-surface">Total Payout</span>
-      <span className="text-[18px] font-bold text-primary">Rp 38.000</span>
-      </div>
-      </div>
-      </div>
-      {/* Timeline */}
-      <div className="flex flex-col gap-2">
-      <h2 className="text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider">ORDER TIMELINE</h2>
-      <div className="bg-surface border border-outline-variant rounded-xl p-5"><div className="relative pl-6 flex flex-col gap-5 before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[2px] before:bg-outline-variant"><div className="relative"><div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-surface z-10"></div><p className="text-[14px] font-medium text-on-surface-variant line-through">Order Placed</p><p className="text-[12px] text-on-surface-variant mt-0.5">17:45</p></div><div className="relative"><div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-surface z-10"></div><p className="text-[14px] font-medium text-on-surface-variant line-through">Order Accepted</p><p className="text-[12px] text-on-surface-variant mt-0.5">18:15</p></div><div className="relative"><div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-outline-variant ring-4 ring-surface z-10"></div><p className="text-[14px] font-medium text-on-surface-variant">Preparing Order</p></div><div className="relative"><div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-outline-variant ring-4 ring-surface z-10"></div><p className="text-[14px] font-medium text-on-surface-variant">Ready for Pickup</p></div><div className="relative"><div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-outline-variant ring-4 ring-surface z-10"></div><p className="text-[14px] font-medium text-on-surface-variant">Picked Up</p></div></div></div>
-      </div></main>
+      <main className="pt-24 px-container-padding max-w-[448px] mx-auto flex flex-col gap-section-gap">{/* Success
+        Banner */}
+        <section
+          className="bg-secondary-container/30 border border-secondary-container rounded-xl p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-secondary" data-icon="receipt"
+              style={{fontVariationSettings: "'FILL' 1"}}>receipt</span>
+          </div>
+          <div>
+            <p className="text-[15px] font-semibold text-on-surface">Order accepted successfully.</p>
+            <p className="text-[13px] text-on-surface-variant mt-0.5">Customer order has been accepted and is now
+              waiting for preparation.</p>
+          </div>
+        </section>
+        {/* Customer Info */}
+        <section className="flex flex-col gap-2">
+          <h2 className="text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider">CUSTOMER</h2>
+          <div
+            className="bg-surface border border-outline-variant rounded-xl p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div
+                className="w-12 h-12 rounded-full bg-background flex items-center justify-center overflow-hidden shrink-0">
+                <img alt="Sarah Jenkins" className="w-full h-full object-cover"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBoECNzhgIr0tVEQDfXysMc4GBrjXt2Qvg_BTbQGljO-uMlxe44yD9UrjGUl1-Wa_zpcioLtUvKjPhF11VwAf9B_N95pr6gAKRUEbtqVXlzr797RmP7hPQIizZp8PFGFirmF4IkJPB1HYHD5gvyHibJMbu0krTSJufymBoUfxnUu3Po294M20dCSRwAg31MA77hdR2IG7N86PaIS1UPe62B2UAeLYXX-ZrpYBW0TqzVZ8IyWR1c0AZmN2k99zW4nR1M4xLEfCBMexRe" />
+              </div>
+              <div>
+                <h3 className="text-[15px] font-semibold text-on-surface">Sarah Jenkins</h3>
+                <p className="text-[13px] text-on-surface-variant flex items-center gap-1 mt-0.5">Customer</p>
+              </div>
+            </div>
+          </div>
+        </section>
+        {/* Order Items */}
+        <section className="flex flex-col gap-2">
+          <h2 className="text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider">ORDER ITEMS</h2>
+          <div
+            className="bg-surface border border-outline-variant rounded-xl overflow-hidden divide-y divide-outline-variant">
+            <div className="p-4 flex justify-between items-start">
+              <div className="flex items-start gap-3">
+                <div
+                  className="w-6 h-6 rounded bg-background border border-outline-variant flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-[12px] font-semibold text-on-surface">2x</span>
+                </div>
+                <div>
+                  <p className="text-[15px] font-medium text-on-surface">Surplus Pastry Box</p>
+                  <p className="text-[13px] text-on-surface-variant mt-0.5">Contains assorted daily pastries.</p>
+                </div>
+              </div>
+              <p className="text-[15px] font-semibold text-on-surface">Rp 45.000</p>
+            </div>
+            <div className="p-4 flex justify-between items-start">
+              <div className="flex items-start gap-3">
+                <div
+                  className="w-6 h-6 rounded bg-background border border-outline-variant flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-[12px] font-semibold text-on-surface">1x</span>
+                </div>
+                <div>
+                  <p className="text-[15px] font-medium text-on-surface">Large Iced Latte</p>
+                  <p className="text-[13px] text-on-surface-variant mt-0.5">Oat milk, sugar-free vanilla.</p>
+                </div>
+              </div>
+              <p className="text-[15px] font-semibold text-on-surface">Rp 15.000</p>
+            </div>
+          </div>
+        </section>
+        {/* Summary */}
+        <div className="flex flex-col gap-2">
+          <h2 className="text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider">PAYMENT SUMMARY
+          </h2>
+          <div className="bg-surface border border-outline-variant rounded-xl p-4 flex flex-col gap-3">
+            <div className="flex justify-between items-center">
+              <span className="text-[14px] text-on-surface-variant">Subtotal</span>
+              <span className="text-[14px] text-on-surface">Rp 40.000</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-[14px] text-on-surface-variant">Platform Fee (5%)</span>
+              <span className="text-[14px] text-on-surface">-Rp 2.000</span>
+            </div>
+            <div className="flex justify-between items-center pt-3 border-t border-outline-variant">
+              <span className="text-[15px] font-semibold text-on-surface">Total Payout</span>
+              <span className="text-[18px] font-bold text-primary">Rp 38.000</span>
+            </div>
+          </div>
+        </div>
+        {/* Timeline */}
+        <div className="flex flex-col gap-2">
+          <h2 className="text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider">ORDER TIMELINE</h2>
+          <div className="bg-surface border border-outline-variant rounded-xl p-5">
+            <div
+              className="relative pl-6 flex flex-col gap-5 before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[2px] before:bg-outline-variant">
+              <div className="relative">
+                <div
+                  className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-surface z-10">
+                </div>
+                <p className="text-[14px] font-medium text-on-surface-variant line-through">Order Placed</p>
+                <p className="text-[12px] text-on-surface-variant mt-0.5">17:45</p>
+              </div>
+              <div className="relative">
+                <div
+                  className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-surface z-10">
+                </div>
+                <p className="text-[14px] font-medium text-on-surface-variant line-through">Order Accepted</p>
+                <p className="text-[12px] text-on-surface-variant mt-0.5">18:15</p>
+              </div>
+              <div className="relative">
+                <div
+                  className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-outline-variant ring-4 ring-surface z-10">
+                </div>
+                <p className="text-[14px] font-medium text-on-surface-variant">Preparing Order</p>
+              </div>
+              <div className="relative">
+                <div
+                  className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-outline-variant ring-4 ring-surface z-10">
+                </div>
+                <p className="text-[14px] font-medium text-on-surface-variant">Ready for Pickup</p>
+              </div>
+              <div className="relative">
+                <div
+                  className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-outline-variant ring-4 ring-surface z-10">
+                </div>
+                <p className="text-[14px] font-medium text-on-surface-variant">Picked Up</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
       {/* Bottom Sticky Action */}
       <div className="fixed bottom-0 w-full z-50 bg-surface border-t border-outline-variant p-container-padding pb-8">
-      <div className="max-w-[448px] mx-auto">
-      <button className="w-full bg-primary text-on-primary text-[15px] font-semibold py-3.5 rounded-xl hover:opacity-90 transition-colors flex justify-center items-center gap-2">
-                  Start Preparing
-              </button>
-      </div>
+        <div className="max-w-[448px] mx-auto">
+          <button
+            className="w-full bg-primary text-on-primary text-[15px] font-semibold py-3.5 rounded-xl hover:opacity-90 transition-colors flex justify-center items-center gap-2">
+            Start Preparing
+          </button>
+        </div>
       </div>
     </div>
   );

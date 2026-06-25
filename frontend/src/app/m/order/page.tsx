@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
-import MerchantOrderCard, { OrderCardData } from "../../../components/m/MerchantOrderCard";
+import MerchantOrderCard from "../../../components/m/MerchantOrderCard";
 import DashboardBottomNav from "../../../components/m/DashboardBottomNav";
 import DashboardTopAppBar from "../../../components/m/DashboardTopAppBar";
-import { Order } from "../../../components/providers/OrderProvider";
-import api, { getApiErrorMessage } from "../../../lib/api";
+import { getApiErrorMessage } from "../../../lib/api";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../../lib/supabase"; // Retained for auth.getUser() — migrate in Phase 3
+import { get_merchant_order, update_order_status } from "@/services/order";
+import { Order } from "@/types";
 
 export default function MerchantOrdersActiveStateRefinedPage() {
 
@@ -15,9 +15,11 @@ const [page_state, set_page_state] = useState<"completed" | "other">("other");
 
 const [orders, set_orders] = useState<Order[] | null>();
 
-async function change_status(id: number, status: string) {
+async function change_status(id: string, status: string) {
+  console.log("id", id)
+  
   if (status === "ready_to_pickup") {
-    router.push("/m/scan");
+    router.push(`/m/order/${id}/scan`);
     return;
   }
 
@@ -28,13 +30,15 @@ async function change_status(id: number, status: string) {
 
   if (!next_status) return;
 
+  console.log("next_status", next_status)
+
   try {
     // TODO: Replace with a dedicated merchant status-transition endpoint
     // e.g. PATCH /merchant/order/:id/status { status: next_status }
     // For now, routed through the generic order cancel/confirm cycle
-    await api.patch(`/order/${id}/status`, { status: next_status });
+    await update_order_status(id, next_status);
     // Refresh orders list after update
-    get_orders_ref.current?.();
+    // get_orders_ref.current?.();
   } catch (err) {
     console.error("Status change failed:", getApiErrorMessage(err));
   }
@@ -42,257 +46,14 @@ async function change_status(id: number, status: string) {
 
 useEffect(() => {
   async function get_orders() {
-    const {data: user_data, error: user_error} = (await supabase.auth.getUser());
-
-    const {data, error} = await supabase.from("orders").select(`
-      id,
-      qty,
-      total_amount,
-      qr_token,
-      status,
-      created_at,
-      updated_at,
-      deleted_at,
-      listing_id,
-      customer_id,
-      public_id,
-      customers: customer_id (
-        full_name
-      ),
-      listings:listing_id (
-        name,
-        description,
-        discount_price,
-        discount_percentage,
-        original_price,
-        merchant_id,
-        merchants:merchant_id (
-          merchant_name,
-          address
-        )
-      )`).eq("merchant_id", user_data.user?.id).returns<Order[]>();
-
-    console.log(data);
-    console.log(error);
-
-    set_orders(data);
+    const data = await get_merchant_order();
+    console.log(data)
+    set_orders(data.data);
   }
 
   get_orders();
 }, [])
 
-// const orderPlaceholderData: OrderCardData[] = [
-//   // NEW - 3 data
-//   {
-//     id: "1043",
-//     status: "new",
-//     customerName: "John D.",
-//     customerTag: {
-//       label: "Repeat customer",
-//       variant: "repeat",
-//       icon: "star",
-//       iconType: "material",
-//       fillIcon: true,
-//     },
-//     item: {
-//       name: "Sourdough Loaf",
-//       quantity: 1,
-//       price: 45000,
-//       icon: "bakery_dining",
-//     },
-//     pickupTime: "18:30-19:00",
-//     statusNote: "Ordered 5m ago",
-//     statusNoteIcon: "timer",
-//   },
-//   {
-//     id: "1044",
-//     status: "new",
-//     customerName: "Nadia R.",
-//     item: {
-//       name: "Banana Muffin Box",
-//       quantity: 2,
-//       price: 56000,
-//       icon: "bakery_dining",
-//     },
-//     pickupTime: "19:00-19:30",
-//     statusNote: "Ordered 8m ago",
-//     statusNoteIcon: "timer",
-//   },
-//   {
-//     id: "1045",
-//     status: "new",
-//     customerName: "Kevin A.",
-//     customerTag: {
-//       label: "Repeat customer",
-//       variant: "repeat",
-//       icon: "star",
-//       iconType: "material",
-//       fillIcon: true,
-//     },
-//     item: {
-//       name: "Croissant Bundle",
-//       quantity: 1,
-//       price: 38000,
-//       icon: "bakery_dining",
-//     },
-//     pickupTime: "17:30-18:00",
-//     statusNote: "Ordered 2m ago",
-//     statusNoteIcon: "timer",
-//   },
-
-//   // PREPARING - 3 data
-//   {
-//     id: "1040",
-//     status: "preparing",
-//     customerName: "Sarah J.",
-//     customerTag: {
-//       label: "High priority",
-//       variant: "priority",
-//       icon: "🔥",
-//       iconType: "emoji",
-//     },
-//     item: {
-//       name: "Artisan Sourdough",
-//       quantity: 2,
-//       price: 90000,
-//       icon: "shopping_bag",
-//     },
-//     pickupTime: "18:30-19:00",
-//     statusNote: "Ready in 10m",
-//     statusNoteIcon: "timelapse",
-//   },
-//   {
-//     id: "1039",
-//     status: "preparing",
-//     customerName: "Rizky P.",
-//     item: {
-//       name: "Chicken Rice Box",
-//       quantity: 1,
-//       price: 25000,
-//       icon: "lunch_dining",
-//     },
-//     pickupTime: "18:00-18:30",
-//     statusNote: "Ready in 15m",
-//     statusNoteIcon: "timelapse",
-//   },
-//   {
-//     id: "1038",
-//     status: "preparing",
-//     customerName: "Maya L.",
-//     customerTag: {
-//       label: "High priority",
-//       variant: "priority",
-//       icon: "🔥",
-//       iconType: "emoji",
-//     },
-//     item: {
-//       name: "Surplus Salad Bowl",
-//       quantity: 3,
-//       price: 72000,
-//       icon: "restaurant",
-//     },
-//     pickupTime: "19:00-19:30",
-//     statusNote: "Ready in 20m",
-//     statusNoteIcon: "timelapse",
-//   },
-
-//   // READY - 3 data
-//   {
-//     id: "1037",
-//     status: "ready",
-//     customerName: "Michael K.",
-//     customerTag: {
-//       label: "Pickup soon",
-//       variant: "pickupSoon",
-//       icon: "⚠",
-//       iconType: "emoji",
-//     },
-//     item: {
-//       name: "Surplus Pastry Box",
-//       quantity: 1,
-//       price: 35000,
-//       icon: "inventory_2",
-//     },
-//     pickupTime: "18:00-18:30",
-//     statusNote: "Awaiting Pickup",
-//     statusNoteIcon: "person_check",
-//   },
-//   {
-//     id: "1036",
-//     status: "ready",
-//     customerName: "Dina S.",
-//     item: {
-//       name: "Nasi Ayam Paket Hemat",
-//       quantity: 2,
-//       price: 50000,
-//       icon: "inventory_2",
-//     },
-//     pickupTime: "17:30-18:00",
-//     statusNote: "Awaiting Pickup",
-//     statusNoteIcon: "person_check",
-//   },
-//   {
-//     id: "1035",
-//     status: "ready",
-//     customerName: "Arif T.",
-//     customerTag: {
-//       label: "Pickup soon",
-//       variant: "pickupSoon",
-//       icon: "⚠",
-//       iconType: "emoji",
-//     },
-//     item: {
-//       name: "Donut Mixed Box",
-//       quantity: 1,
-//       price: 42000,
-//       icon: "inventory_2",
-//     },
-//     pickupTime: "19:00-19:30",
-//     statusNote: "Awaiting Pickup",
-//     statusNoteIcon: "person_check",
-//   },
-
-//   // COMPLETED - 3 data
-//   {
-//     id: "1034",
-//     status: "completed",
-//     customerName: "Sarah J.",
-//     item: {
-//       name: "Artisan Sourdough",
-//       quantity: 2,
-//       price: 90000,
-//       icon: "bakery_dining",
-//     },
-//     statusNote: "Picked up at 14:30",
-//     statusNoteIcon: "check_circle",
-//   },
-//   {
-//     id: "1033",
-//     status: "completed",
-//     customerName: "Fajar M.",
-//     item: {
-//       name: "Pasta Lunch Box",
-//       quantity: 1,
-//       price: 32000,
-//       icon: "restaurant",
-//     },
-//     statusNote: "Picked up at 15:10",
-//     statusNoteIcon: "check_circle",
-//   },
-//   {
-//     id: "1032",
-//     status: "completed",
-//     customerName: "Lina W.",
-//     item: {
-//       name: "Brownies Slice Pack",
-//       quantity: 3,
-//       price: 60000,
-//       icon: "bakery_dining",
-//     },
-//     statusNote: "Picked up at 16:05",
-//     statusNoteIcon: "check_circle",
-//   },
-// ];
   
   return (
     <>
@@ -386,7 +147,7 @@ useEffect(() => {
                       : "text-sb-secondary-text font-semibold hover:bg-slate-100/50"
                   }`}
                 >
-                  Active (4)
+                  Active
                 </button>
 
                 <button
@@ -399,7 +160,7 @@ useEffect(() => {
                       : "text-sb-secondary-text font-semibold hover:bg-slate-100/50"
                   }`}
                 >
-                  Completed (18)
+                  Completed
                 </button>
               </div>
             </section>
@@ -410,7 +171,7 @@ useEffect(() => {
                   if (page_state === "completed") {
                     return data.status === "completed" ? <MerchantOrderCard key={data.id} order={data} />  : ""
                   } 
-                  return data.status !== "completed" ? <MerchantOrderCard key={data.id} order={data} onAction={() => {change_status(data.id, data.status)}}/> : ""
+                  return data.status !== "completed" ? <MerchantOrderCard key={data.id} order={data} onAction={() => {console.log(data); change_status(data.public_id, data.status ?? "")}}/> : ""
               }) : <>
               <div className="w-24 h-24 bg-primary-emerald/10 rounded-full flex items-center justify-center mb-6">
               <span className="material-symbols-outlined text-5xl text-primary-emerald">receipt_long</span>
@@ -422,8 +183,8 @@ useEffect(() => {
               }
             </section>
           </main>
-          <DashboardBottomNav page="order"/>
         </div>
+          <DashboardBottomNav page="order"/>
       </div>
     </>
   );

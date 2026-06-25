@@ -6,11 +6,10 @@ import { supabase } from "../../../lib/supabase";
 import MerchantStatCard from "./MerchantStatCard";
 import MerchantInfoCard from "./MerchantInfoCard";
 import MerchantOrderRow, { MerchantOrder } from "./MerchantOrderRow";
+import { getUserProfile } from "@/services/user";
+import { Merchant as MerchantBase } from "@/types";
 
-type Merchant = {
-  user_id: string;
-  public_id?: string | null;
-
+type Merchant = MerchantBase & {
   // Kolom merchant dibuat fleksibel karena nama kolom bisa berbeda
   // sesuai data definition merchants yang kamu gunakan.
   [key: string]: unknown;
@@ -67,7 +66,9 @@ export default function MerchantDetailClient() {
     getParamValue(params.id as string | string[] | undefined) ||
     getParamValue(params.public_id as string | string[] | undefined);
 
-  const [merchant, set_merchant] = useState<Merchant | null>(null);
+  const [merchant, set_merchant] = useState<Merchant & {
+    [key: string]: any
+  } | null>(null);
   const [loading, set_loading] = useState<boolean>(true);
   const [error_message, set_error_message] = useState<string>("");
 
@@ -81,39 +82,10 @@ export default function MerchantDetailClient() {
     set_loading(true);
     set_error_message("");
 
-    const { data, error } = await supabase
-      .from("merchants")
-      .select(
-        `
-        *,
-        orders:orders!orders_merchant_id_fkey (
-          id,
-          qty,
-          total_amount,
-          qr_token,
-          status,
-          created_at,
-          updated_at,
-          deleted_at,
-          listing_id,
-          public_id,
-          merchant_id,
-          customer_id
-        )
-      `
-      )
-      .eq("user_id", public_id)
-      .single<Merchant>();
+    const data = await getUserProfile(public_id)
+    console.log(data.data.merchant.merchant_name)
 
-    if (error) {
-      console.log(error);
-      set_error_message(error.message);
-      set_merchant(null);
-      set_loading(false);
-      return;
-    }
-
-    set_merchant(data);
+    set_merchant(data.data);
     set_loading(false);
   }
 
@@ -143,7 +115,7 @@ export default function MerchantDetailClient() {
   ).length;
 
   const cancelled_orders = orders.filter(
-    (order) => order.status === "cancelled" || order.status === "cancel"
+    (order) => order.status === "cancelled" || order.status === "expired_unclaimed"
   ).length;
 
   const total_revenue = orders.reduce((total, order) => {
@@ -156,28 +128,13 @@ export default function MerchantDetailClient() {
       return total + Number(order.total_amount ?? 0);
     }, 0);
 
-  const merchant_name = getText(merchant, [
-    "merchant_name",
-    "store_name",
-    "business_name",
-    "name",
-    "full_name",
-  ]);
+  const merchant_name = merchant?.merchant.merchant_name;
 
-  const legal_name = getText(merchant, [
-    "legal_name",
-    "company_name",
-    "business_legal_name",
-  ]);
+  const legal_name = "merchant.legal-name";
 
-  const tax_id = getText(merchant, ["tax_id", "npwp", "tax_number"]);
+  const tax_id = 'merchant.tax_id';
 
-  const address = getText(merchant, [
-    "address",
-    "business_address",
-    "store_address",
-    "location",
-  ]);
+  const address = merchant?.merchant.address;
 
   const contact_email = getText(merchant, [
     "email",
@@ -271,7 +228,7 @@ export default function MerchantDetailClient() {
                 <span className="material-symbols-outlined text-[16px]">
                   tag
                 </span>
-                {merchant.public_id || public_id}
+                {merchant.user_id}
               </span>
 
               <span className="flex items-center gap-1">
@@ -372,7 +329,7 @@ export default function MerchantDetailClient() {
               },
               { label: "Phone Number", value: phone_number },
               { label: "User ID", value: merchant.user_id },
-              { label: "Public ID", value: merchant.public_id || public_id },
+              { label: "Public ID", value: 'merchant.public_id'},
             ]}
           />
 

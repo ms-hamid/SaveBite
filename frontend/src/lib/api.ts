@@ -18,14 +18,15 @@
 import axios from "axios";
 
 const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
+  process.env.NEXT_PUBLIC_BACKEND_URL ?? "/api";
 
 const api = axios.create({
   baseURL: BACKEND_URL,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 10_000, // 10 seconds — fail fast, don't hang UI
+  timeout: 100_000, // 10 seconds — fail fast, don't hang UI
 });
 
 // ── Request interceptor: inject JWT ───────────────────────────────────────────
@@ -49,7 +50,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && typeof window !== "undefined") {
       // Token expired or invalid — clear local state and redirect to login
       localStorage.removeItem("sb_access_token");
-      window.location.href = "/sign-in";
+      window.location.href = "/login";
     }
     return Promise.reject(error);
   }

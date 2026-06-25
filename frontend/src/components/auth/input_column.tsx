@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { RegisterData } from "../../app/sign-up/page";
+
+
 
 type SelectOption = {
   value: string;
@@ -10,16 +11,17 @@ type SelectOption = {
 
 type AuthInputProps = {
   label: string;
-  name: keyof RegisterData;
+  name: string;
   placeholder: string;
-  onChange: <K extends keyof RegisterData>(
-    key: K,
-    value: RegisterData[K]
+  onChange: (
+    key: string,
+    value: any
   ) => void;
   value: any;
   type: string;
   error?: string;
   selectOptions?: SelectOption[];
+  maxLength?: number;
 };
 
 export default function AuthInputComponent({
@@ -31,6 +33,7 @@ export default function AuthInputComponent({
   type,
   error,
   selectOptions = [],
+  maxLength = 0
 }: AuthInputProps) {
   const [pw_toggle, set_pw_toggle] = useState(true);
 
@@ -53,7 +56,7 @@ export default function AuthInputComponent({
     name={name}
     value={value}
     onChange={(e) =>
-      onChange(name, e.target.value as RegisterData[typeof name])
+      onChange(name, e.target.value)
     }
     className="form-select flex w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary/50 h-14 px-4 text-base font-normal leading-normal transition-all"
   >
@@ -72,7 +75,7 @@ export default function AuthInputComponent({
     placeholder={placeholder}
     value={value}
     onChange={(e) =>
-      onChange(name, e.target.value as RegisterData[typeof name])
+      onChange(name, e.target.value)
     }
     className="form-textarea flex w-full min-h-32 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary/50 placeholder:text-slate-400 px-4 py-3 text-base font-normal leading-normal transition-all resize-none"
   />
@@ -85,7 +88,7 @@ export default function AuthInputComponent({
     value={value}
     name={name}
     onChange={(e) =>
-      onChange(name, e.target.value as RegisterData[typeof name])
+      onChange(name, e.target.value)
     }
   />
 )}

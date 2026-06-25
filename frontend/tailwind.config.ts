@@ -1,4 +1,6 @@
 import type { Config } from "tailwindcss";
+import forms from "@tailwindcss/forms";
+import containerQueries from "@tailwindcss/container-queries";
 
 const config: Config = {
   darkMode: "class",
@@ -18,6 +20,7 @@ const config: Config = {
 
         /* Brand */
         primary: "#10b77f",
+        "primary-emerald": "#10b77f",
         "primary-dark": "#0fb880",
         "primary-desaturated": "#4b9f83",
         "primary-content": "#0f5a2e",
@@ -44,6 +47,30 @@ const config: Config = {
           500: "#64748b",
           900: "#0f172a",
         },
+          border: "#e5e7eb",
+          "border-light": "#e5e7eb",
+
+          "brand-purple": "#8b5cf6",
+          "brand-purple-light": "#f5f3ff",
+
+          "custom-bg": "#ffffff",
+          "custom-card-border": "#e5e7eb",
+          "custom-primary": "#10b981",
+          "custom-text-primary": "#111827",
+          "custom-text-secondary": "#6b7280",
+
+          "gray-50": "#f9fafb",
+
+          "sb-bg": "#f7faf8",
+          "sb-border": "#eaeaea",
+          "sb-primary-text": "#111827",
+          "sb-secondary-text": "#6b7280",
+
+          "success-green": "#10b981",
+          "success-light": "#ecfdf5",
+
+          "text-primary": "#111827",
+          "text-secondary": "#6b7280",
 
         /* =========================
          * Config 1 - Tambahan
@@ -144,6 +171,13 @@ const config: Config = {
         section_gap: "32px",
         card_padding: "24px",
         page_padding: "32px",
+        "card-gap": "16px",
+        "container-padding": "1.25rem",
+        "inline-gap": "0.5rem",
+        "screen-px": "24px",
+        "section-gap": "24px",
+        "stack-gap-sm": "0.5rem",
+        "stack-gap-md": "1rem",
       },
 
       maxWidth: {
@@ -155,7 +189,7 @@ const config: Config = {
         display: ["Plus Jakarta Sans", "sans-serif"],
 
         // Tambahan dari config 1
-        sans: ["Inter", "sans-serif"],
+        sans: ["Plus Jakarta Sans", "sans-serif"],
         inter: ["Inter", "sans-serif"],
         "body-medium": ["Inter", "sans-serif"],
         "page-title-mobile": ["Inter", "sans-serif"],
@@ -226,8 +260,8 @@ const config: Config = {
   },
 
   plugins: [
-    require("@tailwindcss/forms"),
-    require("@tailwindcss/container-queries"),
+    forms,
+    containerQueries
   ],
 };
 

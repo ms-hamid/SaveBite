@@ -1,16 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../../../lib/supabase";
 import MerchantTableRow, {
-  MerchantOrder,
   MerchantRowData,
 } from "./MerchantTableRow";
+import { getMerchantsList } from "@/services/user";
+import { Merchant } from "@/types";
 
-type Merchant = {
-  user_id: string;
-  orders: MerchantOrder[] | null;
-};
 
 const PAGE_SIZE = 5;
 
@@ -36,37 +32,14 @@ export default function MerchantManagementClient() {
     const from = (page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
-    const { data, error, count } = await supabase
-      .from("merchants")
-      .select(
-        `
-        user_id,
-        orders (
-          id,
-          qty,
-          total_amount,
-          status,
-          created_at,
-          deleted_at,
-          merchant_id
-        )
-      `,
-        { count: "exact" }
-      )
-      .range(from, to)
-      .returns<Merchant[]>();
+    const data = await getMerchantsList();
+    const users = data.data.merchants;
+ 
+    console.log(users)
 
-    if (error) {
-      console.log(error);
-      set_error_message(error.message);
-      set_merchants([]);
-      set_total_count(0);
-      set_loading(false);
-      return;
-    }
 
-    set_merchants(data ?? []);
-    set_total_count(count ?? 0);
+    set_merchants(users ?? []);
+    set_total_count( users.length);
     set_loading(false);
   }
 
@@ -74,44 +47,44 @@ export default function MerchantManagementClient() {
     get_merchants(current_page);
   }, [current_page]);
 
-  const merchant_rows: MerchantRowData[] = useMemo(() => {
-    return merchants.map((merchant) => {
-      const orders = (merchant.orders ?? []).filter(
-        (order) => order.deleted_at === null
-      );
+  // const merchant_rows: MerchantRowData[] = useMemo(() => {
+  //   return merchants.map((merchant) => {
+  //     const orders = (merchant.orders ?? []).filter(
+  //       (order) => order.deleted_at === null
+  //     );
 
-      const total_revenue = orders.reduce((total, order) => {
-        return total + Number(order.total_amount ?? 0);
-      }, 0);
+  //     const total_revenue = orders.reduce((total, order) => {
+  //       return total + Number(order.total_amount ?? 0);
+  //     }, 0);
 
-      const active_orders = orders.filter(
-        (order) =>
-          order.status === "paid" ||
-          order.status === "ready" ||
-          order.status === "completed"
-      );
+  //     const active_orders = orders.filter(
+  //       (order) =>
+  //         order.status === "paid" ||
+  //         order.status === "ready" ||
+  //         order.status === "completed"
+  //     );
 
-      return {
-        user_id: merchant.user_id,
+  //     return {
+  //       user_id: merchant.user_id,
 
-        // Placeholder karena data definition merchants tidak diberikan
-        merchant_name: "-",
-        category: "-",
-        location: "-",
-        rating: "-",
-        review_count: "-",
+  //       // Placeholder karena data definition merchants tidak diberikan
+  //       merchant_name: merchant.merchant_name,
+  //       category: "-",
+  //       location: "-",
+  //       rating: "-",
+  //       review_count: "-",
 
-        // Status sementara dibuat dari data order
-        status: active_orders.length > 0 ? "Active" : "Incomplete",
+  //       // Status sementara dibuat dari data order
+  //       status: active_orders.length > 0 ? "Active" : "Incomplete",
 
-        total_orders: orders.length,
-        total_revenue,
-      };
-    });
-  }, [merchants]);
+  //       total_orders: orders.length,
+  //       total_revenue,
+  //     };
+  //   });
+  // }, [merchants]);
 
-  const active_merchants = merchant_rows.filter(
-    (merchant) => merchant.status === "Active"
+  const active_merchants = merchants.filter(
+    (merchant) => merchant.kyc_status === "approved"
   ).length;
 
   function goToPage(page: number) {
@@ -345,7 +318,7 @@ export default function MerchantManagementClient() {
                 </tr>
               )}
 
-              {!loading && !error_message && merchant_rows.length === 0 && (
+              {!loading && !error_message && merchants.length === 0 && (
                 <tr>
                   <td
                     colSpan={8}
@@ -358,7 +331,7 @@ export default function MerchantManagementClient() {
 
               {!loading &&
                 !error_message &&
-                merchant_rows.map((merchant) => (
+                merchants.map((merchant) => (
                   <MerchantTableRow
                     key={merchant.user_id}
                     merchant={merchant}

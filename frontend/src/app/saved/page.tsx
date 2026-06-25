@@ -99,7 +99,7 @@ function DealCard({
       {/* Image */}
       <div className="relative aspect-[16/10] w-full overflow-hidden rounded-lg bg-slate-200 dark:bg-slate-800 shadow-sm">
         <img
-          src={deal.image}
+          src={deal.image ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
           alt={deal.title}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading="lazy"

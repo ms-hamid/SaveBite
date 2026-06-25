@@ -3,6 +3,7 @@ import type { Listing } from "./listing";
 import type { Merchant } from "./merchant";
 import type { Customer } from "./customer";
 import type { Payment } from "./payment";
+import { Formatted } from "./Formatted";
 
 export type Order = {
   id: number;
@@ -24,6 +25,7 @@ export type Order = {
   // Relations
   listing: Listing | null;
   merchant: Merchant | null;
-  customer: Customer | null;
+  customers: Customer | null;
   payment: Payment | null;
+  formatted: Formatted | null;
 };
