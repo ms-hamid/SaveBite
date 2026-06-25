@@ -46,3 +46,4 @@ frontend/.next/
 frontend/out/
 frontend/.env.local
 .vercel/
+backend-core/serviceAccountKey.json
