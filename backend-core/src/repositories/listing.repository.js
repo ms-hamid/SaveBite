@@ -3,6 +3,7 @@
  * @description Data access layer for the Listing domain.
  */
 
+import { Prisma } from "@prisma/client";
 import {prisma} from "../lib/prisma.js";
 
 /**
@@ -19,17 +20,53 @@ export async function find_listing_by_id(listingId) {
 
 /**
  * Find all published, non-expired listings.
- * Optional geo-filter: orders by Haversine distance if lat/lng provided.
+ * Supports geo-filter, text search, category, and price range.
  *
- * @param {{ lat?: number, lng?: number, radius_km?: number, limit?: number }} opts
- * @returns {Promise<Listing[]>}
+ * @param {{ lat?, lng?, radius_km?, limit?, q?, category?, min_price?, max_price? }} opts
  */
-export async function find_active_listings({ lat, lng, radius_km = 100, limit = 20 } = {}) {
+export async function find_active_listings({
+  lat,
+  lng,
+  radius_km = 1000,
+  limit = 50,
+  q,
+  category,
+  min_price,
+  max_price,
+} = {}) {
 
   if (lat != null && lng != null) {
+    const sqlFilters = [];
+
+    if (q) {
+      const keyword = `%${q}%`;
+      sqlFilters.push(Prisma.sql`
+        AND (
+          l.name ILIKE ${keyword}
+          OR l.description ILIKE ${keyword}
+          OR m.merchant_name ILIKE ${keyword}
+        )
+      `);
+    }
+    if (category) {
+      const categoryKeyword = `%${category}%`;
+      sqlFilters.push(Prisma.sql`
+        AND (
+          m.category ILIKE ${categoryKeyword}
+          OR l.name ILIKE ${categoryKeyword}
+        )
+      `);
+    }
+    if (min_price != null) {
+      sqlFilters.push(Prisma.sql`AND l.discount_price >= ${Number(min_price)}`);
+    }
+    if (max_price != null) {
+      sqlFilters.push(Prisma.sql`AND l.discount_price <= ${Number(max_price)}`);
+    }
+    const rawFilterSql = sqlFilters.length > 0 ? Prisma.join(sqlFilters, " ") : Prisma.empty;
+
     // Haversine distance formula in PostgreSQL
-    // Returns listings within `radius_km` km, ordered nearest-first
-    const rawListings = await prisma.$queryRaw`
+    const rawListings = await prisma.$queryRaw(Prisma.sql`
       WITH listings_with_distance AS (
   SELECT
     l.id,
@@ -45,8 +82,10 @@ export async function find_active_listings({ lat, lng, radius_km = 100, limit = 
     l.img_url,
     l.public_id,
     l.discount_percentage,
+    l.description,
     m.merchant_name,
     m.address,
+    m.category AS merchant_category,
     m.latitude,
     m.longitude,
     ( 6371 * acos(
@@ -62,19 +101,20 @@ export async function find_active_listings({ lat, lng, radius_km = 100, limit = 
     AND l.close_time > NOW()
     AND l.stock_total > 0
     AND l.deleted_at IS NULL
+    ${rawFilterSql}
 )
-
 SELECT *
 FROM listings_with_distance
 WHERE distance_km <= ${radius_km}
 ORDER BY distance_km ASC
 LIMIT ${limit};
-    `;
+    `);
 
     return rawListings.map(item => ({
       id: item.id,
       public_id: item.public_id,
       name: item.name,
+      description: item.description,
       open_time: item.open_time,
       close_time: item.close_time,
       sold_total: item.sold_total,
@@ -89,24 +129,66 @@ LIMIT ${limit};
       merchants: {
         merchant_name: item.merchant_name,
         address: item.address,
+        category: item.merchant_category,
         latitude: item.latitude,
         longitude: item.longitude,
       }
     }));
   }
 
-
-  // No geo-filter: return newest published listings
-  return prisma.listing.findMany({
-    where: {
+  // No geo-filter: use Prisma with where conditions
+  const andFilters = [
+    {
       status: "active",
       close_time: { gt: new Date() },
       stock_total: { gt: 0 },
+      deleted_at: null,
     },
-    orderBy: { close_time: "asc" }, // soonest-expiring first = urgency
+  ];
+
+  if (q) {
+    andFilters.push({
+      OR: [
+        { name: { contains: q, mode: "insensitive" } },
+        { description: { contains: q, mode: "insensitive" } },
+        { merchant: { merchant_name: { contains: q, mode: "insensitive" } } },
+      ],
+    });
+  }
+  if (category) {
+    andFilters.push({
+      OR: [
+        { merchant: { category: { contains: category, mode: "insensitive" } } },
+        { name: { contains: category, mode: "insensitive" } },
+      ],
+    });
+  }
+  const priceFilter = {};
+  if (min_price != null) {
+    priceFilter.gte = Number(min_price);
+  }
+  if (max_price != null) {
+    priceFilter.lte = Number(max_price);
+  }
+  if (Object.keys(priceFilter).length > 0) {
+    andFilters.push({ discount_price: priceFilter });
+  }
+
+  const listings = await prisma.listing.findMany({
+    where: { AND: andFilters },
+    orderBy: { close_time: "asc" },
     take: limit,
-    include: { merchant: { select: { merchant_name: true, address: true } } },
+    include: {
+      merchant: {
+        select: { merchant_name: true, address: true, category: true },
+      },
+    },
   });
+
+  return listings.map((item) => ({
+    ...item,
+    merchants: item.merchant,
+  }));
 }
 
 

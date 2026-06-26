@@ -57,6 +57,7 @@ model AuthUser {
   admin                       Admin?
   customer                    Customer?
   device_tokens               device_tokens[]
+  favorites                   favorites[]
   listings                    Listing[]
   merchant                    Merchant?
   password_reset_otps         PasswordResetOtp[]
@@ -101,8 +102,6 @@ model Merchant {
   @@map("merchants")
   @@schema("public")
 }
-
-model Customer {
   full_name    String   @db.VarChar(50)
   exp          Int?     @default(0)
   strike_count Int?     @default(0)
@@ -142,6 +141,7 @@ model Listing {
   public_id           String               @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   status              listing_status       @default(close)
   ai_feature_history  ai_feature_history[]
+  favorites           favorites[]
   user                AuthUser?            @relation(fields: [merchant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   merchant            Merchant?            @relation(fields: [merchant_id], references: [user_id], onDelete: Cascade, map: "listings_merchant_id_fkey1")
   orders              Order[]
@@ -747,6 +747,18 @@ model ai_feature_history {
   @@unique([merchant_id, listing_id, feature_date], map: "unique_ai_daily_history")
   @@index([listing_id, feature_date(sort: Desc)], map: "idx_ai_history_listing_date")
   @@index([merchant_id, feature_date(sort: Desc)], map: "idx_ai_history_merchant_date")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model favorites {
+  customer_id String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  listing_id  BigInt
+  users       AuthUser @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "favorite_customer_id_fkey")
+  listings    Listing  @relation(fields: [listing_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "favorite_listing_id_fkey")
+
+  @@id([customer_id, listing_id], map: "favorite_pkey")
   @@schema("public")
 }
 

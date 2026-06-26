@@ -14,9 +14,12 @@ export default function MerchantOrdersActiveStateRefinedPage() {
 const [page_state, set_page_state] = useState<"completed" | "other">("other");
 
 const [orders, set_orders] = useState<Order[] | null>();
+const [preparing_count, set_preparing_count] = useState<number>(0);
+const [active_count, set_active_count] = useState<number>(0);
+const [ready_count, set_ready_count] = useState<number>(0);
+const [completed_count, set_completed_count] = useState<number>(0);
 
 async function change_status(id: string, status: string) {
-  console.log("id", id)
   
   if (status === "ready_to_pickup") {
     router.push(`/m/order/${id}/scan`);
@@ -29,8 +32,6 @@ async function change_status(id: string, status: string) {
   if (status === "preparing") next_status = "ready_to_pickup";
 
   if (!next_status) return;
-
-  console.log("next_status", next_status)
 
   try {
     // TODO: Replace with a dedicated merchant status-transition endpoint
@@ -52,9 +53,16 @@ useEffect(() => {
   }
 
   get_orders();
-}, [])
+}, []);
 
-  
+useEffect(() => {
+  set_preparing_count(orders?.filter((order) => order.status === "preparing").length ?? 0);
+  set_active_count(orders?.filter((order) => order.status === "paid_reserved").length ?? 0);
+  set_ready_count(orders?.filter((order) => order.status === "ready_to_pickup").length ?? 0);
+  set_completed_count(orders?.filter((order) => order.status === "completed").length ?? 0);
+}, [orders]); 
+
+
   return (
     <>
       <title>SaveBite Merchant - Orders</title>
@@ -168,10 +176,10 @@ useEffect(() => {
             <section className="flex flex-col flex-1 items-center justify-center text-center gap-4">
               { orders?.length !== 0 ?
                 orders?.map((data) => {
-                  if (page_state === "completed") {
-                    return data.status === "completed" ? <MerchantOrderCard key={data.id} order={data} />  : ""
+                  if (page_state !== "completed") {
+                    return data.status !== "completed" ? <MerchantOrderCard key={data.id} order={data} onAction={() => {console.log(data); change_status(data.public_id, data.status ?? "")}}/>  : ""
                   } 
-                  return data.status !== "completed" ? <MerchantOrderCard key={data.id} order={data} onAction={() => {console.log(data); change_status(data.public_id, data.status ?? "")}}/> : ""
+                  return data.status === "completed" ? <MerchantOrderCard key={data.id} order={data} onAction={() => {router.push(`/m/order/${data.public_id}`)}}/> : ""
               }) : <>
               <div className="w-24 h-24 bg-primary-emerald/10 rounded-full flex items-center justify-center mb-6">
               <span className="material-symbols-outlined text-5xl text-primary-emerald">receipt_long</span>

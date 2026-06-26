@@ -1,835 +1,468 @@
 "use client";
 
 import type React from "react";
+import { useRouter, useParams } from "next/navigation";
 import { useOrder } from "../../../../components/providers/OrderProvider";
+import { update_order_status } from "@/services/order";
+import { useState } from "react";
+import { getApiErrorMessage } from "@/lib/api";
+import { format_price } from "@/app/home/page";
 
-const orderStatePages: Record<string, () => React.ReactElement> = {
-  accepted: OrderDetailAcceptedStandardizedPage,
-  preparing: OrderDetailPreparingStandardizedPage,
-  ready: OrderDetailReadyStandardizedPage,
-  ready_for_pickup: OrderDetailReadyStandardizedPage,
-  completed: OrderCompletedDetailStandardizedPage,
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function fmt_time(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleTimeString("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function fmt_datetime(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+// Mapping status → label + warna badge
+const STATUS_META: Record<
+  string,
+  { label: string; badgeCls: string; bannerCls: string; icon: string; bannerText: string }
+> = {
+  paid_reserved: {
+    label: "Accepted",
+    badgeCls: "bg-blue-100 text-blue-600",
+    bannerCls: "bg-blue-50 border-blue-200",
+    icon: "receipt",
+    bannerText: "Order diterima. Segera siapkan sebelum batas waktu pickup.",
+  },
+  preparing: {
+    label: "Preparing",
+    badgeCls: "bg-amber-100 text-amber-600",
+    bannerCls: "bg-amber-50 border-amber-200",
+    icon: "restaurant",
+    bannerText: "Sedang menyiapkan pesanan. Tandai siap setelah selesai.",
+  },
+  ready_to_pickup: {
+    label: "Ready",
+    badgeCls: "bg-emerald-100 text-emerald-600",
+    bannerCls: "bg-emerald-50 border-emerald-200",
+    icon: "shopping_bag",
+    bannerText: "Pesanan siap. Tunggu customer datang atau scan QR mereka.",
+  },
+  completed: {
+    label: "Completed",
+    badgeCls: "bg-emerald-100 text-emerald-600",
+    bannerCls: "bg-emerald-50 border-emerald-200",
+    icon: "check_circle",
+    bannerText: "Pesanan telah selesai.",
+  },
 };
 
-export default function OrderDetailPage() {
-  const { order } = useOrder();
+// Status apa yang bisa diubah → ke apa, dan label tombolnya
+const NEXT_ACTION: Record<string, { next: string; label: string; icon: string }> = {
+  paid_reserved:  { next: "preparing",     label: "Mulai Persiapan",        icon: "restaurant" },
+  preparing:      { next: "ready_to_pickup", label: "Tandai Siap Pickup",  icon: "inventory_2" },
+  ready_to_pickup:{ next: "scan",          label: "Verifikasi Pickup (QR)", icon: "qr_code_scanner" },
+};
 
-  const status = String(order?.status ?? "accepted");
-  const StatePage = orderStatePages[status] ?? orderStatePages.accepted;
+// ── Timeline helper ────────────────────────────────────────────────────────────
 
-  return <StatePage />; 
-}
+function Timeline({
+  status,
+  createdAt,
+  updatedAt,
+}: {
+  status: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+}) {
+  const steps: { key: string; label: string }[] = [
+    { key: "paid_reserved",  label: "Pesanan Masuk" },
+    { key: "preparing",      label: "Persiapan" },
+    { key: "ready_to_pickup",label: "Siap Pickup" },
+    { key: "completed",      label: "Selesai" },
+  ];
 
-function OrderDetailAcceptedStandardizedPage() {
+  const order = ["paid_reserved", "preparing", "ready_to_pickup", "completed"];
+  const currentIdx = order.indexOf(status);
+
   return (
-    <div className="bg-background text-on-surface antialiased pb-24">
-
-      {/* TopAppBar Component */}
-      <header className="bg-surface fixed top-0 w-full z-50 border-b border-outline-variant shadow-sm">
-        <div className="flex items-center justify-between px-container-padding h-16 max-w-[448px] mx-auto">
-          <button
-            className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-background transition-colors">
-            <span className="material-symbols-outlined text-on-surface" data-icon="arrow_back">arrow_back</span>
-          </button>
-          <h1 className="text-[18px] font-semibold text-on-surface">Order #SB-9021</h1>
-          <div className="flex items-center">
-            <span
-              className="text-[11px] font-semibold tracking-wider bg-secondary-container text-secondary px-2.5 py-1 rounded-full uppercase">Accepted</span>
-          </div>
-        </div>
-      </header>
-      {/* Main Content Canvas */}
-      <main className="pt-24 px-container-padding max-w-[448px] mx-auto flex flex-col gap-section-gap">{/* Success
-        Banner */}
-        <section
-          className="bg-secondary-container/30 border border-secondary-container rounded-xl p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-secondary" data-icon="receipt"
-              style={{fontVariationSettings: "'FILL' 1"}}>receipt</span>
-          </div>
-          <div>
-            <p className="text-[15px] font-semibold text-on-surface">Order accepted successfully.</p>
-            <p className="text-[13px] text-on-surface-variant mt-0.5">Customer order has been accepted and is now
-              waiting for preparation.</p>
-          </div>
-        </section>
-        {/* Customer Info */}
-        <section className="flex flex-col gap-2">
-          <h2 className="text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider">CUSTOMER</h2>
-          <div
-            className="bg-surface border border-outline-variant rounded-xl p-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div
-                className="w-12 h-12 rounded-full bg-background flex items-center justify-center overflow-hidden shrink-0">
-                <img alt="Sarah Jenkins" className="w-full h-full object-cover"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBoECNzhgIr0tVEQDfXysMc4GBrjXt2Qvg_BTbQGljO-uMlxe44yD9UrjGUl1-Wa_zpcioLtUvKjPhF11VwAf9B_N95pr6gAKRUEbtqVXlzr797RmP7hPQIizZp8PFGFirmF4IkJPB1HYHD5gvyHibJMbu0krTSJufymBoUfxnUu3Po294M20dCSRwAg31MA77hdR2IG7N86PaIS1UPe62B2UAeLYXX-ZrpYBW0TqzVZ8IyWR1c0AZmN2k99zW4nR1M4xLEfCBMexRe" />
-              </div>
-              <div>
-                <h3 className="text-[15px] font-semibold text-on-surface">Sarah Jenkins</h3>
-                <p className="text-[13px] text-on-surface-variant flex items-center gap-1 mt-0.5">Customer</p>
-              </div>
-            </div>
-          </div>
-        </section>
-        {/* Order Items */}
-        <section className="flex flex-col gap-2">
-          <h2 className="text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider">ORDER ITEMS</h2>
-          <div
-            className="bg-surface border border-outline-variant rounded-xl overflow-hidden divide-y divide-outline-variant">
-            <div className="p-4 flex justify-between items-start">
-              <div className="flex items-start gap-3">
-                <div
-                  className="w-6 h-6 rounded bg-background border border-outline-variant flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="text-[12px] font-semibold text-on-surface">2x</span>
-                </div>
-                <div>
-                  <p className="text-[15px] font-medium text-on-surface">Surplus Pastry Box</p>
-                  <p className="text-[13px] text-on-surface-variant mt-0.5">Contains assorted daily pastries.</p>
-                </div>
-              </div>
-              <p className="text-[15px] font-semibold text-on-surface">Rp 45.000</p>
-            </div>
-            <div className="p-4 flex justify-between items-start">
-              <div className="flex items-start gap-3">
-                <div
-                  className="w-6 h-6 rounded bg-background border border-outline-variant flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="text-[12px] font-semibold text-on-surface">1x</span>
-                </div>
-                <div>
-                  <p className="text-[15px] font-medium text-on-surface">Large Iced Latte</p>
-                  <p className="text-[13px] text-on-surface-variant mt-0.5">Oat milk, sugar-free vanilla.</p>
-                </div>
-              </div>
-              <p className="text-[15px] font-semibold text-on-surface">Rp 15.000</p>
-            </div>
-          </div>
-        </section>
-        {/* Summary */}
-        <div className="flex flex-col gap-2">
-          <h2 className="text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider">PAYMENT SUMMARY
-          </h2>
-          <div className="bg-surface border border-outline-variant rounded-xl p-4 flex flex-col gap-3">
-            <div className="flex justify-between items-center">
-              <span className="text-[14px] text-on-surface-variant">Subtotal</span>
-              <span className="text-[14px] text-on-surface">Rp 40.000</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-[14px] text-on-surface-variant">Platform Fee (5%)</span>
-              <span className="text-[14px] text-on-surface">-Rp 2.000</span>
-            </div>
-            <div className="flex justify-between items-center pt-3 border-t border-outline-variant">
-              <span className="text-[15px] font-semibold text-on-surface">Total Payout</span>
-              <span className="text-[18px] font-bold text-primary">Rp 38.000</span>
-            </div>
-          </div>
-        </div>
-        {/* Timeline */}
-        <div className="flex flex-col gap-2">
-          <h2 className="text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider">ORDER TIMELINE</h2>
-          <div className="bg-surface border border-outline-variant rounded-xl p-5">
+    <div className="relative pl-6 flex flex-col gap-5 before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-200">
+      {steps.map((step, idx) => {
+        const done = idx < currentIdx;
+        const active = idx === currentIdx;
+        return (
+          <div key={step.key} className="relative">
             <div
-              className="relative pl-6 flex flex-col gap-5 before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[2px] before:bg-outline-variant">
-              <div className="relative">
-                <div
-                  className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-surface z-10">
-                </div>
-                <p className="text-[14px] font-medium text-on-surface-variant line-through">Order Placed</p>
-                <p className="text-[12px] text-on-surface-variant mt-0.5">17:45</p>
-              </div>
-              <div className="relative">
-                <div
-                  className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-surface z-10">
-                </div>
-                <p className="text-[14px] font-medium text-on-surface-variant line-through">Order Accepted</p>
-                <p className="text-[12px] text-on-surface-variant mt-0.5">18:15</p>
-              </div>
-              <div className="relative">
-                <div
-                  className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-outline-variant ring-4 ring-surface z-10">
-                </div>
-                <p className="text-[14px] font-medium text-on-surface-variant">Preparing Order</p>
-              </div>
-              <div className="relative">
-                <div
-                  className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-outline-variant ring-4 ring-surface z-10">
-                </div>
-                <p className="text-[14px] font-medium text-on-surface-variant">Ready for Pickup</p>
-              </div>
-              <div className="relative">
-                <div
-                  className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-outline-variant ring-4 ring-surface z-10">
-                </div>
-                <p className="text-[14px] font-medium text-on-surface-variant">Picked Up</p>
-              </div>
-            </div>
+              className={`absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full ring-4 ring-white z-10 ${
+                done || active ? "bg-emerald-500" : "bg-slate-200 border-2 border-slate-300"
+              }`}
+            />
+            <p
+              className={`text-[14px] font-medium ${
+                done
+                  ? "text-slate-400 line-through"
+                  : active
+                  ? "text-slate-900 font-semibold"
+                  : "text-slate-400"
+              }`}
+            >
+              {step.label}
+            </p>
+            {/* Tampilkan waktu hanya untuk step pertama (created_at) dan step aktif (updated_at) */}
+            {idx === 0 && createdAt && (
+              <p className="text-[12px] text-slate-400 mt-0.5">{fmt_datetime(createdAt)}</p>
+            )}
+            {active && updatedAt && idx !== 0 && (
+              <p className="text-[12px] text-slate-400 mt-0.5">{fmt_datetime(updatedAt)}</p>
+            )}
           </div>
-        </div>
-      </main>
-      {/* Bottom Sticky Action */}
-      <div className="fixed bottom-0 w-full z-50 bg-surface border-t border-outline-variant p-container-padding pb-8">
-        <div className="max-w-[448px] mx-auto">
-          <button
-            className="w-full bg-primary text-on-primary text-[15px] font-semibold py-3.5 rounded-xl hover:opacity-90 transition-colors flex justify-center items-center gap-2">
-            Start Preparing
-          </button>
-        </div>
-      </div>
+        );
+      })}
     </div>
   );
 }
 
-const preparingPageStyle = {
-  "--color-background": "255 255 255",
-  "--color-border": "229 231 235",
-  "--color-border-light": "229 231 235",
-  "--color-brand-purple": "139 92 246",
-  "--color-brand-purple-light": "245 243 255",
-  "--color-custom-bg": "255 255 255",
-  "--color-custom-card-border": "229 231 235",
-  "--color-custom-primary": "16 185 129",
-  "--color-custom-text-primary": "17 24 39",
-  "--color-custom-text-secondary": "107 114 128",
-  "--color-error": "186 26 26",
-  "--color-error-container": "255 218 214",
-  "--color-gray-50": "249 250 251",
-  "--color-inverse-on-surface": "235 243 235",
-  "--color-inverse-primary": "80 222 163",
-  "--color-inverse-surface": "43 50 45",
-  "--color-on-background": "22 29 25",
-  "--color-on-error": "255 255 255",
-  "--color-on-error-container": "147 0 10",
-  "--color-on-primary": "255 255 255",
-  "--color-on-primary-container": "0 64 42",
-  "--color-on-primary-fixed": "0 33 19",
-  "--color-on-primary-fixed-variant": "0 82 54",
-  "--color-on-secondary": "255 255 255",
-  "--color-on-secondary-container": "87 101 123",
-  "--color-on-secondary-fixed": "13 28 47",
-  "--color-on-secondary-fixed-variant": "58 72 92",
-  "--color-on-surface": "22 29 25",
-  "--color-on-surface-variant": "60 74 66",
-  "--color-on-tertiary": "255 255 255",
-  "--color-on-tertiary-container": "111 18 24",
-  "--color-on-tertiary-fixed": "65 0 6",
-  "--color-on-tertiary-fixed-variant": "132 35 37",
-  "--color-outline": "108 122 113",
-  "--color-outline-variant": "187 202 191",
-  "--color-primary": "16 185 129",
-  "--color-primary-container": "16 183 127",
-  "--color-primary-emerald": "22 196 127",
-  "--color-primary-fixed": "112 251 189",
-  "--color-primary-fixed-dim": "80 222 163",
-  "--color-sb-bg": "247 250 248",
-  "--color-sb-border": "234 234 234",
-  "--color-sb-primary-text": "17 24 39",
-  "--color-sb-secondary-text": "107 114 128",
-  "--color-secondary": "81 95 116",
-  "--color-secondary-container": "213 227 253",
-  "--color-secondary-fixed": "213 227 253",
-  "--color-secondary-fixed-dim": "185 199 224",
-  "--color-success-green": "16 185 129",
-  "--color-success-light": "236 253 245",
-  "--color-surface": "255 255 255",
-  "--color-surface-bright": "244 251 244",
-  "--color-surface-container": "232 240 233",
-  "--color-surface-container-high": "227 234 227",
-  "--color-surface-container-highest": "221 228 221",
-  "--color-surface-container-low": "238 246 238",
-  "--color-surface-container-lowest": "255 255 255",
-  "--color-surface-dim": "212 220 213",
-  "--color-surface-tint": "0 108 73",
-  "--color-surface-variant": "221 228 221",
-  "--color-tertiary": "164 58 59",
-  "--color-tertiary-container": "249 122 119",
-  "--color-tertiary-fixed": "255 218 215",
-  "--color-tertiary-fixed-dim": "255 179 175",
-  "--color-text-primary": "17 24 39",
-  "--color-text-secondary": "107 114 128",
-  "--font-sans": "Plus Jakarta Sans",
-  "--radius-2xl": "1rem",
-  "--radius-3xl": "1.5rem",
-  "--radius-DEFAULT": "0.25rem",
-  "--radius-full": "9999px",
-  "--radius-lg": "0.5rem",
-  "--radius-xl": "16px",
-  "--spacing-card-gap": "16px",
-  "--spacing-container-padding": "1.25rem",
-  "--spacing-inline-gap": "0.5rem",
-  "--spacing-screen-px": "24px",
-  "--spacing-section-gap": "24px",
-  "--spacing-stack-gap-md": "1rem",
-  "--spacing-stack-gap-sm": "0.5rem",
-} as React.CSSProperties;
+// ── Loading skeleton ───────────────────────────────────────────────────────────
 
-function OrderDetailPreparingStandardizedPage() {
+function PageSkeleton() {
   return (
-    <div style={preparingPageStyle} className="bg-gray-50 text-text-primary antialiased pb-28">
+    <div className="bg-white min-h-screen pb-24 animate-pulse">
+      <header className="bg-white fixed top-0 w-full z-50 border-b border-slate-100 h-16" />
+      <main className="pt-24 px-5 max-w-[448px] mx-auto flex flex-col gap-5">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-slate-100 rounded-xl h-20" />
+        ))}
+      </main>
+    </div>
+  );
+}
 
-      <header className="bg-background fixed top-0 w-full z-50 border-b border-border-light shadow-sm">
-        <div className="flex items-center justify-between px-screen-px h-16 max-w-[448px] mx-auto">
-          <button className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-gray-50 transition-colors">
-            <span className="material-symbols-outlined text-text-primary" data-icon="arrow_back">arrow_back</span>
+// ── Main page ──────────────────────────────────────────────────────────────────
+
+export default function MerchantOrderDetailPage() {
+  const router = useRouter();
+  const params = useParams();
+  const { order, isLoading, refetchOrder } = useOrder();
+
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState("");
+
+  if (isLoading) return <PageSkeleton />;
+
+  if (!order) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center">
+        <span className="material-symbols-outlined text-[48px] text-slate-300">
+          receipt_long
+        </span>
+        <p className="text-slate-500 font-medium text-sm">Order tidak ditemukan.</p>
+        <button
+          onClick={() => router.push("/m/order")}
+          className="bg-emerald-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold"
+        >
+          Kembali ke Daftar Order
+        </button>
+      </div>
+    );
+  }
+
+  const status = order.status ?? "paid_reserved";
+  const meta = STATUS_META[status] ?? STATUS_META["paid_reserved"];
+  const action = NEXT_ACTION[status];
+
+  // Data dari schema
+  const listing = order.listing;
+  const merchant = order.merchant;
+  // Customer.full_name dari relasi Customer
+  const customerName = (order as any).customer?.full_name ?? "—";
+  const initials = customerName
+    .split(" ")
+    .map((w: string) => w[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  // Payment: Order.total_amount (ada di schema), dan Payment.payment_method
+  const totalAmount = Number(order.total_amount ?? 0);
+  // Platform fee tidak ada di schema — ditampilkan sebagai komentar
+  // Service fee Rp 2.000 sudah masuk total_amount saat pembayaran
+
+  // Order.order_code (schema: orders.order_code Char(6))
+  const orderCode = order.order_code ?? "——";
+
+  async function handleAction() {
+    if (!action) return;
+
+    if (action.next === "scan") {
+      router.push(`/m/order/${params.public_id}/scan`);
+      return;
+    }
+
+    setIsUpdating(true);
+    setUpdateError("");
+    try {
+      await update_order_status(order!.public_id, action.next);
+      await refetchOrder();
+    } catch (err) {
+      setUpdateError(getApiErrorMessage(err));
+    } finally {
+      setIsUpdating(false);
+    }
+  }
+
+  return (
+    <div className="bg-[#F7FAF8] text-slate-900 antialiased pb-28">
+      {/* Header */}
+      <header className="bg-white fixed top-0 w-full z-50 border-b border-slate-100 shadow-sm">
+        <div className="flex items-center justify-between px-5 h-16 max-w-[448px] mx-auto">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-slate-50 transition-colors"
+          >
+            <span className="material-symbols-outlined text-slate-700">arrow_back</span>
           </button>
-          <h1 className="text-[18px] font-semibold text-text-primary">Order #8492</h1>
-          <div className="flex items-center">
-            <span className="text-[11px] font-semibold tracking-wider bg-amber-100 text-amber-500 px-2.5 py-1 rounded-full uppercase">Preparing</span>
-          </div>
+
+          {/* Order.order_code (schema) */}
+          <h1 className="text-[17px] font-semibold text-slate-900">
+            Order #{orderCode || "—"}
+          </h1>
+
+          <span
+            className={`text-[11px] font-semibold tracking-wider px-2.5 py-1 rounded-full uppercase ${meta.badgeCls}`}
+          >
+            {meta.label}
+          </span>
         </div>
       </header>
-      <main className="pt-24 px-screen-px max-w-[448px] mx-auto flex flex-col gap-section-gap">
-        <section className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-amber-500" data-icon="restaurant" style={{ fontVariationSettings: "'FILL' 1" }}>restaurant</span>
+
+      {/* Content */}
+      <main className="pt-24 px-5 max-w-[448px] mx-auto flex flex-col gap-5">
+
+        {/* Banner status */}
+        <section className={`border rounded-xl p-4 flex items-center gap-3 ${meta.bannerCls}`}>
+          <div className="w-10 h-10 rounded-full bg-white/60 flex items-center justify-center shrink-0">
+            <span
+              className="material-symbols-outlined text-[20px]"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              {meta.icon}
+            </span>
           </div>
-          <div>
-            <p className="text-[15px] font-semibold text-text-primary">Preparing order</p>
-            <p className="text-[13px] text-text-secondary mt-0.5">Prepare the order before the pickup window begins.</p>
-          </div>
+          <p className="text-[13px] text-slate-700 font-medium">{meta.bannerText}</p>
         </section>
+
+        {/* Customer — Customer.full_name (schema: customers.full_name) */}
         <section className="flex flex-col gap-2">
-          <h2 className="text-[12px] font-semibold text-text-secondary uppercase tracking-wider">CUSTOMER</h2>
-          <div className="bg-background border border-border-light rounded-xl p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-brand-purple-light flex items-center justify-center overflow-hidden shrink-0">
-              <img alt="Sarah Jenkins" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBoECNzhgIr0tVEQDfXysMc4GBrjXt2Qvg_BTbQGljO-uMlxe44yD9UrjGUl1-Wa_zpcioLtUvKjPhF11VwAf9B_N95pr6gAKRUEbtqVXlzr797RmP7hPQIizZp8PFGFirmF4IkJPB1HYHD5gvyHibJMbu0krTSJufymBoUfxnUu3Po294M20dCSRwAg31MA77hdR2IG7N86PaIS1UPe62B2UAeLYXX-ZrpYBW0TqzVZ8IyWR1c0AZmN2k99zW4nR1M4xLEfCBMexRe" />
+          <h2 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Customer</h2>
+          <div className="bg-white border border-slate-100 rounded-xl p-4 flex items-center gap-4">
+            <div className="w-11 h-11 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
+              <span className="text-[14px] font-bold text-violet-600">{initials}</span>
             </div>
             <div>
-              <h3 className="text-[15px] font-semibold text-text-primary">Sarah Jenkins</h3>
-              <p className="text-[13px] text-text-secondary mt-0.5">Customer</p>
+              <h3 className="text-[15px] font-semibold text-slate-900">{customerName}</h3>
+              <p className="text-[12px] text-slate-500 mt-0.5">Customer</p>
             </div>
           </div>
         </section>
+
+        {/* Order Items — Listing.name, Order.qty, Listing.discount_price (schema) */}
         <section className="flex flex-col gap-2">
-          <h2 className="text-[12px] font-semibold text-text-secondary uppercase tracking-wider">ITEMS</h2>
-          <div className="bg-background border border-border-light rounded-xl overflow-hidden divide-y divide-border-light">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              Pesanan
+            </h2>
+            <span className="text-[11px] bg-slate-100 px-2 py-0.5 rounded text-slate-500">
+              {order.qty} item
+            </span>
+          </div>
+          <div className="bg-white border border-slate-100 rounded-xl overflow-hidden">
             <div className="p-4 flex justify-between items-start">
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded bg-gray-50 border border-border-light flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="text-[12px] font-semibold text-text-primary">2×</span>
-                </div>
+                {/* Listing.img_url (schema) */}
+                {listing?.img_url ? (
+                  <img
+                    src={listing.img_url}
+                    alt={listing.name ?? ""}
+                    className="w-14 h-14 rounded-lg object-cover shrink-0 bg-slate-100"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-slate-400 text-[28px]">
+                      lunch_dining
+                    </span>
+                  </div>
+                )}
                 <div>
-                  <p className="text-[15px] font-medium text-text-primary">Surplus Pastry Box</p>
-                  <p className="text-[13px] text-text-secondary mt-0.5">Assorted day-old pastries.</p>
+                  {/* Listing.name (schema) */}
+                  <p className="text-[15px] font-semibold text-slate-900">
+                    {listing?.name ?? "—"}
+                  </p>
+                  {/* Listing.description (schema) */}
+                  {listing?.description && (
+                    <p className="text-[12px] text-slate-400 mt-0.5 line-clamp-2">
+                      {listing.description}
+                    </p>
+                  )}
+                  {/* Order.qty × Listing.discount_price */}
+                  <p className="text-[12px] text-slate-500 mt-1">
+                    {order.qty}× {format_price(listing?.discount_price ?? 0)}
+                  </p>
                 </div>
               </div>
-              <p className="text-[15px] font-semibold text-text-primary">Rp 30.000</p>
-            </div>
-            <div className="p-4 flex justify-between items-start">
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded bg-gray-50 border border-border-light flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="text-[12px] font-semibold text-text-primary">1×</span>
-                </div>
-                <div>
-                  <p className="text-[15px] font-medium text-text-primary">Large Iced Latte</p>
-                  <p className="text-[13px] text-text-secondary mt-0.5">Less sugar.</p>
-                </div>
-              </div>
-              <p className="text-[15px] font-semibold text-text-primary">Rp 10.000</p>
+              {/* Order.total_amount (schema) */}
+              <p className="text-[15px] font-semibold text-slate-900 shrink-0 ml-2">
+                {format_price(totalAmount)}
+              </p>
             </div>
           </div>
         </section>
+
+        {/* Payment Summary — menggunakan Order.total_amount dari schema */}
         <section className="flex flex-col gap-2">
-          <h2 className="text-[12px] font-semibold text-text-secondary uppercase tracking-wider">PAYMENT SUMMARY</h2>
-          <div className="bg-background border border-border-light rounded-xl p-4 flex flex-col gap-3">
+          <h2 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            Ringkasan Pembayaran
+          </h2>
+          <div className="bg-white border border-slate-100 rounded-xl p-4 flex flex-col gap-3">
+            {/* Subtotal = Order.total_amount (includes service fee, sudah final) */}
             <div className="flex justify-between items-center">
-              <span className="text-[14px] text-text-secondary">Subtotal</span>
-              <span className="text-[14px] text-text-primary">Rp 40.000</span>
+              <span className="text-[13px] text-slate-500">Total Pembayaran Customer</span>
+              <span className="text-[13px] text-slate-900">{format_price(totalAmount)}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-[14px] text-text-secondary">Platform Fee (5%)</span>
-              <span className="text-[14px] text-text-primary">-Rp 2.000</span>
-            </div>
-            <div className="flex justify-between items-center pt-3 border-t border-dashed border-border-light">
-              <span className="text-[15px] font-semibold text-text-primary">Total Payout</span>
-              <span className="text-[18px] font-bold text-success-green">Rp 38.000</span>
+
+            {/* Pickup window — Merchant.pickup_open / pickup_close (schema) */}
+            {(merchant?.pickup_open || merchant?.pickup_close) && (
+              <div className="flex justify-between items-center">
+                <span className="text-[13px] text-slate-500">Jendela Pickup</span>
+                <span className="text-[13px] text-slate-900">
+                  {fmt_time(merchant?.pickup_open)} – {fmt_time(merchant?.pickup_close)}
+                </span>
+              </div>
+            )}
+
+            {/* Payment.payment_method (schema) — dari order.payment */}
+            {(order as any).payment?.payment_method && (
+              <div className="flex justify-between items-center">
+                <span className="text-[13px] text-slate-500">Metode Pembayaran</span>
+                <span className="text-[13px] text-slate-900 capitalize">
+                  {(order as any).payment.payment_method.replace(/_/g, " ")}
+                </span>
+              </div>
+            )}
+
+            {/* Platform fee/revenue split tidak ada di schema — hanya komentar */}
+            {/* Catatan: pembagian revenue merchant dan platform fee
+                belum ada di tabel Payment/Order saat ini.
+                Akan ditambahkan di iterasi berikutnya. */}
+
+            <div className="flex justify-between items-center pt-3 border-t border-slate-100">
+              <span className="text-[14px] font-semibold text-slate-900">Total Diterima</span>
+              <span className="text-[17px] font-bold text-emerald-600">
+                {format_price(totalAmount)}
+              </span>
             </div>
           </div>
         </section>
-        <section className="flex flex-col gap-2 pb-24">
-          <h2 className="text-[12px] font-semibold text-text-secondary uppercase tracking-wider">ORDER TIMELINE</h2>
-          <div className="bg-background border border-border-light rounded-xl p-5 overflow-hidden max-h-[280px]">
-            <div className="relative pl-6 flex flex-col gap-5 before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[2px] before:bg-border-light">
-              <div className="relative">
-                <div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-success-green ring-4 ring-background z-10"></div>
-                <p className="text-[14px] font-medium text-text-secondary line-through">Order Placed</p>
-                <p className="text-[12px] text-text-secondary mt-0.5">18:05</p>
-              </div>
-              <div className="relative">
-                <div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-success-green ring-4 ring-background z-10"></div>
-                <p className="text-[14px] font-medium text-text-secondary line-through">Order Accepted</p>
-                <p className="text-[12px] text-text-secondary mt-0.5">18:08</p>
-              </div>
-              <div className="relative">
-                <div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-amber-400 ring-4 ring-background z-10"></div>
-                <p className="text-[14px] font-semibold text-text-primary">Preparing Order</p>
-              </div>
-              <div className="relative">
-                <div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-gray-50 border-2 border-border-light ring-4 ring-background z-10"></div>
-                <p className="text-[14px] font-medium text-text-secondary">Ready for Pickup</p>
-              </div>
-              <div className="relative">
-                <div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-gray-50 border-2 border-border-light ring-4 ring-background z-10"></div>
-                <p className="text-[14px] font-medium text-text-secondary">Picked Up</p>
-              </div>
+
+        {/* Pickup info — Merchant.address, Merchant.pickup_instruction (schema) */}
+        {(merchant?.address || merchant?.pickup_instruction) && (
+          <section className="flex flex-col gap-2">
+            <h2 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              Info Pickup
+            </h2>
+            <div className="bg-white border border-slate-100 rounded-xl p-4 flex flex-col gap-2">
+              {merchant?.address && (
+                <div className="flex items-start gap-2">
+                  <span className="material-symbols-outlined text-slate-400 text-[18px] mt-0.5">
+                    location_on
+                  </span>
+                  <p className="text-[13px] text-slate-700">{merchant.address}</p>
+                </div>
+              )}
+              {merchant?.pickup_instruction && (
+                <div className="flex items-start gap-2">
+                  <span className="material-symbols-outlined text-slate-400 text-[18px] mt-0.5">
+                    hail
+                  </span>
+                  <p className="text-[13px] text-slate-500">{merchant.pickup_instruction}</p>
+                </div>
+              )}
             </div>
+          </section>
+        )}
+
+        {/* Order Timeline — berdasarkan Order.status + created_at + updated_at (schema) */}
+        <section className="flex flex-col gap-2">
+          <h2 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            Timeline Order
+          </h2>
+          <div className="bg-white border border-slate-100 rounded-xl p-5">
+            <Timeline
+              status={status}
+              createdAt={order.created_at}
+              updatedAt={order.updated_at}
+            />
           </div>
         </section>
+
+        {/* Error message */}
+        {updateError && (
+          <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+            {updateError}
+          </p>
+        )}
+
+        {/* Padding untuk bottom bar */}
+        <div className="h-4" />
       </main>
-      <div className="fixed bottom-0 w-full z-50 bg-background border-t border-border-light p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <div className="max-w-[448px] mx-auto">
-          <button className="w-full bg-primary text-on-primary py-3.5 rounded-xl font-semibold text-[16px] hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2">
-            <span className="material-symbols-outlined">inventory_2</span>
-            Mark Ready for Pickup
-          </button>
+
+      {/* Bottom Action Bar */}
+      {action ? (
+        <div className="fixed bottom-0 w-full z-50 bg-white border-t border-slate-100 p-4 pb-[calc(env(safe-area-inset-bottom)+16px)] shadow-[0_-4px_16px_-4px_rgba(0,0,0,0.06)]">
+          <div className="max-w-[448px] mx-auto">
+            <button
+              onClick={handleAction}
+              disabled={isUpdating}
+              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-xl font-semibold text-[15px] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+            >
+              {isUpdating ? (
+                <>
+                  <span className="material-symbols-outlined text-[20px] animate-spin">
+                    progress_activity
+                  </span>
+                  Memperbarui...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[20px]">
+                    {action.icon}
+                  </span>
+                  {action.label}
+                </>
+              )}
+            </button>
+          </div>
         </div>
-      </div>
-
-    </div>
-  );
-}
-
-const readyPageStyle = {
-  "--color-background": "255 255 255",
-  "--color-border": "229 231 235",
-  "--color-border-light": "229 231 235",
-  "--color-brand-purple": "139 92 246",
-  "--color-brand-purple-light": "245 243 255",
-  "--color-custom-bg": "255 255 255",
-  "--color-custom-card-border": "229 231 235",
-  "--color-custom-primary": "16 185 129",
-  "--color-custom-text-primary": "17 24 39",
-  "--color-custom-text-secondary": "107 114 128",
-  "--color-error": "186 26 26",
-  "--color-error-container": "255 218 214",
-  "--color-gray-50": "249 250 251",
-  "--color-inverse-on-surface": "235 243 235",
-  "--color-inverse-primary": "80 222 163",
-  "--color-inverse-surface": "43 50 45",
-  "--color-on-background": "22 29 25",
-  "--color-on-error": "255 255 255",
-  "--color-on-error-container": "147 0 10",
-  "--color-on-primary": "255 255 255",
-  "--color-on-primary-container": "0 64 42",
-  "--color-on-primary-fixed": "0 33 19",
-  "--color-on-primary-fixed-variant": "0 82 54",
-  "--color-on-secondary": "255 255 255",
-  "--color-on-secondary-container": "87 101 123",
-  "--color-on-secondary-fixed": "13 28 47",
-  "--color-on-secondary-fixed-variant": "58 72 92",
-  "--color-on-surface": "22 29 25",
-  "--color-on-surface-variant": "60 74 66",
-  "--color-on-tertiary": "255 255 255",
-  "--color-on-tertiary-container": "111 18 24",
-  "--color-on-tertiary-fixed": "65 0 6",
-  "--color-on-tertiary-fixed-variant": "132 35 37",
-  "--color-outline": "108 122 113",
-  "--color-outline-variant": "187 202 191",
-  "--color-primary": "16 185 129",
-  "--color-primary-container": "16 183 127",
-  "--color-primary-emerald": "22 196 127",
-  "--color-primary-fixed": "112 251 189",
-  "--color-primary-fixed-dim": "80 222 163",
-  "--color-sb-bg": "247 250 248",
-  "--color-sb-border": "234 234 234",
-  "--color-sb-primary-text": "17 24 39",
-  "--color-sb-secondary-text": "107 114 128",
-  "--color-secondary": "81 95 116",
-  "--color-secondary-container": "213 227 253",
-  "--color-secondary-fixed": "213 227 253",
-  "--color-secondary-fixed-dim": "185 199 224",
-  "--color-success-green": "16 185 129",
-  "--color-success-light": "236 253 245",
-  "--color-surface": "255 255 255",
-  "--color-surface-bright": "244 251 244",
-  "--color-surface-container": "232 240 233",
-  "--color-surface-container-high": "227 234 227",
-  "--color-surface-container-highest": "221 228 221",
-  "--color-surface-container-low": "238 246 238",
-  "--color-surface-container-lowest": "255 255 255",
-  "--color-surface-dim": "212 220 213",
-  "--color-surface-tint": "0 108 73",
-  "--color-surface-variant": "221 228 221",
-  "--color-tertiary": "164 58 59",
-  "--color-tertiary-container": "249 122 119",
-  "--color-tertiary-fixed": "255 218 215",
-  "--color-tertiary-fixed-dim": "255 179 175",
-  "--color-text-primary": "17 24 39",
-  "--color-text-secondary": "107 114 128",
-  "--font-sans": "Plus Jakarta Sans",
-  "--radius-2xl": "1rem",
-  "--radius-3xl": "1.5rem",
-  "--radius-DEFAULT": "0.25rem",
-  "--radius-full": "9999px",
-  "--radius-lg": "0.5rem",
-  "--radius-xl": "16px",
-  "--spacing-card-gap": "16px",
-  "--spacing-container-padding": "1.25rem",
-  "--spacing-inline-gap": "0.5rem",
-  "--spacing-screen-px": "24px",
-  "--spacing-section-gap": "24px",
-  "--spacing-stack-gap-md": "1rem",
-  "--spacing-stack-gap-sm": "0.5rem",
-} as React.CSSProperties;
-
-function OrderDetailReadyStandardizedPage() {
-  return (
-    <div style={readyPageStyle} className="bg-gray-50 text-text-primary antialiased pb-28">
-
-            <style>{`body { font-family: 'Plus Jakarta Sans', sans-serif; }`}</style>
-
-      {/* TopAppBar Component */}
-      <header className="bg-background fixed top-0 w-full z-50 border-b border-border-light shadow-sm">
-      <div className="flex items-center justify-between px-screen-px h-16 max-w-[448px] mx-auto">
-      <button className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-gray-50 transition-colors">
-      <span className="material-symbols-outlined text-text-primary" data-icon="arrow_back">arrow_back</span>
-      </button>
-      <h1 className="text-[18px] font-semibold text-text-primary">Order #9021</h1>
-      <div className="flex items-center">
-      <span className="text-[11px] font-semibold tracking-wider bg-success-light text-success-green px-2.5 py-1 rounded-full uppercase">Ready</span>
-      </div>
-      </div>
-      </header>
-      {/* Main Content Canvas */}
-      <main className="pt-24 px-screen-px max-w-[448px] mx-auto flex flex-col gap-section-gap">
-      {/* Status Banner */}
-      <section className="bg-success-light border border-success-green/20 rounded-xl p-4 flex items-center gap-3">
-      <div className="w-10 h-10 rounded-full bg-success-green/10 flex items-center justify-center shrink-0">
-      <span className="material-symbols-outlined text-success-green" data-icon="shopping_bag" style={{fontVariationSettings: "'FILL' 1"}}>shopping_bag</span>
-      </div>
-      <div>
-      <p className="text-[15px] font-semibold text-text-primary">Ready for pickup</p>
-      <p className="text-[13px] text-text-secondary mt-0.5">Customer can now collect their order using the pickup QR code or pickup code.</p>
-      </div>
-      </section>
-      {/* Customer Info */}
-      <section className="flex flex-col gap-2">
-      <h2 className="text-[12px] font-semibold text-text-secondary uppercase tracking-wider">CUSTOMER</h2>
-      <div className="bg-background border border-border-light rounded-xl p-4 flex items-center justify-between">
-      <div className="flex items-center gap-4">
-      <div className="w-12 h-12 rounded-full bg-brand-purple-light flex items-center justify-center overflow-hidden shrink-0">
-      <span className="text-[16px] font-semibold text-brand-purple">JD</span>
-      </div>
-      <div>
-      <h3 className="text-[15px] font-semibold text-text-primary">John Doe</h3>
-      <p className="text-[13px] text-text-secondary mt-0.5">First-time customer</p>
-      </div>
-      </div>
-      <button className="w-10 h-10 rounded-full border border-border-light flex items-center justify-center text-primary hover:bg-gray-50 transition-colors">
-      <span className="material-symbols-outlined">call</span>
-      </button>
-      </div>
-      </section>
-      {/* Items Section */}
-      <section className="flex flex-col gap-2" id="items_section">
-      <div className="flex items-center justify-between">
-      <h2 className="text-[12px] font-semibold text-text-secondary uppercase tracking-wider">ORDER ITEMS</h2>
-      <span className="text-[11px] bg-gray-50 border border-border-light px-2 py-0.5 rounded text-text-secondary">3 Items</span>
-      </div>
-      <div className="bg-background border border-border-light rounded-xl overflow-hidden">
-      <div className="divide-y divide-border-light">
-      <div className="p-4 flex justify-between items-start">
-      <div className="flex items-start gap-3">
-      <div className="w-6 h-6 rounded bg-gray-50 border border-border-light flex items-center justify-center shrink-0 mt-0.5">
-      <span className="text-[12px] font-semibold text-text-primary">2x</span>
-      </div>
-      <div>
-      <p className="text-[15px] font-medium text-text-primary">Surplus Pastry Box</p>
-      <p className="text-[13px] text-text-secondary mt-0.5">Assorted items, baked today</p>
-      </div>
-      </div>
-      <p className="text-[15px] font-medium text-text-primary">Rp 30.000</p>
-      </div>
-      <div className="p-4 flex justify-between items-start">
-      <div className="flex items-start gap-3">
-      <div className="w-6 h-6 rounded bg-gray-50 border border-border-light flex items-center justify-center shrink-0 mt-0.5">
-      <span className="text-[12px] font-semibold text-text-primary">1x</span>
-      </div>
-      <div>
-      <p className="text-[15px] font-medium text-text-primary">Large Iced Latte</p>
-      </div>
-      </div>
-      <p className="text-[15px] font-medium text-text-primary">Rp 10.000</p>
-      </div>
-      </div>
-      </div>
-      </section>
-      {/* Payment Summary */}
-      <section className="flex flex-col gap-2">
-      <h2 className="text-[12px] font-semibold text-text-secondary uppercase tracking-wider">PAYMENT SUMMARY</h2>
-      <div className="bg-background border border-border-light rounded-xl p-4 flex flex-col gap-3">
-      <div className="flex justify-between items-center">
-      <span className="text-[14px] text-text-secondary">Subtotal</span>
-      <span className="text-[14px] text-text-primary">Rp 40.000</span>
-      </div>
-      <div className="flex justify-between items-center">
-      <span className="text-[14px] text-text-secondary">Platform Fee</span>
-      <span className="text-[14px] text-text-primary">-Rp 2.000</span>
-      </div>
-      <div className="flex justify-between items-center pt-3 border-t border-border-light">
-      <span className="text-[15px] font-semibold text-text-primary">Total Payout</span>
-      <span className="text-[18px] font-bold text-success-green">Rp 38.000</span>
-      </div>
-      </div>
-      </section>
-      {/* Timeline Section */}
-      <section className="flex flex-col gap-2" id="timeline_section">
-      <h2 className="text-[12px] font-semibold text-text-secondary uppercase tracking-wider">ORDER TIMELINE</h2>
-      <div className="bg-background border border-border-light rounded-xl p-5"><div className="relative pl-6 flex flex-col gap-5 before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[2px] before:bg-border-light">
-      <div className="relative">
-      <div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-success-green ring-4 ring-background z-10"></div>
-      <p className="text-[14px] font-medium text-text-secondary line-through">Order Placed</p>
-      <p className="text-[12px] text-text-secondary mt-0.5">14:15</p>
-      </div>
-      <div className="relative">
-      <div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-success-green ring-4 ring-background z-10"></div>
-      <p className="text-[14px] font-medium text-text-secondary line-through">Order Accepted</p>
-      <p className="text-[12px] text-text-secondary mt-0.5">14:17</p>
-      </div>
-      <div className="relative">
-      <div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-success-green ring-4 ring-background z-10"></div>
-      <p className="text-[14px] font-medium text-text-secondary line-through">Preparing Order</p>
-      <p className="text-[12px] text-text-secondary mt-0.5">14:20</p>
-      </div>
-      <div className="relative">
-      <div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-success-green ring-4 ring-background z-10"></div>
-      <p className="text-[14px] font-semibold text-text-primary">Ready for Pickup</p>
-      <p className="text-[12px] text-text-secondary mt-0.5">14:45</p>
-      </div>
-      <div className="relative">
-      <div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-gray-50 border-2 border-border-light ring-4 ring-background z-10"></div>
-      <p className="text-[14px] font-medium text-text-secondary">Picked Up</p>
-      </div>
-      </div></div>
-      </section>
-      </main>
-      {/* Bottom Sticky Action */}
-      <div className="fixed bottom-0 w-full z-50 bg-background border-t border-border-light p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-      <div className="max-w-[448px] mx-auto">
-      <button className="w-full bg-primary text-on-primary py-3.5 rounded-xl font-semibold text-[16px] hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2">
-      <span className="material-symbols-outlined">qr_code_scanner</span>
-                      Open Pickup Verification
-                  </button>
-      </div>
-      </div>
-    </div>
-  );
-}
-
-const completedPageStyle = {
-  "--color-background": "255 255 255",
-  "--color-border": "229 231 235",
-  "--color-border-light": "229 231 235",
-  "--color-brand-purple": "139 92 246",
-  "--color-brand-purple-light": "245 243 255",
-  "--color-custom-bg": "255 255 255",
-  "--color-custom-card-border": "229 231 235",
-  "--color-custom-primary": "16 185 129",
-  "--color-custom-text-primary": "17 24 39",
-  "--color-custom-text-secondary": "107 114 128",
-  "--color-error": "186 26 26",
-  "--color-error-container": "255 218 214",
-  "--color-gray-50": "249 250 251",
-  "--color-inverse-on-surface": "235 243 235",
-  "--color-inverse-primary": "80 222 163",
-  "--color-inverse-surface": "43 50 45",
-  "--color-on-background": "22 29 25",
-  "--color-on-error": "255 255 255",
-  "--color-on-error-container": "147 0 10",
-  "--color-on-primary": "255 255 255",
-  "--color-on-primary-container": "0 64 42",
-  "--color-on-primary-fixed": "0 33 19",
-  "--color-on-primary-fixed-variant": "0 82 54",
-  "--color-on-secondary": "255 255 255",
-  "--color-on-secondary-container": "87 101 123",
-  "--color-on-secondary-fixed": "13 28 47",
-  "--color-on-secondary-fixed-variant": "58 72 92",
-  "--color-on-surface": "22 29 25",
-  "--color-on-surface-variant": "60 74 66",
-  "--color-on-tertiary": "255 255 255",
-  "--color-on-tertiary-container": "111 18 24",
-  "--color-on-tertiary-fixed": "65 0 6",
-  "--color-on-tertiary-fixed-variant": "132 35 37",
-  "--color-outline": "108 122 113",
-  "--color-outline-variant": "187 202 191",
-  "--color-primary": "16 185 129",
-  "--color-primary-container": "16 183 127",
-  "--color-primary-emerald": "22 196 127",
-  "--color-primary-fixed": "112 251 189",
-  "--color-primary-fixed-dim": "80 222 163",
-  "--color-sb-bg": "247 250 248",
-  "--color-sb-border": "234 234 234",
-  "--color-sb-primary-text": "17 24 39",
-  "--color-sb-secondary-text": "107 114 128",
-  "--color-secondary": "81 95 116",
-  "--color-secondary-container": "213 227 253",
-  "--color-secondary-fixed": "213 227 253",
-  "--color-secondary-fixed-dim": "185 199 224",
-  "--color-success-green": "16 185 129",
-  "--color-success-light": "236 253 245",
-  "--color-surface": "255 255 255",
-  "--color-surface-bright": "244 251 244",
-  "--color-surface-container": "232 240 233",
-  "--color-surface-container-high": "227 234 227",
-  "--color-surface-container-highest": "221 228 221",
-  "--color-surface-container-low": "238 246 238",
-  "--color-surface-container-lowest": "255 255 255",
-  "--color-surface-dim": "212 220 213",
-  "--color-surface-tint": "0 108 73",
-  "--color-surface-variant": "221 228 221",
-  "--color-tertiary": "164 58 59",
-  "--color-tertiary-container": "249 122 119",
-  "--color-tertiary-fixed": "255 218 215",
-  "--color-tertiary-fixed-dim": "255 179 175",
-  "--color-text-primary": "17 24 39",
-  "--color-text-secondary": "107 114 128",
-  "--font-sans": "Inter",
-  "--radius-2xl": "1rem",
-  "--radius-3xl": "1.5rem",
-  "--radius-DEFAULT": "0.25rem",
-  "--radius-full": "9999px",
-  "--radius-lg": "0.5rem",
-  "--radius-xl": "12px",
-  "--spacing-card-gap": "16px",
-  "--spacing-container-padding": "1.25rem",
-  "--spacing-inline-gap": "0.5rem",
-  "--spacing-screen-px": "24px",
-  "--spacing-section-gap": "24px",
-  "--spacing-stack-gap-md": "1rem",
-  "--spacing-stack-gap-sm": "0.5rem",
-} as React.CSSProperties;
-
-function OrderCompletedDetailStandardizedPage() {
-  return (
-    <div style={completedPageStyle} className="bg-background text-text-primary antialiased pb-24">
-
-            <style>{`body { font-family: 'Inter', sans-serif; }`}</style>
-
-      {/* TopAppBar Component */}
-      <header className="bg-background fixed top-0 w-full z-50 border-b border-border-light shadow-sm">
-      <div className="flex items-center justify-between px-screen-px h-16 max-w-[448px] mx-auto">
-      <button className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-gray-50 transition-colors">
-      <span className="material-symbols-outlined text-text-primary" data-icon="arrow_back">arrow_back</span>
-      </button>
-      <h1 className="text-[18px] font-semibold text-text-primary">Order #1042</h1>
-      <div className="flex items-center">
-      <span className="text-[11px] font-semibold tracking-wider bg-success-light text-success-green px-2.5 py-1 rounded-full uppercase">Completed</span>
-      </div>
-      </div>
-      </header>
-      {/* Main Content Canvas */}
-      <main className="pt-24 px-screen-px max-w-[448px] mx-auto flex flex-col gap-section-gap">
-      {/* Success Banner */}
-      <section className="bg-success-light border border-success-green/20 rounded-xl p-4 flex items-center gap-3">
-      <div className="w-10 h-10 rounded-full bg-success-green/10 flex items-center justify-center shrink-0">
-      <span className="material-symbols-outlined text-success-green" data-icon="check_circle" style={{fontVariationSettings: "'FILL' 1"}}>check_circle</span>
-      </div>
-      <div>
-      <p className="text-[15px] font-semibold text-text-primary">Order completed successfully.</p>
-      <p className="text-[13px] text-text-secondary mt-0.5">Picked up today at 18:32</p>
-      </div>
-      </section>
-      {/* Customer Info */}
-      <section className="flex flex-col gap-2">
-      <h2 className="text-[12px] font-semibold text-text-secondary uppercase tracking-wider">Customer</h2>
-      <div className="bg-background border border-border-light rounded-xl p-4 flex items-center gap-4">
-      <div className="w-12 h-12 rounded-full bg-brand-purple-light flex items-center justify-center overflow-hidden shrink-0">
-      <span className="text-[16px] font-semibold text-brand-purple">SJ</span>
-      </div>
-      <div>
-      <h3 className="text-[15px] font-semibold text-text-primary">Sarah J.</h3>
-      <p className="text-[13px] text-text-secondary flex items-center gap-1 mt-0.5"><span className="material-symbols-outlined text-[14px]" data-icon="local_mall">local_mall</span> Customer</p>
-      </div>
-      </div>
-      </section>
-      {/* Order Items */}
-      <section className="flex flex-col gap-2">
-      <h2 className="text-[12px] font-semibold text-text-secondary uppercase tracking-wider">Items</h2>
-      <div className="bg-background border border-border-light rounded-xl overflow-hidden divide-y divide-border-light">
-      <div className="p-4 flex justify-between items-start">
-      <div className="flex items-start gap-3">
-      <div className="w-6 h-6 rounded bg-gray-50 border border-border-light flex items-center justify-center shrink-0 mt-0.5">
-      <span className="text-[12px] font-semibold text-text-primary">2x</span>
-      </div>
-      <div>
-      <p className="text-[15px] font-medium text-text-primary">Surplus Pastry Box</p>
-      <p className="text-[13px] text-text-secondary mt-0.5">Assorted end-of-day pastries.</p>
-      </div>
-      </div>
-      <p className="text-[15px] font-semibold text-text-primary">Rp 30.000</p>
-      </div>
-      <div className="p-4 flex justify-between items-start">
-      <div className="flex items-start gap-3">
-      <div className="w-6 h-6 rounded bg-gray-50 border border-border-light flex items-center justify-center shrink-0 mt-0.5">
-      <span className="text-[12px] font-semibold text-text-primary">1x</span>
-      </div>
-      <div>
-      <p className="text-[15px] font-medium text-text-primary">Large Iced Latte</p>
-      <p className="text-[13px] text-text-secondary mt-0.5">Oat milk, less ice.</p>
-      </div>
-      </div>
-      <p className="text-[15px] font-semibold text-text-primary">Rp 10.000</p>
-      </div>
-      </div>
-      </section>
-      {/* Summary & Timeline */}
-      <section className="grid grid-cols-1 gap-section-gap">
-      {/* Summary */}
-      <div className="flex flex-col gap-2">
-      <h2 className="text-[12px] font-semibold text-text-secondary uppercase tracking-wider">Payment Summary</h2>
-      <div className="bg-background border border-border-light rounded-xl p-4 flex flex-col gap-3">
-      <div className="flex justify-between items-center">
-      <span className="text-[14px] text-text-secondary">Subtotal</span>
-      <span className="text-[14px] text-text-primary">Rp 40.000</span>
-      </div>
-      <div className="flex justify-between items-center">
-      <span className="text-[14px] text-text-secondary">Platform Fee</span>
-      <span className="text-[14px] text-text-primary">-Rp 2.000</span>
-      </div>
-      <div className="flex justify-between items-center pt-3 border-t border-border-light">
-      <span className="text-[15px] font-semibold text-text-primary">Total Payout</span>
-      <span className="text-[18px] font-bold text-success-green">Rp 38.000</span>
-      </div>
-      </div>
-      </div>
-      {/* Timeline */}
-      <div className="flex flex-col gap-2">
-      <h2 className="text-[12px] font-semibold text-text-secondary uppercase tracking-wider">Order Timeline</h2>
-      <div className="bg-background border border-border-light rounded-xl p-5"><div className="relative pl-6 flex flex-col gap-5 before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[2px] before:bg-border-light">
-      <div className="relative">
-      <div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-success-green ring-4 ring-background z-10"></div>
-      <p className="text-[14px] font-medium text-text-secondary line-through">Order Placed</p>
-      <p className="text-[12px] text-text-secondary mt-0.5">17:45</p>
-      </div>
-      <div className="relative">
-      <div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-success-green ring-4 ring-background z-10"></div>
-      <p className="text-[14px] font-medium text-text-secondary line-through">Order Accepted</p>
-      <p className="text-[12px] text-text-secondary mt-0.5">17:50</p>
-      </div>
-      <div className="relative">
-      <div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-success-green ring-4 ring-background z-10"></div>
-      <p className="text-[14px] font-medium text-text-secondary line-through">Preparing Order</p>
-      <p className="text-[12px] text-text-secondary mt-0.5">18:00</p>
-      </div>
-      <div className="relative">
-      <div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-success-green ring-4 ring-background z-10"></div>
-      <p className="text-[14px] font-medium text-text-secondary line-through">Ready for Pickup</p>
-      <p className="text-[12px] text-text-secondary mt-0.5">18:15</p>
-      </div>
-      <div className="relative">
-      <div className="absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full bg-success-green ring-4 ring-background z-10"></div>
-      <p className="text-[14px] font-semibold text-text-primary">Picked Up</p>
-      <p className="text-[12px] text-text-secondary mt-0.5">18:32</p>
-      </div>
-      </div></div>
-      </div>
-      </section>
-      {/* Actions */}
-      <section className="pb-8">
-      <button className="w-full bg-background border border-border-light text-text-primary text-[15px] font-semibold py-3.5 rounded-xl hover:bg-gray-50 transition-colors flex justify-center items-center gap-2">
-      <span className="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
-                      Back to Orders
-                  </button>
-      </section>
-      </main>
+      ) : status === "completed" ? (
+        <div className="fixed bottom-0 w-full z-50 bg-white border-t border-slate-100 p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
+          <div className="max-w-[448px] mx-auto">
+            <button
+              onClick={() => router.push("/m/order")}
+              className="w-full bg-white border border-slate-200 text-slate-700 py-3.5 rounded-xl font-semibold text-[15px] hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[20px]">receipt_long</span>
+              Kembali ke Daftar Order
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

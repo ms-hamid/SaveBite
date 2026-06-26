@@ -51,17 +51,31 @@ export async function getListingByPublicID(listingId: string) {
   return response.data;
 }
 
+export type ListingSearchParams = {
+  lat?: number;
+  lng?: number;
+  radius_km?: number;
+  q?: string;
+  category?: string;
+  min_price?: number;
+  max_price?: number;
+};
+
 export async function getListingAll(
   lat?: number,
   lng?: number,
-  radius_km?: number
+  radius_km?: number,
+  filters: Omit<ListingSearchParams, "lat" | "lng" | "radius_km"> = {}
 ) {
-  const params: Record<string, number> = {};
-
+  const params: ListingSearchParams = {};
 
   if (lat !== undefined && lat !== null) params.lat = lat;
   if (lng !== undefined && lng !== null) params.lng = lng;
   if (radius_km !== undefined && radius_km !== null) params.radius_km = radius_km;
+  if (filters.q) params.q = filters.q;
+  if (filters.category) params.category = filters.category;
+  if (filters.min_price !== undefined) params.min_price = filters.min_price;
+  if (filters.max_price !== undefined) params.max_price = filters.max_price;
 
   const response = await api.get("/listing", { params });
   return response.data;

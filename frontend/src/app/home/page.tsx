@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import CustomerNavbar from "../../components/navbar/customer_navbar";
-import Link from "next/link";
 import { getListingAll } from "@/services/listing";
+import { getMyProfile } from "@/services/user";
+import FoodCard from "@/components/FoodListCard";
+import { getFavorites, toggleFavorite as apiFavorite } from "@/services/favorite";
+import { Listing } from "@/types";
 
 export type ListingProps = {
   id: number, 
@@ -53,32 +54,57 @@ export function get_close_text(close_time: string) : string {
   const close = new Date(close_time);
 
   const diff_ms = close.getTime() - now.getTime();
-  const diff_mnt = Math.floor((diff_ms) / 1000 / 60 + 1850);
+  const diff_total_mnt = Math.floor(diff_ms / 1000 / 60);
 
-  console.log(diff_mnt)
-
-  if (diff_mnt <= 0) {
+  if (diff_total_mnt <= 0) {
     return "Ended";
   }
 
-  if (diff_mnt < 60) {
-    return `Ends in ${diff_mnt}m`;
+  if (diff_total_mnt < 60) {
+    return `Ends in ${diff_total_mnt}m`;
   }
 
-  const diff_hour = Math.floor(diff_mnt / 60)
-  const mnt_left = diff_mnt % 60;
+  const diff_hour = Math.floor(diff_total_mnt / 60);
+  const mnt_left = diff_total_mnt % 60;
 
-  return `Ends in ${diff_hour}h ${diff_mnt}m`;
+  return `Ends in ${diff_hour}h ${mnt_left}m`;
 }
 
 
 export default function HomePage() {
-  const router = useRouter();
-
-  const [food_items, set_food_items] = useState<ListingProps[]>([]);
+  const [food_items, set_food_items] = useState<(Listing & { distance_km?: number; merchants?: { merchant_name: string; category?: string; address?: string } })[]>([]);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [isLoadingListings, setIsLoadingListings] = useState(true);
+  const [userName, setUserName] = useState<string | null>(null);
+  // Filter state
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const [filterMinPrice, setFilterMinPrice] = useState("");
+  const [filterMaxPrice, setFilterMaxPrice] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
+  // Favorite IDs set (public_id strings)
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    getMyProfile()
+      .then((res) => {
+        const name =
+          res?.data?.customer?.full_name ??
+          res?.data?.profile?.full_name ??
+          null;
+        setUserName(name);
+      })
+      .catch(() => {});
+
+    // Load saved listing IDs for favorite state on cards
+    getFavorites()
+      .then((res) => {
+        const ids = new Set<string>((res.data ?? []).map((l: { public_id: string }) => l.public_id));
+        setFavoriteIds(ids);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     // Attempt to get user GPS coordinates on mount
@@ -101,30 +127,59 @@ export default function HomePage() {
 
   useEffect(() => {
     async function get_data() {
-      // If latitude and longitude are available, fetch nearest listings first
-      const data = await getListingAll(latitude || undefined, longitude || undefined);
-      console.log("data dari backend:", data.data);
-      set_food_items(data.data || []);
+      setIsLoadingListings(true);
+      try {
+        const filters: Record<string, unknown> = {};
+        if (filterCategory) filters.category = filterCategory;
+        if (filterMinPrice) filters.min_price = Number(filterMinPrice);
+        if (filterMaxPrice) filters.max_price = Number(filterMaxPrice);
+
+        const data = await getListingAll(
+          latitude || undefined,
+          longitude || undefined,
+          undefined,
+          filters
+        );
+        set_food_items(data.data || []);
+      } catch (err) {
+        console.error("Failed to load listings:", err);
+        set_food_items([]);
+      } finally {
+        setIsLoadingListings(false);
+      }
     }
 
     get_data();
-  }, [latitude, longitude]);
-
-  useEffect(() => {
-    console.log("food_items berubah:", food_items);
-  }, [food_items]);
+  }, [latitude, longitude, filterCategory, filterMinPrice, filterMaxPrice]);
 
   const [selectedCategory, setSelectedCategory] = useState("Nearby");
   const [search, setSearch] = useState("");
-  const [favorites, setFavorites] = useState<number[]>([]);
 
-  const categories = [
-    "Nearby",
-    "Under 20k",
-    "Bakery",
-    "Meals",
-    "Ending soon",
-  ];
+  const HOME_CATEGORIES = ["Nearby", "Under 20k", "Bakery", "Meals", "Ending soon"];
+  const categories = HOME_CATEGORIES;
+  const hasFilterBadge = !!filterCategory || !!filterMinPrice || !!filterMaxPrice;
+
+  // Toggle favorite: optimistic update then API call
+  const handleToggleFavorite = useCallback(async (publicId: string) => {
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(publicId)) next.delete(publicId);
+      else next.add(publicId);
+      return next;
+    });
+    try {
+      await apiFavorite(publicId);
+    } catch (err){
+      console.log(err)
+      // Revert on failure
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(publicId)) next.delete(publicId);
+        else next.add(publicId);
+        return next;
+      });
+    }
+  }, []);
 
   const filteredItems = food_items.filter((item) => {
     const keyword = search.toLowerCase();
@@ -156,20 +211,9 @@ export default function HomePage() {
 
   // Client-side sort for "Ending soon" category
   if (selectedCategory === "Ending soon") {
-    filteredItems.sort((a, b) => new Date(a.close_time).getTime() - new Date(b.close_time).getTime());
+    filteredItems.sort((a, b) => new Date(a.close_time ?? "").getTime() - new Date(b.close_time ?? "").getTime());
   }
 
-  function toggleFavorite(id: number) {
-    setFavorites((prev) =>
-      prev.includes(id)
-        ? prev.filter((fav) => fav !== id)
-        : [...prev, id]
-    );
-  }
-
-  function handleOpenDetail(id: number) {
-    router.push(`/product/${id}`);
-  }
 
   return (
     <main className="min-h-screen bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased selection:bg-primary/30">
@@ -179,10 +223,10 @@ export default function HomePage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex flex-col gap-1">
               <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Hi, Alex 👋
+                {userName ? `Hi, ${userName.split(" ")[0]} 👋` : "Hi there 👋"}
               </h1>
 
-              <button className="flex items-center gap-1.5 mt-1 bg-white dark:bg-card-dark px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm text-slate-700 dark:text-slate-200 hover:border-primary transition-colors text-sm font-semibold">
+              <button className="w-35 flex items-center gap-1.5 mt-1 bg-white dark:bg-card-dark px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm text-slate-700 dark:text-slate-200 hover:border-primary transition-colors text-sm font-semibold">
                 <span className="material-symbols-outlined text-[18px] text-primary">
                   location_on
                 </span>
@@ -195,9 +239,9 @@ export default function HomePage() {
                     : "Batam, ID"}
                 </span>
 
-                <span className="material-symbols-outlined text-[18px] text-slate-400">
+                {/* <span className="material-symbols-outlined text-[18px] text-slate-400">
                   expand_more
-                </span>
+                </span> */}
               </button>
             </div>
 
@@ -230,11 +274,145 @@ export default function HomePage() {
                 />
               </div>
 
-              <button className="h-12 w-12 flex items-center justify-center rounded-full bg-primary text-white hover:bg-primary-dark transition-colors shadow-sm shadow-primary/20">
+              <button
+                onClick={() => setShowFilterSheet((v) => !v)}
+                className={`relative h-12 w-12 flex items-center justify-center rounded-full transition-colors shadow-sm shadow-primary/20 ${
+                  showFilterSheet || hasFilterBadge
+                    ? "bg-primary/20 text-primary"
+                    : "bg-primary text-white hover:bg-primary-dark"
+                }`}
+              >
                 <span className="material-symbols-outlined">tune</span>
+                {hasFilterBadge && (
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-background-dark" />
+                )}
               </button>
             </div>
           </div>
+
+          {/* Active filter chips */}
+          {hasFilterBadge && !showFilterSheet && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {filterCategory && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                  {filterCategory}
+                  <button type="button" onClick={() => setFilterCategory("")}>
+                    <span className="material-symbols-outlined text-[14px]">close</span>
+                  </button>
+                </span>
+              )}
+              {(filterMinPrice || filterMaxPrice) && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                  Rp {filterMinPrice ? Number(filterMinPrice).toLocaleString("id-ID") : "0"} –{" "}
+                  {filterMaxPrice ? `Rp ${Number(filterMaxPrice).toLocaleString("id-ID")}` : "∞"}
+                  <button type="button" onClick={() => { setFilterMinPrice(""); setFilterMaxPrice(""); }}>
+                    <span className="material-symbols-outlined text-[14px]">close</span>
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Filter sheet */}
+          {showFilterSheet && (
+            <div className="mt-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-card-dark p-4 shadow-lg space-y-4">
+              {/* Category filter */}
+              <div>
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                  Category
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {["Bakery", "Meals", "Groceries", "Desserts", "Vegan", "Beverages"].map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setFilterCategory((c) => (c === cat ? "" : cat))}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                        filterCategory === cat
+                          ? "bg-primary text-white border-primary"
+                          : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-primary"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Price range */}
+              <div>
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                  Price Range
+                </p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {[
+                    { label: "Under 10k", min: "0", max: "10000" },
+                    { label: "Under 20k", min: "0", max: "20000" },
+                    { label: "Under 50k", min: "0", max: "50000" },
+                    { label: "50k+",      min: "50000", max: "" },
+                  ].map((p) => {
+                    const active = filterMinPrice === p.min && filterMaxPrice === p.max;
+                    return (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => { setFilterMinPrice(p.min); setFilterMaxPrice(p.max); }}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                          active
+                            ? "bg-primary text-white border-primary"
+                            : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-primary"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                    Min (Rp)
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={filterMinPrice}
+                      onChange={(e) => setFilterMinPrice(e.target.value)}
+                      placeholder="0"
+                      className="h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 text-sm font-medium text-slate-900 dark:text-white outline-none focus:border-primary"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                    Max (Rp)
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={filterMaxPrice}
+                      onChange={(e) => setFilterMaxPrice(e.target.value)}
+                      placeholder="Tanpa batas"
+                      className="h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 text-sm font-medium text-slate-900 dark:text-white outline-none focus:border-primary"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setFilterCategory(""); setFilterMinPrice(""); setFilterMaxPrice(""); }}
+                  className="flex-1 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Clear all
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowFilterSheet(false)}
+                  className="flex-1 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition-colors"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          )}
         </header>
 
         {/* CATEGORY */}
@@ -264,115 +442,55 @@ export default function HomePage() {
 
         {/* LIST */}
         <section className="px-5 grid gap-4 pb-4">
-          {filteredItems.map((item) => {
-
-            // console.log(item.img_url?)
-
-            const isFavorite = favorites.includes(item.id);
-
-            return (
-              <Link
-                href={`/product/${item.public_id}`}
-                key={item.id}
-                onClick={() => handleOpenDetail(item.id)}
-
-                className="bg-white dark:bg-card-dark rounded-xl p-3 shadow-sm border border-slate-100 dark:border-slate-800 active:scale-[0.99] transition-transform cursor-pointer"
+          {isLoadingListings ? (
+            // Skeleton loading cards
+            [1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="bg-white dark:bg-card-dark rounded-xl p-3 shadow-sm border border-slate-100 dark:border-slate-800 animate-pulse"
               >
-                <div className="relative h-40 w-full mb-3 overflow-hidden rounded-lg">
-                  <Image
-                    src={item.img_url ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
-                    alt={item.name}
-                    fill
-                    className="object-cover hover:scale-105 transition-transform duration-500"
-                  />
-
-                  <div className="absolute top-2 left-2 bg-primary text-white text-xs font-bold px-2 py-1 rounded-md shadow-sm">
-                    Save {item.discount_percentage}%
+                <div className="h-40 w-full mb-3 rounded-lg bg-slate-200 dark:bg-slate-700" />
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex flex-col gap-2 flex-1 mr-4">
+                    <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-3/4" />
+                    <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-1/2" />
                   </div>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFavorite(item.id);
-                    }}
-                    className="absolute top-2 right-2 p-1.5 bg-black/30 backdrop-blur-sm rounded-full text-white hover:bg-white hover:text-red-500 transition-colors"
-                  >
-                    <span
-                      className={`material-symbols-outlined text-[20px] ${
-                        isFavorite
-                          ? "font-variation-settings-FILL-1 text-red-500"
-                          : "font-variation-settings-FILL-0"
-                      }`}
-                    >
-                      favorite
-                    </span>
-                  </button>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-bold text-slate-900 dark:text-white text-lg leading-tight">
-                        {item.name}
-                      </h3>
-
-                      <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">
-                        {item.merchants?.merchant_name}
-                      </p>
-                    </div>
-
-                    <div className="text-right flex flex-col items-end">
-                      <span className="block text-xs text-slate-400 line-through font-medium mb-0.5">
-                        {format_price(item.original_price)}
-                      </span>
-
-                      <span className="block text-primary font-bold text-xl leading-none">
-                        {format_price(item.discount_price)}
-                      </span>
-
-                      <span className="block text-[10px] text-green-600 dark:text-green-400 font-semibold mt-0.5 bg-green-50 dark:bg-green-900/30 px-1.5 rounded-sm">
-                        Save {format_price(item.original_price - item.discount_price)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded text-slate-600 dark:text-slate-300 text-xs font-medium">
-                        <span className="material-symbols-outlined text-[16px]">
-                          schedule
-                        </span>
-
-                        {set_to_hour(item.open_time)} - {set_to_hour(item.close_time)}
-                      </div>
-
-                      <div className="flex items-center gap-2 text-[10px] pl-1 font-medium">
-                        <span className="text-orange-400/90 dark:text-orange-300">
-                          {get_close_text(item.close_time)}
-                        </span>
-
-                        <span className="text-slate-400">•</span>
-
-                        <span className="text-slate-500 dark:text-slate-400">
-                          {item.stock_total - item.sold_total} left
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium self-start mt-1">
-                      <span className="material-symbols-outlined text-[16px]">
-                        distance
-                      </span>
-
-                      {item.distance_km != null
-                        ? `${Number(item.distance_km).toFixed(1)} km`
-                        : "tidak dapat lokasi"}
-                    </div>
+                  <div className="flex flex-col gap-1 items-end">
+                    <div className="h-3 w-16 bg-slate-100 dark:bg-slate-800 rounded" />
+                    <div className="h-5 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
                   </div>
                 </div>
-              </Link>
+                <div className="flex justify-between items-center mt-2">
+                  <div className="h-7 w-28 bg-slate-100 dark:bg-slate-800 rounded" />
+                  <div className="h-4 w-14 bg-slate-100 dark:bg-slate-800 rounded" />
+                </div>
+              </div>
+            ))
+          ) : filteredItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+              <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center">
+                <span className="material-symbols-outlined text-[32px] text-slate-400">
+                  search_off
+                </span>
+              </div>
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                No listings found
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Try adjusting your search or category filter
+              </p>
+            </div>
+          ) : (
+          filteredItems.map((item) => {
+            return (
+              <FoodCard
+                key={item.public_id}
+                item={item as (typeof item) & { formatted: null }}
+                is_favorite={favoriteIds.has(item.public_id)}
+                onToggleFavorite={handleToggleFavorite}
+              />
             );
-          })}
+          }))}
         </section>
       </div>
 

@@ -286,6 +286,7 @@ export async function find_order_by_id(orderId) {
         },
         take: 1,
       },
+      customer:true
     },
   });
 
@@ -356,6 +357,7 @@ export async function find_orders_by_merchant(merchant_id) {
           discount_price: true,
           discount_percentage: true,
           original_price: true,
+          open_time: true
         },
       },
     },
@@ -460,12 +462,13 @@ export async function fetch_all_order() {
         select: {
           full_name: true,
         },
-      },merchants:{
+      },merchant:{
         select: {
           merchant_name: true,
         },
       },
       listing: true,
+      payments: true
     },
   });
 }
