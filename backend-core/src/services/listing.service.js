@@ -25,12 +25,11 @@ export async function get_listing(listingPublicId) {
 }
 
 /**
- * Get all active listings, optionally filtered by geo-proximity.
- * @param {{ lat?: number, lng?: number, radius_km?: number }} opts
+ * Get all active listings, optionally filtered by geo-proximity, search, category, and price.
+ * @param {{ lat?, lng?, radius_km?, q?, category?, min_price?, max_price? }} opts
  */
 export async function get_active_listings(opts = {}) {
-  const result = await find_active_listings(opts);
-  return result;
+  return find_active_listings(opts);
 }
 
 /**

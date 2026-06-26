@@ -1,196 +1,38 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import CustomerNavbar from "../../components/navbar/customer_navbar";
+import FoodCard from "@/components/FoodListCard";
+import {
+  getFavorites,
+  toggleFavorite as apiFavorite,
+  type FavoriteListingItem,
+  type FavoriteFilters,
+} from "@/services/favorite";
+import { Listing } from "@/types";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type TimerColor = "orange" | "red";
-
-type SavedDeal = {
-  id: number;
-  title: string;
-  discount: string;
-  itemsLeft: string;
-  originalPrice: string;
-  salePrice: string;
-  merchant: string;
-  distance: string;
-  endsIn: string;
-  pickupTime: string;
-  image: string;
-  icon: string;
-  timerColor: TimerColor;
-};
-
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const MOCK_DEALS: SavedDeal[] = [
-  {
-    id: 1,
-    title: "Surprise Bag - Bakery",
-    discount: "Save 60%",
-    itemsLeft: "3 left",
-    originalPrice: "$15.00",
-    salePrice: "$5.99",
-    merchant: "Golden Crust Bakery",
-    distance: "1.2 km",
-    endsIn: "Ends in 45 min",
-    pickupTime: "Pickup 4:30 PM - 5:30 PM",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAMMffwUlXgIkSwtlpH4O6QI1arOLB9l2ShPzr0T0tjbZCx6VFxL0Xp-m3fe8m3gZlRyLDrr0F2U9-DMjDKHfJtYslUtDex3tV5kLBX5EsKmgtXeS8v3pxgTlTlIR5Pxw7p0HwNITzefmmGTChP_fVKrimylK5TbIU-_CtUqVxAR7kzVTaiXIjiQzWaB45Jm46XlFFVkJc5NMZFHRx_cz-bhPKIL1Du1SebnIIRS8lyp_WPN9cnhClRNqYj5a63eA1eBWRIwG-8XCiw",
-    icon: "storefront",
-    timerColor: "orange",
-  },
-  {
-    id: 2,
-    title: "Dinner Box",
-    discount: "Save 50%",
-    itemsLeft: "1 left",
-    originalPrice: "$22.00",
-    salePrice: "$11.00",
-    merchant: "Sushi Zen",
-    distance: "0.8 km",
-    endsIn: "Ends in 20 min",
-    pickupTime: "Pickup 5:00 PM - 6:00 PM",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBuTYeUsGff3ih2EUVzKkojvbmWnp__cRf7wA6U5TeNyC_iAB-CbS8ZS54voiL-S7oUSOwqTd3RXoIvrVeO5v2ivQFJ7bZpqL2NKCNZjxCMPACUS6Ux-DVqe0g9Tcu6bBnbs0XpF2W3nJ9RkL_6WmQEV8SUwbYDXo-_VfMPcCOiApH8xQubUR3PaSk80u1g5QoVC8cv-mAi7wxKrK6i8ZPphnhqSVy16ZLDWpGj1Zr2oV_O6gsvwcZCbu8Tv6565RDc6qjDpIw24Fl5",
-    icon: "restaurant",
-    timerColor: "red",
-  },
-  {
-    id: 3,
-    title: "Fresh Vegetarian Pizza",
-    discount: "Save 40%",
-    itemsLeft: "5 left",
-    originalPrice: "$18.00",
-    salePrice: "$10.80",
-    merchant: "Pizza Corner",
-    distance: "0.5 km",
-    endsIn: "Ends in 15 min",
-    pickupTime: "Pickup 5:30 PM - 6:30 PM",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAWhWH_1Rbcdl0JnnLyw-1QiAHXD-ZKjvtNRbuDu2LuF9Lgto0KLZhI54xQ2OCo1nW3-tYx59Sejci7XuF12tELYPHuRgiT0dACdlr52TK0rlZ7BEjoCfOppRw4FQBEKytXvzYnA8p-tVhe17Ad67wHY3v5qK4VVo2ytc4xxchRuiKIhtsTVI0HOGU2Aw3mLzRa-8xHER8p7BbC2HCw6zGWOWaQusbtjAXLL6i7liiMWyrTbCdwyO26mBIjqTSPuBmddgHNVb-uByB8c",
-    icon: "local_pizza",
-    timerColor: "red",
-  },
+// ─── Price presets ────────────────────────────────────────────────────────────
+const PRICE_PRESETS = [
+  { label: "Under 10k", min: "0",     max: "10000"  },
+  { label: "Under 20k", min: "0",     max: "20000"  },
+  { label: "Under 50k", min: "0",     max: "50000"  },
+  { label: "50k+",      min: "50000", max: ""       },
 ];
 
-// ─── Timer badge ──────────────────────────────────────────────────────────────
-
-const timerVariants: Record<TimerColor, string> = {
-  orange:
-    "bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border-orange-100 dark:border-orange-800/30",
-  red: "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-100 dark:border-red-800/30",
-};
-
-// ─── Deal card ────────────────────────────────────────────────────────────────
-
-function DealCard({
-  deal,
-  onUnsave,
-}: {
-  deal: SavedDeal;
-  onUnsave: (id: number) => void;
-}) {
-  return (
-    <article className="group relative flex flex-col gap-2">
-      {/* Image */}
-      <div className="relative aspect-[16/10] w-full overflow-hidden rounded-lg bg-slate-200 dark:bg-slate-800 shadow-sm">
-        <img
-          src={deal.image ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
-          alt={deal.title}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-        />
-
-        {/* Top-left badges */}
-        <div className="absolute left-2 top-2 flex gap-1.5" aria-hidden="true">
-          <span className="inline-flex items-center rounded bg-primary/90 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm backdrop-blur-sm">
-            {deal.discount}
-          </span>
-          <span className="inline-flex items-center rounded bg-white/70 dark:bg-black/50 px-2 py-0.5 text-[10px] font-bold text-slate-800 dark:text-white shadow-sm backdrop-blur-sm">
-            {deal.itemsLeft}
-          </span>
-        </div>
-
-        {/* Unsave button */}
-        <button
-          type="button"
-          onClick={() => onUnsave(deal.id)}
-          aria-label={`Remove ${deal.title} from saved`}
-          className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm transition active:scale-90 hover:bg-white dark:hover:bg-slate-700"
-        >
-          <span
-            className="material-symbols-outlined text-[18px] text-primary"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-            aria-hidden="true"
-          >
-            favorite
-          </span>
-        </button>
-      </div>
-
-      {/* Info */}
-      <div className="flex flex-col gap-1">
-        <div className="flex justify-between items-baseline">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight truncate pr-2">
-            {deal.title}
-          </h3>
-          <div className="flex items-baseline gap-1.5 shrink-0">
-            <span className="text-xs text-slate-400 line-through decoration-slate-400">
-              {deal.originalPrice}
-            </span>
-            <span className="text-base font-extrabold text-primary">{deal.salePrice}</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
-          <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
-            {deal.icon}
-          </span>
-          <span className="truncate">{deal.merchant}</span>
-          <span className="mx-0.5 text-slate-300" aria-hidden="true">•</span>
-          <span>{deal.distance}</span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 mt-0.5">
-          <span
-            className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border ${timerVariants[deal.timerColor]}`}
-          >
-            <span className="material-symbols-outlined mr-0.5 text-[12px]" aria-hidden="true">
-              timer
-            </span>
-            {deal.endsIn}
-          </span>
-          <span className="text-[10px] text-slate-500 dark:text-slate-400">
-            {deal.pickupTime}
-          </span>
-        </div>
-      </div>
-    </article>
-  );
-}
+const CATEGORIES = ["Bakery", "Meals", "Groceries", "Desserts", "Vegan", "Beverages"];
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
-
 function EmptyState() {
   return (
     <main className="flex-1 flex flex-col items-center justify-center px-6 pt-4 pb-24">
       <div className="mb-6">
         <div className="relative bg-white dark:bg-slate-800 rounded-full p-6 shadow-sm ring-1 ring-slate-100 dark:ring-slate-700">
-          <span
-            className="material-symbols-outlined text-primary text-[64px]"
-            aria-hidden="true"
-          >
+          <span className="material-symbols-outlined text-primary text-[64px]" aria-hidden="true">
             bookmark
           </span>
           <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-800 rounded-full p-1">
-            <span
-              className="material-symbols-outlined text-slate-900 dark:text-white text-[24px]"
-              aria-hidden="true"
-            >
+            <span className="material-symbols-outlined text-slate-900 dark:text-white text-[24px]" aria-hidden="true">
               favorite
             </span>
           </div>
@@ -202,7 +44,7 @@ function EmptyState() {
           No saved deals yet
         </h2>
         <p className="text-slate-500 dark:text-slate-400 text-sm font-medium leading-tight text-center opacity-80">
-          Tap the heart icon to save your favourite food and help reduce waste.
+          Tap the heart icon on any listing to save it here.
         </p>
       </div>
 
@@ -217,33 +59,339 @@ function EmptyState() {
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function SavedPage() {
-  const [savedDeals, setSavedDeals] = useState<SavedDeal[]>(MOCK_DEALS);
+  const [listings, setListings]     = useState<FavoriteListingItem[]>([]);
+  const [isLoading, setIsLoading]   = useState(true);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
-  const handleUnsave = useCallback((id: number) => {
-    setSavedDeals((prev) => prev.filter((deal) => deal.id !== id));
+  // Search & filter state
+  const [search, setSearch]           = useState("");
+  const [debouncedSearch, setDebounced] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterMin, setFilterMin]     = useState("");
+  const [filterMax, setFilterMax]     = useState("");
+
+  // Debounce search
+  const debRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (debRef.current) clearTimeout(debRef.current);
+    debRef.current = setTimeout(() => setDebounced(search), 350);
+    return () => { if (debRef.current) clearTimeout(debRef.current); };
+  }, [search]);
+
+  // Load saved listings whenever filters change
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setIsLoading(true);
+      try {
+        const filters: FavoriteFilters = {};
+        if (debouncedSearch.trim()) filters.q = debouncedSearch.trim();
+        if (filterCategory)          filters.category = filterCategory;
+        if (filterMin)               filters.min_price = Number(filterMin);
+        if (filterMax)               filters.max_price = Number(filterMax);
+
+        const res = await getFavorites(filters);
+        if (cancelled) return;
+
+        const data: FavoriteListingItem[] = res.data ?? [];
+        setListings(data);
+        // Build initial favoriteIds from the loaded listings (all are favorites)
+        setFavoriteIds(new Set(data.map((l) => l.public_id)));
+      } catch (err) {
+        console.error("Failed to load saved listings:", err);
+        if (!cancelled) setListings([]);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [debouncedSearch, filterCategory, filterMin, filterMax]);
+
+  // Toggle favorite: optimistic + API call
+  const handleToggleFavorite = useCallback(async (publicId: string) => {
+    // Optimistic: remove from local list immediately
+    setListings((prev) => prev.filter((l) => l.public_id !== publicId));
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      next.delete(publicId);
+      return next;
+    });
+    try {
+      await apiFavorite(publicId);
+    } catch {
+      // On error: reload to get the real state
+      const res = await getFavorites().catch(() => ({ data: [] }));
+      const data: FavoriteListingItem[] = res.data ?? [];
+      setListings(data);
+      setFavoriteIds(new Set(data.map((l) => l.public_id)));
+    }
   }, []);
+
+  const activePricePreset = PRICE_PRESETS.find(
+    (p) => p.min === filterMin && p.max === filterMax
+  );
+  const hasFilterBadge = !!filterCategory || !!filterMin || !!filterMax;
+
+  function clearFilters() {
+    setFilterCategory("");
+    setFilterMin("");
+    setFilterMax("");
+  }
+
+  // Cast FavoriteListingItem → Listing shape expected by FoodCard
+  function toListingItem(item: FavoriteListingItem): Listing & { distance_km?: number } {
+    return {
+      id: Number(item.id),
+      public_id: item.public_id,
+      name: item.name,
+      open_time: item.open_time,
+      close_time: item.close_time,
+      sold_total: item.sold_total,
+      stock_total: item.stock_total,
+      description: item.description ?? null,
+      is_open: null,
+      original_price: item.original_price !== null ? Number(item.original_price) : null,
+      discount_price: item.discount_price !== null ? Number(item.discount_price) : null,
+      discount_percentage: item.discount_percentage !== null ? Number(item.discount_percentage) : null,
+      deleted_at: null,
+      merchant_id: item.merchant_id,
+      img_url: item.img_url,
+      status: item.status as Listing["status"],
+      merchant: item.merchant
+        ? {
+            merchant_name: item.merchant.merchant_name,
+            user_id: "",
+            latitude: null,
+            longitude: null,
+            kyc_status: null,
+            google_map_url: null,
+            virtual_balance: null,
+            address: item.merchant.address,
+            bank_name: null,
+            bank_account: null,
+            category: item.merchant.category,
+            desc: null,
+            pickup_instruction: null,
+            contactless_pickup: false,
+            notify_staff_upon_arrival: false,
+            pickup_open: item.merchant.pickup_open,
+            pickup_close: item.merchant.pickup_close,
+            same_day_pickup: false,
+            max_prep_time: null,
+            rating: null,
+            rating_times: 0,
+            profile_pic: null,
+          }
+        : null,
+      formatted: null,
+      distance_km: item.distance_km,
+    };
+  }
 
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-hidden max-w-md mx-auto bg-white dark:bg-surface-dark shadow-2xl">
-      {/* Header */}
-      <header className="sticky top-0 z-10 flex items-center justify-between bg-white/95 dark:bg-surface-dark/95 px-4 py-4 backdrop-blur-md border-b border-slate-100 dark:border-gray-800">
-        {/* Spacer keeps title centred */}
-        <div className="w-8" aria-hidden="true" />
-        <h1 className="text-base font-bold text-center text-slate-900 dark:text-white">
-          Saved
-          
-        </h1>
-        <div className="w-8" aria-hidden="true" />
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-10 bg-white/95 dark:bg-surface-dark/95 px-4 pt-5 pb-3 backdrop-blur-md border-b border-slate-100 dark:border-gray-800">
+        <div className="flex items-center justify-between mb-4">
+          <div className="w-8" aria-hidden="true" />
+          <h1 className="text-base font-bold text-center text-slate-900 dark:text-white">Saved</h1>
+          <div className="w-8" aria-hidden="true" />
+        </div>
+
+        {/* Search + filter toggle */}
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <span className="material-symbols-outlined text-slate-400 text-[20px]">search</span>
+            </span>
+            <input
+              className="block h-11 w-full pl-10 pr-3 border-none rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm font-medium transition-all shadow-sm"
+              placeholder="Search saved food..."
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowFilters((v) => !v)}
+            className={`relative h-11 w-11 flex items-center justify-center rounded-xl transition-colors shadow-sm ${
+              showFilters || hasFilterBadge
+                ? "bg-primary/10 text-primary"
+                : "bg-primary text-white"
+            }`}
+          >
+            <span className="material-symbols-outlined">tune</span>
+            {hasFilterBadge && !showFilters && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border border-white dark:border-surface-dark" />
+            )}
+          </button>
+        </div>
+
+        {/* Filter panel */}
+        {showFilters && (
+          <div className="mt-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-lg space-y-4">
+            {/* Category chips */}
+            <div>
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                Category
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setFilterCategory((c) => (c === cat ? "" : cat))}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                      filterCategory === cat
+                        ? "bg-primary text-white border-primary"
+                        : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-primary"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Price presets */}
+            <div>
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                Price Range
+              </p>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {PRICE_PRESETS.map((p) => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => {
+                      setFilterMin(p.min);
+                      setFilterMax(p.max);
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                      activePricePreset?.label === p.label
+                        ? "bg-primary text-white border-primary"
+                        : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-primary"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  Min (Rp)
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={filterMin}
+                    onChange={(e) => setFilterMin(e.target.value)}
+                    placeholder="0"
+                    className="h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 text-sm font-medium text-slate-900 dark:text-white outline-none focus:border-primary"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  Max (Rp)
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={filterMax}
+                    onChange={(e) => setFilterMax(e.target.value)}
+                    placeholder="Tanpa batas"
+                    className="h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 text-sm font-medium text-slate-900 dark:text-white outline-none focus:border-primary"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="flex-1 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                Clear all
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowFilters(false)}
+                className="flex-1 py-2 rounded-xl bg-primary text-white text-sm font-semibold transition-colors"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Active filter chips (collapsed) */}
+        {hasFilterBadge && !showFilters && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {filterCategory && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                {filterCategory}
+                <button type="button" onClick={() => setFilterCategory("")}>
+                  <span className="material-symbols-outlined text-[14px]">close</span>
+                </button>
+              </span>
+            )}
+            {(filterMin || filterMax) && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                Rp {filterMin ? Number(filterMin).toLocaleString("id-ID") : "0"} –{" "}
+                {filterMax ? `Rp ${Number(filterMax).toLocaleString("id-ID")}` : "∞"}
+                <button type="button" onClick={() => { setFilterMin(""); setFilterMax(""); }}>
+                  <span className="material-symbols-outlined text-[14px]">close</span>
+                </button>
+              </span>
+            )}
+          </div>
+        )}
       </header>
 
-      {savedDeals.length === 0 ? (
+      {/* ── Content ── */}
+      {isLoading ? (
+        <main className="flex-1 overflow-y-auto scrollbar-hide pb-24 px-4 pt-4 space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="bg-white dark:bg-card-dark rounded-xl p-3 shadow-sm border border-slate-100 dark:border-slate-800 animate-pulse"
+            >
+              <div className="h-40 w-full mb-3 rounded-lg bg-slate-200 dark:bg-slate-700" />
+              <div className="flex justify-between items-start mb-2">
+                <div className="flex flex-col gap-2 flex-1 mr-4">
+                  <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-3/4" />
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-1/2" />
+                </div>
+                <div className="flex flex-col gap-1 items-end">
+                  <div className="h-3 w-16 bg-slate-100 dark:bg-slate-800 rounded" />
+                  <div className="h-5 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
+                </div>
+              </div>
+              <div className="flex justify-between items-center mt-2">
+                <div className="h-7 w-28 bg-slate-100 dark:bg-slate-800 rounded" />
+                <div className="h-4 w-14 bg-slate-100 dark:bg-slate-800 rounded" />
+              </div>
+            </div>
+          ))}
+        </main>
+      ) : listings.length === 0 ? (
         <EmptyState />
       ) : (
         <main className="flex-1 overflow-y-auto scrollbar-hide pb-24 px-4 pt-4 space-y-4">
-          {savedDeals.map((deal) => (
-            <DealCard key={deal.id} deal={deal} onUnsave={handleUnsave} />
+          <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 pb-1">
+            {listings.length} saved item{listings.length !== 1 ? "s" : ""}
+          </p>
+          {listings.map((item) => (
+            <FoodCard
+              key={item.public_id}
+              item={toListingItem(item)}
+              is_favorite={favoriteIds.has(item.public_id)}
+              onToggleFavorite={handleToggleFavorite}
+            />
           ))}
         </main>
       )}

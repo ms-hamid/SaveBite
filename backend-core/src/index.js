@@ -5,6 +5,7 @@ import cors from 'cors';
 import auth_route from './routes/auth.route.js';
 import listing_route from './routes/merchant/listing.route.js';
 import order_route from './routes/consumer/order.route.js';
+import favorite_route from './routes/consumer/favorite.route.js';
 import user_route from './routes/user.route.js';
 import { globalErrorHandler } from './middlewares/error.middleware.js';
 import payment_route from './routes/payment.route.js';
@@ -38,6 +39,7 @@ app.get('/', (req, res) => {
 app.use('/auth', auth_route);
 app.use('/listing', listing_route);
 app.use('/order', order_route);
+app.use('/favorite', favorite_route);
 app.use('/api/users', user_route);
 app.use('/payment', payment_route);
 app.use('/withdrawal', withdrawal_route);

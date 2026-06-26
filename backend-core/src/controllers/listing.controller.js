@@ -14,14 +14,18 @@ import {
 import * as listingService from "../services/listing.service.js";
 import { serializeBigInt } from "../utils/json.js";
 
-/** GET /api/listings?lat=&lng=&radius_km= */
+/** GET /listing?lat=&lng=&radius_km=&q=&category=&min_price=&max_price= */
 export async function get_listings_handler(req, res) {
-  const { lat, lng, radius_km } = req.query;
+  const { lat, lng, radius_km, q, category, min_price, max_price } = req.query;
 
   const listings = await get_active_listings({
     lat: lat ? Number(lat) : undefined,
     lng: lng ? Number(lng) : undefined,
     radius_km: radius_km ? Number(radius_km) : 10,
+    q: q || undefined,
+    category: category || undefined,
+    min_price: min_price ? Number(min_price) : undefined,
+    max_price: max_price ? Number(max_price) : undefined,
   });
   return res.status(200).json({ data: serializeBigInt(listings) });
 }

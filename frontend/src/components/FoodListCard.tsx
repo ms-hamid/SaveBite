@@ -1,60 +1,119 @@
-export default function FoodCard({name, image_url, actual_price, discount_price, discount_count, stock_left, pickup_open, pickup_close}
-    : {name: string, image_url: string, actual_price: number, discount_price: number, discount_count: number, stock_left: number, pickup_open: string, pickup_close: string}){
-    return (
-        <button className="w-full text-left flex flex-col sm:flex-row gap-0 sm:gap-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-[#162b25] shadow-sm overflow-hidden group hover:shadow-md transition-all active:scale-[0.98] active:bg-slate-50 dark:active:bg-[#1f3a32]">
-        <div className="h-40 sm:h-auto sm:w-32 bg-slate-200 relative shrink-0 w-full sm:w-auto">
-            <div
-            className="absolute inset-0 bg-cover bg-center"
+import { format_price, get_close_text, set_to_hour } from "@/app/home/page";
+import { Listing } from "@/types";
+import Image from "next/image";
+import Link from "next/link";
+
+export default function FoodCard({
+  item,
+  is_favorite = false,
+  onToggleFavorite,
+}: {
+  item: Listing & { distance_km?: number };
+  /** Whether this listing is currently saved by the user */
+  is_favorite?: boolean;
+  /** Called when the heart button is clicked — parent handles the API call */
+  onToggleFavorite?: (publicId: string) => void;
+}) {
+  return (
+    <Link
+      href={`/product/${item.public_id}`}
+      className="bg-white dark:bg-card-dark rounded-xl p-3 shadow-sm border border-slate-100 dark:border-slate-800 active:scale-[0.99] transition-transform cursor-pointer block"
+    >
+      <div className="relative h-40 w-full mb-3 overflow-hidden rounded-lg">
+        <Image
+          src={
+            item.img_url && item.img_url.trim() !== ""
+              ? item.img_url
+              : "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"
+          }
+          alt={item.name ?? ""}
+          fill
+          className="object-cover hover:scale-105 transition-transform duration-500"
+        />
+
+        <div className="absolute top-2 left-2 bg-primary text-white text-xs font-bold px-2 py-1 rounded-md shadow-sm">
+          Save {item.discount_percentage}%
+        </div>
+
+        {/* Heart / favorite button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleFavorite?.(item.public_id);
+          }}
+          className="absolute top-2 right-2 p-1.5 bg-black/30 backdrop-blur-sm rounded-full text-white hover:bg-white hover:text-red-500 transition-colors"
+          aria-label={is_favorite ? "Remove from saved" : "Save listing"}
+        >
+          <span
+            className={`material-symbols-outlined text-[20px] transition-colors ${
+              is_favorite ? "text-red-500" : "text-white"
+            }`}
             style={{
-                backgroundImage:image_url
+              fontVariationSettings: is_favorite ? "'FILL' 1" : "'FILL' 0",
             }}
-            />
-
-            <div className="absolute top-2 left-2 bg-green-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm">
-            SAVE {discount_count}%
-            </div>
-
-            <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-md text-white text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm">
-            <span className="material-symbols-outlined text-[10px]">
-                inventory_2
-            </span>
-            {stock_left} left
-            </div>
-        </div>
-
-        <div className="flex flex-col flex-1 p-4 justify-between w-full">
-            <div>
-            <h4 className="font-bold text-base mb-1">
-                {name}
-            </h4>
-
-            <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs mb-3">
-                <span className="material-symbols-outlined text-base">
-                schedule
-                </span>
-
-                <span>Pickup: {pickup_open} - {pickup_close}</span>
-            </div>
-            </div>
-
-            <div className="flex items-end justify-between mt-2 w-full">
-            <div className="flex flex-col">
-                <span className="text-xs text-slate-400 line-through">
-                ${actual_price.toFixed(2)}
-                </span>
-
-                <span className="text-lg font-bold text-[#10b77f]">
-                ${discount_price.toFixed(2)}
-                </span>
-            </div>
-
-            <div className="bg-[#10b77f]/10 dark:bg-[#10b77f]/20 text-[#10b77f] w-7 h-7 flex items-center justify-center rounded-full group-hover:bg-[#10b77f] group-hover:text-white transition-colors shadow-sm">
-                <span className="material-symbols-outlined text-[18px]">
-                add
-                </span>
-            </div>
-            </div>
-        </div>
+          >
+            favorite
+          </span>
         </button>
-    );
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <div className="flex justify-between items-start">
+          <div>
+            <h3 className="font-bold text-slate-900 dark:text-white text-lg leading-tight">
+              {item.name}
+            </h3>
+
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">
+              {item.merchant?.merchant_name}
+            </p>
+          </div>
+
+          <div className="text-right flex flex-col items-end">
+            <span className="block text-xs text-slate-400 line-through font-medium mb-0.5">
+              {format_price(item.original_price)}
+            </span>
+
+            <span className="block text-primary font-bold text-xl leading-none">
+              {format_price(item.discount_price)}
+            </span>
+
+            <span className="block text-[10px] text-green-600 dark:text-green-400 font-semibold mt-0.5 bg-green-50 dark:bg-green-900/30 px-1.5 rounded-sm">
+              Save {format_price((item.original_price ?? 0) - (item.discount_price ?? 0))}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between mt-2">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded text-slate-600 dark:text-slate-300 text-xs font-medium">
+              <span className="material-symbols-outlined text-[16px]">schedule</span>
+              {set_to_hour(item.open_time ?? "")} - {set_to_hour(item.close_time ?? "")}
+            </div>
+
+            <div className="flex items-center gap-2 text-[10px] pl-1 font-medium">
+              <span className="text-orange-400/90 dark:text-orange-300">
+                {get_close_text(item.close_time ?? "")}
+              </span>
+
+              <span className="text-slate-400">•</span>
+
+              <span className="text-slate-500 dark:text-slate-400">
+                {item.stock_total - item.sold_total} left
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium self-start mt-1">
+            <span className="material-symbols-outlined text-[16px]">distance</span>
+            {item.distance_km != null
+              ? `${Number(item.distance_km).toFixed(1)} km`
+              : "tidak dapat lokasi"}
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
 }
