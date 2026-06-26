@@ -26,6 +26,7 @@ export type Order = {
   listing: Listing | null;
   merchant: Merchant | null;
   customer: Customer | null;
+  payments: Payment[] | null;
   payment: Payment | null;
   formatted: Formatted | null;
 };
