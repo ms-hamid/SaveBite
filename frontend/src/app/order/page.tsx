@@ -51,6 +51,7 @@ export default function HistoryPage() {
         completed: [],
       };
 
+
       data.forEach((order: Order) => {
         if (order.status === "cancelled") {
           filtered_orders.cancelled.unshift(order);
@@ -60,6 +61,7 @@ export default function HistoryPage() {
           filtered_orders.upcoming.unshift(order);
         }
       });
+
 
       set_orders(filtered_orders);
     } catch (err) {

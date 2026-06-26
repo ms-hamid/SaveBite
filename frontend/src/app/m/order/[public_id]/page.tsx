@@ -178,6 +178,8 @@ export default function MerchantOrderDetailPage() {
   const meta = STATUS_META[status] ?? STATUS_META["paid_reserved"];
   const action = NEXT_ACTION[status];
 
+  console.log(order)
+
   // Data dari schema
   const listing = order.listing;
   const merchant = order.merchant;
@@ -191,7 +193,7 @@ export default function MerchantOrderDetailPage() {
     .toUpperCase();
 
   // Payment: Order.total_amount (ada di schema), dan Payment.payment_method
-  const totalAmount = Number(order.total_amount ?? 0);
+  const totalAmount = Number(order.payment?.amount ?? 0);
   // Platform fee tidak ada di schema — ditampilkan sebagai komentar
   // Service fee Rp 2.000 sudah masuk total_amount saat pembayaran
 

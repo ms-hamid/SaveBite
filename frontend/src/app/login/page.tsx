@@ -5,7 +5,6 @@ import { login } from "@/services/auth";
 import { Role } from "@/types";
 import { enablePushNotification } from "../../lib/firebase/messaging";
 import { useRouter } from "next/navigation";
-import api, { getApiErrorMessage } from "../../lib/api";
 import AuthPageLayout from "../../components/auth/page_layout";
 import AuthInputComponent from "../../components/auth/input_column";
 

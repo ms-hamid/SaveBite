@@ -88,7 +88,7 @@ export default function OrderMonitoringTableRow({
         <div className="flex flex-col">
           <span>-</span>
           <span className="text-secondary text-xs break-all">
-            {order.merchant_id}
+            {order.merchant?.merchant_name}
           </span>
         </div>
       </td>
@@ -97,7 +97,7 @@ export default function OrderMonitoringTableRow({
         <div className="flex flex-col">
           <span>-</span>
           <span className="text-secondary text-xs break-all">
-            {order.customer_id}
+            {order.customer?.full_name}
           </span>
         </div>
       </td>
@@ -113,7 +113,8 @@ export default function OrderMonitoringTableRow({
       </td>
 
       <td className="py-4 px-6 text-right">
-        {formatRupiah(order.total_amount)}
+
+        {order.payments?.[0] ?  formatRupiah(order.payments?.[0]?.amount ?? "") : "-"}
       </td>
 
       <td className="py-4 px-6 text-secondary">
