@@ -38,6 +38,8 @@ export default function ListingDetailPage() {
     setIsFavorite((prev) => !prev);
   }
 
+  console.log(listing)
+
   /**
    * handleReserve — creates an order via Express backend.
    *
