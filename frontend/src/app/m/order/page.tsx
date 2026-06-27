@@ -126,16 +126,16 @@ useEffect(() => {
             <div className="w-full px-6 pb-3 overflow-x-auto no-scrollbar flex items-center gap-2">
               <div
                 className="flex-shrink-0 bg-slate-50 text-slate-700 text-[12px] px-3 py-1.5 rounded-full font-semibold border border-sb-border">
-                Active: 4</div>
+                Active: {active_count}</div>
               <div
                 className="flex-shrink-0 bg-orange-50 text-orange-700 text-[12px] px-3 py-1.5 rounded-full font-semibold border border-orange-100">
-                Preparing: 2</div>
+                Preparing: {preparing_count}</div>
               <div
                 className="flex-shrink-0 bg-[#E8F8F2] text-primary-emerald text-[12px] px-3 py-1.5 rounded-full font-semibold border border-primary-emerald/20">
-                Ready: 1</div>
+                Ready: {ready_count}</div>
               <div
                 className="flex-shrink-0 bg-slate-50 text-slate-500 text-[12px] px-3 py-1.5 rounded-full font-semibold border border-sb-border">
-                Completed: 18</div>
+                Completed: {completed_count}</div>
             </div>
           </header>
           {/* Main Content Canvas */}

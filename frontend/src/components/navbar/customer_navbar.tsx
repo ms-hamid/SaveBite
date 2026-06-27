@@ -21,9 +21,9 @@ export default function CustomerNavbar({active_tab = ""} : {active_tab: string})
               <span className={`material-symbols-outlined ${active_tab === "order" ? "text-primary font-variation-settings-fill" : "text-slate-400 group-hover:text-primary transition-colors"} text-[24px]`}>receipt_long</span>
               <span className={`text-[10px] ${ active_tab === "order" ? "font-bold text-primary" : "font-medium text-slate-400 group-hover:text-primary transition-colors" } `}>Order</span>
             </a>
-            <a className="flex flex-col items-center gap-1 group w-16" href="/history">
-              <span className={`material-symbols-outlined ${active_tab === "history" ? "text-primary font-variation-settings-fill" : "text-slate-400 group-hover:text-primary transition-colors"} text-[24px]`}>favorite</span>
-              <span className={`text-[10px] ${ active_tab === "history" ? "font-bold text-primary" : "font-medium text-slate-400 group-hover:text-primary transition-colors" } `}>Saved</span>
+            <a className="flex flex-col items-center gap-1 group w-16" href="/saved">
+              <span className={`material-symbols-outlined ${active_tab === "saved" ? "text-primary font-variation-settings-fill" : "text-slate-400 group-hover:text-primary transition-colors"} text-[24px]`}>favorite</span>
+              <span className={`text-[10px] ${ active_tab === "saved" ? "font-bold text-primary" : "font-medium text-slate-400 group-hover:text-primary transition-colors" } `}>Saved</span>
             </a>
             <a className="flex flex-col items-center gap-1 group w-16" href="/profile">
               <span className={`material-symbols-outlined ${active_tab === "profile" ? "text-primary font-variation-settings-fill" : "text-slate-400 group-hover:text-primary transition-colors"} text-[24px]`}>person</span>
