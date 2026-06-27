@@ -63,6 +63,7 @@ model AuthUser {
   password_reset_otps         PasswordResetOtp[]
   payments                    Payment[]
   profile                     Profile?
+  reviews                     Review[]
 
   @@index([instance_id])
   @@index([is_anonymous])
@@ -102,6 +103,8 @@ model Merchant {
   @@map("merchants")
   @@schema("public")
 }
+
+model Customer {
   full_name    String   @db.VarChar(50)
   exp          Int?     @default(0)
   strike_count Int?     @default(0)
@@ -145,6 +148,7 @@ model Listing {
   user                AuthUser?            @relation(fields: [merchant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   merchant            Merchant?            @relation(fields: [merchant_id], references: [user_id], onDelete: Cascade, map: "listings_merchant_id_fkey1")
   orders              Order[]
+  reviews             Review[]
 
   @@map("listings")
   @@schema("public")
@@ -210,13 +214,17 @@ model Profile {
 }
 
 model Review {
-  id          BigInt   @id @default(autoincrement())
-  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  id          BigInt    @id @default(autoincrement())
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
   img_url     String?
-  rating      Int      @default(5) @db.SmallInt
-  review      DateTime @db.Date
-  merchant_id String   @default(dbgenerated("auth.uid()")) @db.Uuid
-  profile     Profile  @relation(fields: [merchant_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  rating      Int       @default(5) @db.SmallInt
+  review      DateTime  @db.Date
+  merchant_id String    @default(dbgenerated("auth.uid()")) @db.Uuid
+  listing_id  BigInt?
+  customer_id String?   @db.Uuid
+  users       AuthUser? @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  listings    Listing?  @relation(fields: [listing_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  profile     Profile   @relation(fields: [merchant_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("reviews")
   @@schema("public")
