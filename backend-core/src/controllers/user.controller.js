@@ -410,9 +410,9 @@ export async function getMyProfileHandler(req, res) {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(401).json({
+      return res.status(200).json({
         success: false,
-        message: "Not authenticated",
+        message: "you aren't login yet",
       });
     }
 

@@ -30,7 +30,7 @@ const user_route = express.Router();
  * GET /api/users/me
  * Fetch logged-in user profile details
  */
-user_route.get("/me", authenticate, (req, res) => {
+user_route.get("/me", (req, res) => {
   getMyProfileHandler(req, res);
 });
 

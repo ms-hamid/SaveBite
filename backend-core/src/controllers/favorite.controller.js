@@ -17,6 +17,10 @@ import {
 export async function get_favorites_handler(req, res) {
   const { q, category, min_price, max_price } = req.query;
 
+  if (!req.user) {
+    return res.status(200).json({ success: true, data: serializeBigInt([])});
+  }
+
   const listings = await get_favorites(req.user.id, {
     q: q || undefined,
     category: category || undefined,
