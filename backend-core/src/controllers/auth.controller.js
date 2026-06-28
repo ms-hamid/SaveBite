@@ -80,7 +80,7 @@ export async function login(req, res) {
         res.cookie("sb_access_token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "none",
+            sameSite: "lax",
             maxAge: 24 * 60 * 60 * 1000,
         });
 
