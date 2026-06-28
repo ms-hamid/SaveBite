@@ -10,7 +10,6 @@ import { getMerchantDetail } from "@/services/user";
 import { getListingAll } from "@/services/listing";
 import { getMerchantReviews, type ReviewItem } from "@/services/review";
 import { toggleFavorite } from "@/services/favorite";
-import { format_price, set_to_hour } from "@/app/home/page";
 import { Listing } from "@/types";
 import { Merchant } from "@/types/merchant";
 

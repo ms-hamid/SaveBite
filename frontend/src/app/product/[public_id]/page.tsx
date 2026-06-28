@@ -1,29 +1,12 @@
 "use client";
 
-import Head from "next/head";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import api, { getApiErrorMessage } from "../../../lib/api";
-import { format_price, get_close_text, ListingProps } from "../../home/page";
+import { getApiErrorMessage } from "../../../lib/api";
 import { useListing } from "../../../components/providers/ListingProvider";
-import { supabase } from "@/lib/supabase";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import { create_order } from "@/services/order";
-// import { Order, useOrder } from "../../../components/providers/OrderProvider";
-
-export type OrderInput = {
-  qty: number |undefined;
-  total_amount: number | undefined;
-  listing_id: number | undefined;
-  customer_id: string |undefined;
-};
-
-function getTimeLimit30MinutesFromNow(): string {
-  const now = new Date();
-  const timeLimit = new Date(now.getTime() + 30 * 60 * 1000);
-
-  return timeLimit.toISOString();
-}
+import { get_close_text } from "@/lib/format";
 
 export default function ListingDetailPage() {
   const params = useParams();
