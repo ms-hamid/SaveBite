@@ -9,7 +9,7 @@ export function OrderDetailReadyStateScreen() {
    
   return (
     <>
-    {page_state === "normal" ? <OrderReadyNormal set_page_state={set_page_state} /> : <PaymentConfirmedPage set_page_state={set_page_state} />}
+    {page_state === "normal" ? <OrderReadyNormal set_page_state={set_page_state} /> : <PaymentConfirmedPage/>}
       
     </>
   );

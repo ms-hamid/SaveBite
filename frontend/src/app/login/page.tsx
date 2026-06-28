@@ -202,7 +202,7 @@ function validateForm() {
           id="login-submit-btn"
           type="submit"
           disabled={is_loading}
-          className="mt-100 w-full bg-primary text-white h-12 rounded-lg font-semibold text-base shadow-none transition-all flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+          className="mt-10 w-full bg-primary text-white h-12 rounded-lg font-semibold text-base shadow-none transition-all flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {is_loading ? (
             <>

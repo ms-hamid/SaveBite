@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Head from "next/head";
 
-export default function PaymentConfirmedPage({set_page_state}: {set_page_state: (state: string) => void}) {
+export default function PaymentConfirmedPage() {
   const [timeLeft, setTimeLeft] = useState(2 * 60 * 60 + 14 * 60 + 35);
 
   // Countdown Timer

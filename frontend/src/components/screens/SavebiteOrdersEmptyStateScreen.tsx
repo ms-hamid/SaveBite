@@ -47,7 +47,7 @@ export function SavebiteOrdersEmptyStateScreen() {
           </button>
         </main>
 
-        <CustomerNavbar/>
+        <CustomerNavbar active_tab="order"/>
       
       </div>
     </>
