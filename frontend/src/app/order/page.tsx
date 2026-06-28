@@ -12,7 +12,7 @@ import { getCustomerOrder } from "@/services/order";
 
 type TabId = "upcoming" | "completed" | "cancelled";
 
-export function format_date_month(date_string: string) {
+function format_date_month(date_string: string) {
   const date = new Date(date_string);
 
   return new Intl.DateTimeFormat("en-EN", {

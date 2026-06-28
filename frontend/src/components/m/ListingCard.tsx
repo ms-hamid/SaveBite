@@ -1,7 +1,6 @@
 // "use client";
 
-import { Listing } from "../../app/m/listing/page";
-import { ListingProps } from "../../app/home/page";
+import { Listing } from "@/types";
 
 
 function formatPrice(price?: number) {
@@ -20,7 +19,7 @@ export default function ListingCard({
     onEdit,
 }: {listing: Listing, onDelete: () => void, onEdit: () => void}) {
     const status = listing.status;
-  const isActive = status === "active";
+  const isActive = status === "open";
   const isEnded = status === "close";
   const isDraft = status === "draft";
 
@@ -48,7 +47,7 @@ export default function ListingCard({
                 ${isEnded ? "grayscale-[40%]" : ""}
               `}
               src={listing.img_url ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
-              alt={listing.name}
+              alt={listing.name ?? ""}
             />
 
             {isEnded && <div className="absolute inset-0 bg-white/20" />}
@@ -121,7 +120,7 @@ export default function ListingCard({
                   ${isEnded ? "text-slate-500" : "text-slate-900"}
                 `}
               >
-                {formatPrice(listing.discount_price)}
+                {formatPrice(listing.discount_price ?? 0)}
               </span>
             </div>
           )}

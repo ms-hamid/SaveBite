@@ -4,8 +4,8 @@ import Head from "next/head";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { usePayment } from "../../../../components/providers/PaymentProvider";
-import { format_price } from "../../../home/page";
 import api, { getApiErrorMessage } from "../../../../lib/api";
+import { format_price } from "@/lib/format";
 
 type PaymentMethod = "apple" | "visa";
 

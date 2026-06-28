@@ -1,4 +1,4 @@
-import { format_price, get_close_text, set_to_hour } from "@/app/home/page";
+import { format_price, get_close_text, set_to_hour } from "@/lib/format";
 import { Listing } from "@/types";
 import Image from "next/image";
 import Link from "next/link";

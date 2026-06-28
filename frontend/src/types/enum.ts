@@ -2,7 +2,7 @@ export type Role = "CUSTOMER" | "MERCHANT" | "ADMIN";
 
 export type KycStatus = "pending" | "approved" | "rejected";
 
-export type ListingStatus = "open" | "close";
+export type ListingStatus = "open" | "close" | "draft";
 
 export type OrderStatus =
   | "pending_payment"

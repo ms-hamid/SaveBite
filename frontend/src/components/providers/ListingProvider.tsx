@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { format_price, get_close_text, set_to_hour } from "../../app/home/page";
 import { Formatted, Listing } from "../../types";
 import { getListingByPublicID } from "@/services/listing";
+import { format_price } from "@/lib/format";
 
 
 type ListingContextType = {

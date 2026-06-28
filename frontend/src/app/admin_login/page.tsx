@@ -1,5 +1,3 @@
-export const metadata = { title: "SaveBite Admin Portal - Login" };
-
 export default function Page() {
   return (
     <div
