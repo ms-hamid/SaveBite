@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { PWA_CONFIG } from "../lib/pwa/pwa-config";
-import { PWAProvider } from "../components/pwa/PWAProvider";
+// import { PWAProvider } from "../components/pwa/PWAProvider";
 import "./globals.css"
 import Script from "next/script";
 import "leaflet/dist/leaflet.css";
@@ -70,7 +70,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
       </head>
 
       <body className="bg-surface-bright text-on-background antialiased">
-        <PWAProvider/>
+        {/* <PWAProvider/> */}
         {children}
       </body>
     </html>
