@@ -2,12 +2,14 @@
 
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getMessaging } from "firebase-admin/messaging";
-import { createRequire } from "module";
+
+
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
 
 const app =
   getApps().length === 0
     ? initializeApp({
-        credential: cert(process.env.FIREBASE_SERVICE_ACCOUNT),
+        credential: cert(serviceAccount),
       })
     : getApps()[0];
 
