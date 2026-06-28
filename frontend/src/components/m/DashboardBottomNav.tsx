@@ -6,7 +6,6 @@ type DashboardBottomNavProps = {
 
 export default function DashboardBottomNav({page}: DashboardBottomNavProps) {
   
-  console.log("page skr", page === "order")
   return (<> 
         <nav
           className="

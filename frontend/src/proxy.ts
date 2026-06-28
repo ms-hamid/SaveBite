@@ -73,6 +73,8 @@ export const config = {
     "/admin/:path*",
     "/m/:path*",
     "/order/:path*",
-    "/email-verification/"
+    "/email-verification/",
+    "/profile/:path",
+    "/saved/:path"
   ]
 }
