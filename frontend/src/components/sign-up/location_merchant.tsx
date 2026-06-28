@@ -147,10 +147,10 @@ export default function MerchantChooseLocation({
 
   // ── Ensure Leaflet default icons render correctly ──────────────────────
   useEffect(() => {
-    import("leaflet-defaulticon-compatibility").catch(() => {
-      // fallback: manually fix icon paths
+    useEffect(() => {
       import("leaflet").then((L) => {
         delete (L.Icon.Default.prototype as any)._getIconUrl;
+    
         L.Icon.Default.mergeOptions({
           iconRetinaUrl:
             "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
@@ -159,9 +159,10 @@ export default function MerchantChooseLocation({
           shadowUrl:
             "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
         });
+    
+        setMapReady(true);
       });
-    });
-    setMapReady(true);
+    }, []);
   }, []);
 
   // ── Handler: pick location from map click ─────────────────────────────

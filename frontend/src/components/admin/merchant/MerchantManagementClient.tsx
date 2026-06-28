@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import MerchantTableRow, {
-  MerchantRowData,
-} from "./MerchantTableRow";
+import MerchantTableRow from "./MerchantTableRow";
 import { getMerchantsList } from "@/services/user";
 import { Merchant } from "@/types";
 

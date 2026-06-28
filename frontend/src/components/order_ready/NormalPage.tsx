@@ -1,4 +1,4 @@
-export default function OrderReadyNormal({set_page_state}: {set_page_state: (state: string) => void}){
+export default function OrderReadyNormal({set_page_state}: {set_page_state: (state: "qr" | "normal") => void}){
     return (<div className="relative flex h-full min-h-screen w-full max-w-md flex-col bg-background-light dark:bg-surface-dark shadow-2xl overflow-hidden mx-auto mt-5">
         <main className="flex-1 overflow-y-auto px-4 pb-64">
           <div className="mb-6 overflow-hidden rounded-xl bg-primary text-primary-content shadow-lg relative group">

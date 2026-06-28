@@ -26,7 +26,7 @@ export default function OrderDetailPage() {
     pending_payment: <PaymentOrderPage order={order}/>,
     paid_reserved: <PaymentDoneOrderPage />,
     preparing: <OrderDetailUpcomingStateScreen />,
-    ready_to_pickup: <ReadyOrderPage order_data={order} listing_data={listing} merchant_data={merchant}/>
+    ready_to_pickup: <ReadyOrderPage order_data={order} merchant_data={merchant}/>
   };
 
   const status = order?.status as keyof typeof page;

@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { PageHeader, MerchantCard, OrderSummary, OrderDetailsInfo } from '../shared';
-import { Merchant, Order } from '../providers/OrderProvider';
+import { Listing, Merchant, Order } from '@/types';
 
 
-export default function  ReadyOrderPage({order_data, merchant_data, listing_data} : {order_data: Order | undefined, merchant_data: Merchant | undefined, listing_data: Listing | undefined}) {
-  const [order] = useState<Order | undefined>(order_data);
+export default function  ReadyOrderPage({order_data, merchant_data} : {order_data: Order | undefined | null, merchant_data: Merchant | undefined | null}) {
+  const [order] = useState<Order | undefined | null>(order_data);
 // console.log(order_data)
 
   const [copiedCode, setCopiedCode] = useState(false);
@@ -87,14 +87,14 @@ export default function  ReadyOrderPage({order_data, merchant_data, listing_data
           </h3>
           <OrderSummary
             item={order}
-            amountSaved={order?.formatted.saved_price}
+            amountSaved={order?.formatted?.saved_price || ""}
           />
         </div>
 
         {/* Order Details */}
         <div className="mt-6 mb-6">
           <OrderDetailsInfo
-            orderId={order?.order_code}
+            orderId={order?.order_code || "order code unvailable"}
             paymentMethod={"order.paymentMethod"}
           />
         </div>
