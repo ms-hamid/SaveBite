@@ -4,12 +4,6 @@ import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getMessaging } from "firebase-admin/messaging";
 import { createRequire } from "module";
 
-const require = createRequire(import.meta.url);
-
-const serviceAccount =
-  require("../../serviceAccountKey.json");
-
-
 const app =
   getApps().length === 0
     ? initializeApp({
