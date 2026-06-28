@@ -18,9 +18,9 @@ import {
 
 const favorite_route = express.Router();
 
+favorite_route.get("/", asyncHandler(get_favorites_handler));
 favorite_route.use(authenticate, authorize("CUSTOMER"));
 
-favorite_route.get("/", asyncHandler(get_favorites_handler));
 favorite_route.post("/:public_id/toggle", asyncHandler(toggle_favorite_handler));
 favorite_route.get("/:public_id/status", asyncHandler(check_favorite_handler));
 
