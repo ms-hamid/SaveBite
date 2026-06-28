@@ -1,6 +1,6 @@
 'use client';
 
-import { format_price } from "@/app/home/page";
+import { format_price } from "@/lib/format";
 import { Order } from "@/types";
 
 

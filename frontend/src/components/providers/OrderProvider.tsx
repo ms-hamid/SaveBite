@@ -9,9 +9,9 @@ import React, {
 
 // Sesuaikan path supabase client kamu
 import { supabase } from "../../lib/supabase";
-import { format_price } from "../../app/home/page";
 import { Formatted, Listing, Merchant, Order, Payment } from "../../types";
 import { getOrderByPublicId } from "@/services/order";
+import { format_price } from "@/lib/format";
 
 
 type OrderContextType = {

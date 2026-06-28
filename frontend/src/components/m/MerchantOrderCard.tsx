@@ -1,6 +1,5 @@
 "use client";
 
-import { get_close_text } from "@/app/home/page";
 import { Order, OrderStatus } from "@/types";
 
 
