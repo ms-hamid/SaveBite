@@ -26,7 +26,7 @@ RUN npm install --omit=dev
 # This MUST run after npm install but BEFORE the runner stage copies node_modules.
 # Without this, the engine binary compiled on the host (Windows/macOS) will not
 # match the container's OS and Prisma will fail at runtime.
-RUN npx prisma generate
+RUN npx prisma@6 generate
 
 
 # ── Stage 2: production runner ────────────────────────────────────────────────
