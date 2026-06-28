@@ -1,4 +1,4 @@
-import { get_close_text } from "@/app/home/page";
+import { get_close_text } from "@/lib/format";
 import { Listing } from "@/types";
 
 

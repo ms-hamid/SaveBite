@@ -6,7 +6,7 @@ import { useOrder } from "../../../../components/providers/OrderProvider";
 import { update_order_status } from "@/services/order";
 import { useState } from "react";
 import { getApiErrorMessage } from "@/lib/api";
-import { format_price } from "@/app/home/page";
+import { format_price } from "@/lib/format";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 

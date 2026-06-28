@@ -8,9 +8,9 @@ import React, {
 } from "react";
 
 import { supabase } from "../../lib/supabase";
-import { format_price } from "../../app/home/page";
 import { Formatted, Order, Payment } from "../../types";
 import { getOrderByPublicId } from "@/services/order";
+import { format_price } from "@/lib/format";
 
 type PaymentContextType = {
   payment: Payment | undefined | null;
