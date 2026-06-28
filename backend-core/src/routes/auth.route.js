@@ -22,7 +22,6 @@ import {
     logout
 } from "../controllers/auth.controller.js";
 
-import { authenticate } from "../middlewares/auth.middleware.js";
 import {
   validate_forgot_password,
   validate_login,
