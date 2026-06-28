@@ -13,7 +13,7 @@ const serviceAccount =
 const app =
   getApps().length === 0
     ? initializeApp({
-        credential: cert(serviceAccount),
+        credential: cert(process.env.FIREBASE_SERVICE_ACCOUNT),
       })
     : getApps()[0];
 
