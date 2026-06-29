@@ -2,14 +2,42 @@
 import { useRouter } from "next/navigation";
 import CustomerNavbar from "../../components/navbar/customer_navbar";
 import { logout } from "@/services/auth";
+import { useState } from "react";
 
 export default function ProfilePage() {
   const router = useRouter()
+  const [loadingPasswordReset, setLoadingPasswordReset] = useState(false);
+  const [resetError, setResetError] = useState("");
   
   async function handleLogout() {
     await logout()
     router.push("/login")
   } 
+
+  async function handleChangePassword() {
+    setLoadingPasswordReset(true);
+    setResetError("");
+    try {
+      const { getMyProfile } = await import("@/services/user");
+      const profileRes = await getMyProfile();
+      const email = profileRes?.data?.email;
+      
+      if (!email) {
+        throw new Error("Email tidak ditemukan pada profil Anda.");
+      }
+
+      const { forgot_password } = await import("@/services/auth");
+      await forgot_password(email);
+
+      sessionStorage.setItem("reset_email", email);
+      router.push("/verify-reset-otp");
+    } catch (err: any) {
+      console.error("Change password error:", err);
+      setResetError(err.message || err.response?.data?.message || "Gagal memproses ganti password");
+    } finally {
+      setLoadingPasswordReset(false);
+    }
+  }
   
   return (
     <>
@@ -24,6 +52,16 @@ export default function ProfilePage() {
           </div>
         </header>
         <main className="flex-1 px-4 pt-1 pb-32 overflow-y-auto no-scrollbar max-w-md mx-auto w-full">
+          {resetError && (
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 rounded-xl p-3 text-xs font-semibold text-center">
+              {resetError}
+            </div>
+          )}
+          {loadingPasswordReset && (
+            <div className="mb-4 bg-emerald-50 border border-emerald-200 text-[#16C47F] rounded-xl p-3 text-xs font-semibold text-center animate-pulse">
+              Mengirim kode OTP ke email Anda...
+            </div>
+          )}
           <section className="mb-6">
             <h3 className="text-[10px] font-bold text-slate-400/50 dark:text-slate-500/50 uppercase tracking-[0.2em] mb-1.5 ml-1">Profile &amp; Security</h3>
             <div className="bg-white dark:bg-slate-800 rounded-[20px] overflow-hidden shadow-soft border border-slate-100 dark:border-slate-700/50">
@@ -39,12 +77,18 @@ export default function ProfilePage() {
                 </div>
                 <span className="material-icons-round text-slate-300/60 dark:text-slate-600">chevron_right</span>
               </button>
-              <button className="w-full h-14 px-4 flex items-center justify-between active:bg-slate-50 dark:active:bg-slate-700 transition-colors border-b border-slate-50 dark:border-slate-700/50">
+              <button 
+                onClick={handleChangePassword}
+                disabled={loadingPasswordReset}
+                className="w-full h-14 px-4 flex items-center justify-between active:bg-slate-50 dark:active:bg-slate-700 transition-colors border-b border-slate-50 dark:border-slate-700/50 disabled:opacity-50"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-[30px] h-[30px] rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300">
                     <span className="material-icons-round text-[18px]">lock</span>
                   </div>
-                  <span className="font-bold text-sm text-slate-900 dark:text-white">Change Password</span>
+                  <span className="font-bold text-sm text-slate-900 dark:text-white">
+                    {loadingPasswordReset ? "Processing..." : "Change Password"}
+                  </span>
                 </div>
                 <span className="material-icons-round text-slate-300/60 dark:text-slate-600">chevron_right</span>
               </button>

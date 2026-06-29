@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getMyProfile, updateMerchantProfile } from "@/services/user";
+import { supabase } from "@/lib/supabase";
 import AuthInputComponent from "@/components/auth/input_column";
 import DashboardBottomNav from "@/components/m/DashboardBottomNav";
 
@@ -28,7 +29,11 @@ export default function MerchantEditProfilePage() {
     pickup_open: "",
     pickup_close: "",
     max_prep_time: "",
+    profile_pic: "",
   });
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
 
   useEffect(() => {
     async function loadProfile() {
@@ -63,6 +68,7 @@ export default function MerchantEditProfilePage() {
             pickup_open: formatTime(merchant.pickup_open),
             pickup_close: formatTime(merchant.pickup_close),
             max_prep_time: merchant.max_prep_time ? String(merchant.max_prep_time) : "",
+            profile_pic: merchant.profile_pic || "",
           });
         }
       } catch (err: any) {
@@ -83,6 +89,42 @@ export default function MerchantEditProfilePage() {
     setError("");
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleDeleteImage = () => {
+    setImageFile(null);
+    setImagePreview("");
+    setFormData((prev) => ({
+      ...prev,
+      profile_pic: "",
+    }));
+  };
+
+  async function uploadMerchantImage(file: File) {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+    const filePath = `merchants/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("listing-images")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data } = supabase.storage.from("listing-images").getPublicUrl(filePath);
+    return data.publicUrl;
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.full_name.trim()) {
@@ -99,8 +141,14 @@ export default function MerchantEditProfilePage() {
     setSuccess(false);
 
     try {
+      let finalProfilePic = formData.profile_pic;
+      if (imageFile) {
+        finalProfilePic = await uploadMerchantImage(imageFile);
+      }
+
       const payload = {
         ...formData,
+        profile_pic: finalProfilePic || null,
         max_prep_time: formData.max_prep_time ? parseInt(formData.max_prep_time, 10) : null,
       };
       await updateMerchantProfile(payload);
@@ -141,6 +189,45 @@ export default function MerchantEditProfilePage() {
             ) : (
               <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                 
+                {/* Section: Store Image (CRUD) */}
+                <section className="border border-[#EAEAEA] rounded-3xl p-5 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] bg-white flex flex-col gap-4 items-center">
+                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1 self-start">Store Image</h3>
+                  <div className="relative w-28 h-28 rounded-full overflow-hidden border border-slate-200 shadow-inner">
+                    {imagePreview || formData.profile_pic ? (
+                      <img src={imagePreview || formData.profile_pic} alt="Store Image" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-slate-50 text-slate-400 dark:bg-slate-800">
+                        <span className="material-symbols-outlined text-[48px]">storefront</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2 w-full mt-2">
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById("store-image-input")?.click()}
+                      className="flex-1 bg-slate-50 border border-slate-200 text-slate-700 text-[12px] font-bold py-2 rounded-xl hover:bg-slate-100 transition-colors active:scale-[0.98] transition-transform"
+                    >
+                      {formData.profile_pic || imagePreview ? "Change Image" : "Upload Image"}
+                    </button>
+                    {(formData.profile_pic || imagePreview) && (
+                      <button
+                        type="button"
+                        onClick={handleDeleteImage}
+                        className="flex-1 bg-red-50 border border-red-200 text-red-600 text-[12px] font-bold py-2 rounded-xl hover:bg-red-100 transition-colors active:scale-[0.98] transition-transform"
+                      >
+                        Delete Image
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    id="store-image-input"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </section>
+
                 {/* Section: Personal Info */}
                 <section className="border border-[#EAEAEA] rounded-3xl p-5 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] bg-white flex flex-col gap-4">
                   <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Owner Information</h3>
