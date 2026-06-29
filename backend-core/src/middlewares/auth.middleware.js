@@ -40,7 +40,7 @@ export function authenticate(req, res, next) {
         ? "Token has expired — please log in again"
         : "Invalid token";
 
-    res.clearCookie("sb_access_token");
+    // res.clearCookie("sb_access_token");
     return res.status(401).json({ error: "Unauthorized", message });
   }
 }
