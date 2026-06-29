@@ -47,12 +47,15 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== "undefined") {
-      // Token expired or invalid — clear local state and redirect to login
-      // localStorage.removeItem("sb_access_token");
-
-      // nanti diubah menjadi ke /401
-      window.location.href = "/login";
+    if (typeof window !== "undefined" && error.response) {
+      const status = error.response.status;
+      if (status === 401) {
+        window.location.href = "/401";
+      } else if (status === 403) {
+        window.location.href = "/403";
+      } else if (status === 404) {
+        window.location.href = "/404";
+      }
     }
     return Promise.reject(error);
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import CustomerNavbar from "../../components/navbar/customer_navbar";
 import { getListingAll } from "@/services/listing";
 import { getMyProfile } from "@/services/user";
@@ -24,16 +25,38 @@ export default function HomePage() {
   // Favorite IDs set (public_id strings)
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [profilePic, setProfilePic] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+
+  const router = useRouter();
+
   useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("sb_access_token") : null;
+    if (token) {
+      setIsLoggedIn(true);
+      const storedRole = localStorage.getItem("role");
+      setRole(storedRole);
+    }
+
     getMyProfile()
       .then((res) => {
-        const name =
-          res?.data?.customer?.full_name ??
-          res?.data?.profile?.full_name ??
-          null;
-        setUserName(name);
+        if (res?.data) {
+          setIsLoggedIn(true);
+          const name =
+            res.data.customer?.full_name ??
+            res.data.profile?.full_name ??
+            null;
+          setUserName(name);
+          setRole(res.data.profile?.role ?? null);
+          setProfilePic(res.data.merchant?.profile_pic ?? null);
+        }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!token) {
+          setIsLoggedIn(false);
+        }
+      });
 
     // Load saved listing IDs for favorite state on cards
     getFavorites()
@@ -183,13 +206,28 @@ export default function HomePage() {
               </button>
             </div>
 
-            <button className="relative p-2 rounded-full bg-white dark:bg-card-dark shadow-sm border border-slate-100 dark:border-slate-700/50">
-              <span className="material-symbols-outlined text-slate-600 dark:text-slate-300">
-                notifications
-              </span>
-
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-card-dark"></span>
-            </button>
+            {isLoggedIn ? (
+              <button
+                onClick={() => router.push(role === "MERCHANT" ? "/m/store" : "/profile")}
+                className="relative w-10 h-10 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm shrink-0 flex items-center justify-center bg-white dark:bg-card-dark active:scale-95 transition-transform"
+              >
+                {profilePic ? (
+                  <img src={profilePic} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="material-symbols-outlined text-slate-600 dark:text-slate-300">
+                    person
+                  </span>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={() => router.push("/login")}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#16C47F] text-white hover:bg-[#16C47F]/90 transition-colors text-xs font-bold shadow-sm shrink-0 active:scale-95 transition-transform"
+              >
+                <span className="material-symbols-outlined text-[16px]">login</span>
+                <span>Login</span>
+              </button>
+            )}
           </div>
 
           <div className="flex flex-col gap-4">
