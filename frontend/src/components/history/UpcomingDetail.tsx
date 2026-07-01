@@ -1,4 +1,6 @@
-export function OrderDetailUpcomingStateScreen() {
+import { Order } from "@/types";
+
+export function OrderDetailUpcomingStateScreen({ order }: { order: Order | null | undefined }) {
     return (
       <>
         

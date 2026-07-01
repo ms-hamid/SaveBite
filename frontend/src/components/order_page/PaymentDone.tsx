@@ -1,4 +1,6 @@
-export default function PaymentDoneOrderPage() {
+import { Order } from "@/types";
+
+export default function PaymentDoneOrderPage({order}: {order: Order | null | undefined}) {
     return (
       <>
         <div className="relative flex min-h-screen w-full flex-col max-w-md mx-auto bg-white dark:bg-surface-dark shadow-xl overflow-hidden">

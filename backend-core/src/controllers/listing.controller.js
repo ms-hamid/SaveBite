@@ -19,10 +19,12 @@ export async function get_listings_handler(req, res) {
 
   const { lat, lng, radius_km, q, category, min_price, max_price } = req.query;
 
+  console.log("Received query parameters:", { lat, lng, radius_km, q, category, min_price, max_price });
+
   const listings = await get_active_listings({
     lat: lat ? Number(lat) : undefined,
     lng: lng ? Number(lng) : undefined,
-    radius_km: radius_km ? Number(radius_km) : 10,
+    radius_km: radius_km ? Number(radius_km) : 100,
     q: q || undefined,
     category: category || undefined,
     min_price: min_price ? Number(min_price) : undefined,

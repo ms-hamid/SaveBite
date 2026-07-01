@@ -101,13 +101,12 @@ export default function HomePage() {
           setLatitude(position.coords.latitude);
           setLongitude(position.coords.longitude);
           setLocationLoading(false);
-        
         },
         (error) => {
           console.error("GPS location permission or error:", error);
           setLocationLoading(false);
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 100000, maximumAge: 0 }
       );
     }
   }, []);
@@ -135,7 +134,7 @@ export default function HomePage() {
         setIsLoadingListings(false);
       }
     }
-
+    console.log("Fetching data with filters:", { latitude, longitude, filterCategory, filterMinPrice, filterMaxPrice });
     get_data();
   }, [latitude, longitude, filterCategory, filterMinPrice, filterMaxPrice]);
 
@@ -222,7 +221,7 @@ export default function HomePage() {
                     ? locationName
                     : locationLoading
                     ? "Locating..."
-                    : "Location not available"}
+                    : "unalocated"}
                 </span>
 
                 {/* <span className="material-symbols-outlined text-[18px] text-slate-400">

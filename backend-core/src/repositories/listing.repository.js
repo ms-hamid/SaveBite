@@ -27,7 +27,7 @@ export async function find_listing_by_id(listingId) {
 export async function find_active_listings({
   lat,
   lng,
-  radius_km = 100,
+  radius_km = 10000,
   limit = 50,
   q,
   category,
@@ -35,7 +35,11 @@ export async function find_active_listings({
   max_price,
 } = {}) {
 
-  if (lat != null && lng != null) {
+
+  console.log(lat, lng, radius_km, limit, q, category, min_price, max_price);
+  if (lat && lng) {
+
+    console.log("Using geo-filter with Haversine formula for listings search"); 
     const sqlFilters = [];
 
     if (q) {
@@ -105,10 +109,12 @@ export async function find_active_listings({
     )
     SELECT *
     FROM listings_with_distance
-    WHERE distance_km <= ${radius_km}
+    WHERE distance_km <= 1000
     ORDER BY distance_km ASC
     LIMIT ${limit};
   `);
+
+  console.log("Raw listings fetched:", rawListings.length);
 
     return rawListings.map(item => ({
       id: item.id,

@@ -24,8 +24,8 @@ export default function OrderDetailPage() {
     cancelled: <CancelledOrderPage order={order} />,
     completed: <CompletedOrderPage order={order} />,
     pending_payment: <PaymentOrderPage order={order}/>,
-    paid_reserved: <PaymentDoneOrderPage />,
-    preparing: <OrderDetailUpcomingStateScreen />,
+    paid_reserved: <PaymentDoneOrderPage order={order}/>,
+    preparing: <OrderDetailUpcomingStateScreen order={order}/>,
     ready_to_pickup: <ReadyOrderPage order_data={order} merchant_data={merchant}/>
   };
 
