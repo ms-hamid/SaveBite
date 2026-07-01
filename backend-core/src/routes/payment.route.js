@@ -6,12 +6,12 @@ import { authenticate } from "../middlewares/auth.middleware.js";
 
 const payment_route = Router();
 
-payment_route.post(
-    "/payments/qris",
-    authenticate,
-    authorize("CUSTOMER"),
-    asyncHandler(createQris)
-);
+// payment_route.post(
+//     "/payments/qris",
+//     authenticate,
+//     authorize("CUSTOMER"),
+//     asyncHandler(createQris)
+// );
 
 payment_route.post(
     "/",

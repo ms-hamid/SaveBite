@@ -39,8 +39,11 @@ export default function ForgotPasswordPage() {
 
     try {
       setIsLoading(true);
-      await forgot_password(email);
-
+      const result = await forgot_password(email);
+      
+      if (!result.success) {
+        throw new Error(result.message || "Terjadi kesalahan. Silakan coba lagi.");
+      }
       // Store email for next step
       sessionStorage.setItem("reset_email", email);
 
@@ -52,7 +55,7 @@ export default function ForgotPasswordPage() {
     } catch (error: any) {
       console.error("Forgot password error:", error);
       setErrors(
-        error?.response?.data?.message || "Terjadi kesalahan. Silakan coba lagi."
+        error.message || error?.response?.data?.message || "Terjadi kesalahan. Silakan coba lagi."
       );
     } finally {
       setIsLoading(false);

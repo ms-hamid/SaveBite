@@ -16,6 +16,14 @@ import { createCustomerData } from "../repositories/customer.repository.js";
 import { createMerchantData } from "../repositories/merchant.repository.js";
 import { validateEmail, validateOTP, validatePassword, validatePasswordMatch, validateResetToken } from "../validators/auth.validator.js";
 
+
+export async function is_email_unavailable(
+  email
+) {
+  const acc = await get_acc_by_email(email);
+  return acc ? false : true;
+}
+
 export async function completeRegister(
     payload
   ) {
@@ -163,6 +171,11 @@ export async function register_user(body, account_type = "CONSUMER") {
  */
 export async function get_token(body) {
   const acc = await get_acc_by_email(body.email);
+
+  
+  if (!acc) {
+      throw Error("Email is not regisered!");
+  }
 
   const password_match = await verify_password(body.password, acc.encrypted_password);
 
@@ -321,32 +334,32 @@ export async function forgot_password_service(email, supabaseClient) {
 
   try {
       const user = await get_acc_by_email(email);
+      console.log("userasdajsdlajsdioajsldijasidjasoildjasildjalisdjasildjalsi");
 
-      if (!user) {
-          return { success: true };
+      if (user === null) {
+        throw new Error("Email is not registered!");
       }
   } catch (err) {
-      console.error("Error checking email:", err);
-      return { success: true };
+    return { success: false, message: err.message };
   }
 
   try {
 
-      const { error } = await supabaseClient.auth.signInWithOtp({
-          email,
-          options: {
-              shouldCreateUser: false,
-          },
-      });
+      // const { error } = await supabaseClient.auth.signInWithOtp({
+      //     email,
+      //     options: {
+      //         shouldCreateUser: false,
+      //     },
+      // });
 
       if (error) {
-          console.error("Supabase OTP send error:", error);
+          throw new Error("Supabase OTP send error:", error);
       }
 
       return { success: true };
   } catch (err) {
       console.error("Error sending OTP:", err);
-      return { success: true };
+      return { success: false, message: err.message };
   }
 }
 /**

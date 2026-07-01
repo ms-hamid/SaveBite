@@ -24,7 +24,7 @@ startCronJobs();
 
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
-app.set("trust proxy", true);
+// app.set("trust proxy", true);
 app.use(cors({
   origin: [process.env.FRONTEND_URL || 'http://localhost:3000', "http://192.168.100.135:3000", "https://savebite-app.up.railway.app"],
   credentials: true,

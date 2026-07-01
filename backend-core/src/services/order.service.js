@@ -213,6 +213,10 @@ export async function pickup_order(
     await find_order_by_code(
       pickup_code,
     );
+  
+  console.log("order")
+  console.log(order)
+  console.log("order")
 
   if (!order) {
     throw createError(

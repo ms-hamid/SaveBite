@@ -17,17 +17,17 @@ export default function FoodCard({
   return (
     <Link
       href={`/product/${item.public_id}`}
-      className="bg-white dark:bg-card-dark rounded-xl p-3 shadow-sm border border-slate-100 dark:border-slate-800 active:scale-[0.99] transition-transform cursor-pointer block"
+      className="bg-white dark:bg-card-dark rounded-xl fill p-3 shadow-sm border border-slate-100 dark:border-slate-800 active:scale-[0.99] transition-transform cursor-pointer block"
     >
       <div className="relative h-40 w-full mb-3 overflow-hidden rounded-lg">
-        <Image
+        <img
           src={
             item.img_url && item.img_url.trim() !== ""
               ? item.img_url
               : "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"
           }
           alt={item.name ?? ""}
-          fill
+          // fill
           className="object-cover hover:scale-105 transition-transform duration-500"
         />
 

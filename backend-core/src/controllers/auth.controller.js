@@ -4,11 +4,13 @@ import {
     register_user,
     forgot_password_service,
     verify_reset_otp_service,
-    reset_password_service
+    reset_password_service,
+    is_email_unavailable
 } from "../services/auth.service.js";
 import { supabase } from "../lib/supabase.js";
 // import { kyc_status } from "@prisma/client";
 import { serializeBigInt } from "../utils/json.js";
+import { get_acc_by_email } from "../repositories/auth.repository.js";
 
 // export async function register(req, res) {
 //     try {
@@ -121,6 +123,12 @@ export async function forgot_password(req, res) {
     try {
         const { email } = req.body;
 
+        const check_email = await is_email_unavailable(email);
+
+        if (check_email) {
+            throw new Error("Email Not Found");
+        }
+
         // Call service with Supabase client
         const result = await forgot_password_service(email, supabase);
 
@@ -134,8 +142,8 @@ export async function forgot_password(req, res) {
         // Even on validation error, return same response
         console.error("Forgot password error:", error.message);
         return res.status(200).json({
-            success: true,
-            message: "OTP telah dikirim ke email jika terdaftar"
+            success: false,
+            message: error.message.includes("not found") ? "OTP telah dikirim ke email jika terdaftar" : error.message
         });
     }
 }
@@ -154,6 +162,12 @@ export async function verify_reset_otp(req, res) {
                 error: "validation_error",
                 message: "Email dan OTP wajib diisi"
             });
+        }
+
+        const is_email_exists = await get_acc_by_email(email);
+
+        if (!is_email_exists) {
+            throw new Error("Email Not Found");
         }
 
         // Call service with Supabase client

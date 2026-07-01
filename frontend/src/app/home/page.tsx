@@ -44,7 +44,7 @@ export default function HomePage() {
         if (res?.data) {
           setIsLoggedIn(true);
           const name =
-            res.data.customer?.full_name ??
+            res.data.user?.full_name ??
             res.data.profile?.full_name ??
             null;
           setUserName(name);
@@ -450,7 +450,7 @@ export default function HomePage() {
                 </span>
               </div>
               <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                No listings found
+                No listings found on your area
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 Try adjusting your search or category filter

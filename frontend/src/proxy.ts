@@ -10,9 +10,10 @@ export function proxy(request: NextRequest) {
   console.log(pathname)
 
   const token = request.cookies.get("sb_access_token")?.value;
-
+  console.log(token)
   if (!token) {
-    return NextResponse.redirect(new URL("/401", request.url));
+    // return NextResponse.redirect(new URL("/401", request.url));
+    return ;
   }
 
   
@@ -62,7 +63,7 @@ export function proxy(request: NextRequest) {
 
     return NextResponse.next();
   } catch (e){
-
+    return
     return NextResponse.redirect(new URL("/401", request.url));
   }
 }

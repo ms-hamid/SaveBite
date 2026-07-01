@@ -441,7 +441,7 @@ export async function find_order_by_code(
   order_code,
   public_id
 ) {
-  return prisma.order.findFirst({
+  return await prisma.order.findFirst({
     where: {
       order_code,
       order_code_active: true,

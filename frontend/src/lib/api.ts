@@ -20,6 +20,8 @@ import axios from "axios";
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://192.168.100.135:5000";
 
+  console.log("BACKEND_URL", process.env.NEXT_PUBLIC_BACKEND_URL)
+
 const api = axios.create({
   baseURL: BACKEND_URL,
   withCredentials: true,
@@ -32,6 +34,9 @@ const api = axios.create({
 // ── Request interceptor: inject JWT ───────────────────────────────────────────
 api.interceptors.request.use(
   (config) => {
+    console.log("BASE:", config.baseURL);
+    console.log("URL:", config.url);
+    console.log("FULL:", `${config.baseURL}${config.url}`);
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("sb_access_token");
       if (token) {
@@ -47,10 +52,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    console.log(typeof window !== "undefined", error.response)
     if (typeof window !== "undefined" && error.response) {
       const status = error.response.status;
       if (status === 401) {
-        window.location.href = "/401";
+        console.log(error.response)
+        // window.location.href = "/401";
       } else if (status === 403) {
         window.location.href = "/403";
       } else if (status === 404) {
@@ -60,6 +67,8 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+console.log("api.defaults.baseURL", api.defaults.baseURL)
 
 export default api;
 

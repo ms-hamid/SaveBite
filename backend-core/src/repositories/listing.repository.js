@@ -27,7 +27,7 @@ export async function find_listing_by_id(listingId) {
 export async function find_active_listings({
   lat,
   lng,
-  radius_km = 1000,
+  radius_km = 100,
   limit = 50,
   q,
   category,
@@ -68,47 +68,47 @@ export async function find_active_listings({
     // Haversine distance formula in PostgreSQL
     const rawListings = await prisma.$queryRaw(Prisma.sql`
       WITH listings_with_distance AS (
-  SELECT
-    l.id,
-    l.name,
-    l.original_price,
-    l.discount_price,
-    l.stock_total,
-    l.sold_total,
-    l.status,
-    l.open_time,
-    l.close_time,
-    l.merchant_id,
-    l.img_url,
-    l.public_id,
-    l.discount_percentage,
-    l.description,
-    m.merchant_name,
-    m.address,
-    m.category AS merchant_category,
-    m.latitude,
-    m.longitude,
-    ( 6371 * acos(
-        cos(radians(${lat})) * cos(radians(m.latitude)) *
-        cos(radians(m.longitude) - radians(${lng})) +
-        sin(radians(${lat})) * sin(radians(m.latitude))
-      )
-    ) AS distance_km
-  FROM public.listings l
-  JOIN public.merchants m ON m.user_id = l.merchant_id
-  WHERE
-    l.status = 'active'::public.listing_status
-    AND l.close_time > NOW()
-    AND l.stock_total > 0
-    AND l.deleted_at IS NULL
-    ${rawFilterSql}
-)
-SELECT *
-FROM listings_with_distance
-WHERE distance_km <= ${radius_km}
-ORDER BY distance_km ASC
-LIMIT ${limit};
-    `);
+      SELECT
+        l.id,
+        l.name,
+        l.original_price,
+        l.discount_price,
+        l.stock_total,
+        l.sold_total,
+        l.status,
+        l.open_time,
+        l.close_time,
+        l.merchant_id,
+        l.img_url,
+        l.public_id,
+        l.discount_percentage,
+        l.description,
+        m.merchant_name,
+        m.address,
+        m.category AS merchant_category,
+        m.latitude,
+        m.longitude,
+        ( 6371 * acos(
+            cos(radians(${lat})) * cos(radians(m.latitude)) *
+            cos(radians(m.longitude) - radians(${lng})) +
+            sin(radians(${lat})) * sin(radians(m.latitude))
+          )
+        ) AS distance_km
+      FROM public.listings l
+      JOIN public.merchants m ON m.user_id = l.merchant_id
+      WHERE
+        l.status = 'active'::public.listing_status
+        AND l.close_time > NOW()
+        AND l.stock_total > 0
+        AND l.deleted_at IS NULL
+        ${rawFilterSql}
+    )
+    SELECT *
+    FROM listings_with_distance
+    WHERE distance_km <= ${radius_km}
+    ORDER BY distance_km ASC
+    LIMIT ${limit};
+  `);
 
     return rawListings.map(item => ({
       id: item.id,

@@ -256,6 +256,7 @@ export async function unsuspendCustomer(customerId: string) {
 export async function getMyProfile() {
   try {
     const response = await api.get("/api/users/me");
+    console.log(response)
     return response.data;
   } catch (error) {
     console.error("Error fetching current user profile:", error);

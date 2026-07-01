@@ -63,7 +63,7 @@ export async function createPaymentTransaction(
         }
 
 
-        const amount = Number(order.total_amount) + 2000;
+        const amount = Number(order.total_amount) + Number(2000);
 
         const expiredAt = new Date(
             Date.now() + 15 * 60 * 1000
@@ -116,7 +116,7 @@ export async function createPaymentTransaction(
         const payment = await createPayment({
             order_id: order.id,
             customer_id: customerId,
-            amount,
+            amount: amount,
             payment_method: paymentMethod,
             time_limit: expiredAt,
             expired_at: expiredAt
@@ -127,6 +127,11 @@ export async function createPaymentTransaction(
         let transaction;
         let qris_url = null;
         let va_number = null;
+
+        console.log("amount")
+        console.log(amount)
+        console.log("amount")
+
 
         if (isQris) {
             const parameter = {
@@ -218,8 +223,6 @@ export async function updatePaymentStatus(data) {
     transaction_status,
     fraud_status
   } = data;
-
-
 
   if (
     transaction_status === "settlement" ||

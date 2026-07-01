@@ -16,6 +16,7 @@ import { serializeBigInt } from "../utils/json.js";
 
 /** GET /listing?lat=&lng=&radius_km=&q=&category=&min_price=&max_price= */
 export async function get_listings_handler(req, res) {
+
   const { lat, lng, radius_km, q, category, min_price, max_price } = req.query;
 
   const listings = await get_active_listings({

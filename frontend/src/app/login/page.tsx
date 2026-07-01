@@ -74,10 +74,10 @@ export default function LoginPage() {
         console.error("Failed to enable push notifications on login:", err);
       }
 
-      if (login_data.role === "CUSTOMER") router.push("/home");
-      else if (login_data.role === "MERCHANT") router.push("/m");
-      else router.push("/admin");
-      
+        if (login_data.role === "CUSTOMER") router.push("/home");
+        else if (login_data.role === "MERCHANT") router.push("/m");
+        else router.push("/admin");
+        
     } catch (error: any) {
       console.log(error)
       setErrors((prev) => ({

@@ -10,6 +10,7 @@
  * All business logic lives in order.service.js.
  */
 
+import { update_merchant_virtual_balance } from "../repositories/withdrawal.repository.js";
 import {
   cancel_order_svc,
   change_order_status,
@@ -21,6 +22,7 @@ import {
   get_order,
   pickup_order,
 } from "../services/order.service.js";
+import { get_merchant_virtual_balance_svc } from "../services/withdrawal.service.js";
 import { serializeBigInt } from "../utils/json.js";
 
 /**
@@ -156,13 +158,19 @@ export async function pickup_order_handler(
     const { pickup_code, order_public_id } =
       req.body;
 
+      
     const order =
-      await pickup_order(
-        pickup_code,
-        merchant_id,
-        order_public_id
-      );
+    await pickup_order(
+      pickup_code,
+      merchant_id,
+      order_public_id
+    );
+    
+    const merchant = await get_merchant_virtual_balance_svc(merchant_id)
 
+    const new_vb_total = Number(order.total_amount) + Number(merchant.virtual_balance);
+    await update_merchant_virtual_balance(merchant_id, new_vb_total);
+      
     return res.status(200).json({
       success: true,
       message:
