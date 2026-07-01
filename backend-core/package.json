@@ -20,14 +20,15 @@
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "prisma": "^6.19.3",
     "firebase-admin": "^14.0.0",
     "jsonwebtoken": "^9.0.3",
     "midtrans-client": "^1.4.3",
-    "node-cron": "^4.4.1"
+    "node-cron": "^4.4.1",
+    "prisma": "^6.19.3"
   },
   "devDependencies": {
     "@prisma/client": "^6.19.3",
+    "@types/cookie-parser": "^1.4.10",
     "@types/node": "^20.19.43",
     "@vitest/coverage-v8": "^4.1.8",
     "bcryptjs": "^2.4.3",

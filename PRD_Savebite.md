@@ -55,7 +55,7 @@ SaveBite adalah platform Progressive Web App (PWA) yang bertujuan untuk menyelam
 ### 6. Modul Sistem Pendukung Keputusan Berbasis Kecerdasan Buatan (AI)
 - **FR-AI-01 (Data Ingestion & Aggregation):** Sistem secara otomatis mengagregasikan log transaksi harian (volume produksi dan penjualan) dari basis data PostgreSQL menjadi format deret waktu (*time-series*). Kondisi akhir: Terbentuknya dataset harian terstruktur (.csv/dataframe) yang siap dikonsumsi oleh *pipeline* kecerdasan buatan.
 - **FR-AI-02 (Foresight Forecasting Engine):** Sistem mengeksekusi model *hybrid Two-Stage Stacking* (kombinasi Prophet untuk tren/musiman dan XGBoost untuk koreksi residu non-linear). Kondisi akhir: Menghasilkan nilai inferensi kuantitatif berupa estimasi angka surplus makanan untuk hari berikutnya (T+1).
-- **FR-AI-03 (Predictive Dashboard & Recommendation):** Sistem memvisualisasikan hasil peramalan dalam bentuk grafik tren interaktif disertai kalkulasi rekomendasi batas aman pengurangan volume produksi harian. Kondisi akhir: Mitra UMKM dapat melihat rekomendasi aksi operasional konseptual secara *real-time* pada halaman dasbor utama.
+- **FR-AI-03 (Predictive Dashboard & Recommendation):** Sistem memvisualisasikan hasil peramalan dalam bentuk indikator cerdas (*metric cards*) yang menampilkan estimasi surplus hari ini, tingkat kepercayaan AI (*confidence level*), serta saran operasional spesifik berupa estimasi rentang waktu lonjakan permintaan (*peak demand*) dan waktu publikasi surplus terbaik (*best publish time*). Kondisi akhir: Mitra UMKM dapat melihat rekomendasi aksi operasional konseptual secara *real-time* pada halaman dasbor utama tanpa perlu menganalisis grafik kompleks.
 - **FR-AI-04 (Human-in-the-Loop Feedback):** Sistem menyediakan fasilitas bagi mitra untuk memasukkan data realitas volume surplus aktual jika terjadi deviasi (*error*) yang signifikan pada hasil prediksi. Kondisi akhir: Data koreksi disimpan kembali ke dalam basis data sebagai *new training set* untuk memicu proses penalaan ulang (*retraining*) model secara periodik.
 
 ### 7. Modul Interaksi & Ulasan (Konsumen & Merchant)
@@ -185,7 +185,15 @@ savebite-monorepo/                          # Root workspace — npm concurrentl
 │       ├── repositories/                   # Data access layer (Prisma queries)
 │       │   └── auth.repository.js          # User lookup, upsert operations
 │       ├── routes/                         # Express Router definitions
-│       │   └── auth.route.js               # POST /auth/login, /auth/register
+│       │   ├── auth.route.js               # POST /auth/login, /auth/register
+│       │   ├── consumer/
+│       │   │   ├── order.route.js          # POST /order, GET /order, PATCH /order/:id/*
+│       │   │   ├── favorite.route.js       # GET/POST /favorite
+│       │   │   └── review.route.js         # POST /review
+│       │   └── merchant/
+│       │       ├── listing.route.js        # CRUD /listing
+│       │       ├── withdrawal.route.js     # GET/POST /withdrawal
+│       │       └── foresight.route.js      # GET /api/merchant/foresight — AI proxy ← NEW
 │       ├── middlewares/                    # Express middleware
 │       │   ├── (auth.middleware.js)        # JWT verification guard — TODO
 │       │   ├── (error.middleware.js)       # Global error handler — TODO
@@ -463,16 +471,19 @@ sequenceDiagram
     actor Merchant
     participant Frontend as Next.js Frontend
     participant Core as backend-core (Express)
+    participant DB as PostgreSQL (Prisma)
     participant AI as backend-ai (FastAPI)
 
     Merchant->>Frontend: Open AI Foresight Dashboard
-    Frontend->>Core: GET /api/merchants/me/sales-history
-    Core-->>Frontend: Historical sales data (JSON)
-    Frontend->>AI: POST /api/v1/forecast/predict { merchant_id, history[] }
-    AI->>AI: Stage 1 — Prophet: fit trend & seasonality
-    AI->>AI: Stage 2 — XGBoost: correct residuals
-    AI-->>Frontend: ForecastResponse { forecast[], model_used }
-    Frontend->>Merchant: Render T+1 surplus curve chart
+    Frontend->>Core: GET /api/merchant/foresight (JWT cookie)
+    Core->>DB: SELECT ai_feature_history WHERE merchant_id = req.user.id (last 30 days)
+    DB-->>Core: [ { feature_date, sold_qty }, ... ]
+    Core->>AI: POST /api/v1/forecast/predict { merchant_id, history[], production_qty }
+    AI->>AI: Stage 1 — Prophet: fit trend & seasonality (lru_cache singleton)
+    AI->>AI: Stage 2 — XGBoost: correct residuals using [day_of_week, is_weekend, rain=0, promo=0]
+    AI-->>Core: { status, data: { summary, chart_data[7] } }
+    Core-->>Frontend: 200 { status, data } (verbatim pass-through)
+    Frontend->>Merchant: Render KPI cards + 7-day surplus chart
 ```
 
 ### 8.3 — QR Verification / Closed-Loop Flow
@@ -554,6 +565,7 @@ sequenceDiagram
 | `GET` | `/listing/:id` | ❌ | — | Get single listing with merchant info |
 | `POST` | `/listing` | ✅ JWT | `MERCHANT` | Publish new surplus listing |
 | `PATCH` | `/listing/:id` | ✅ JWT | `MERCHANT` | Update own listing (validates ownership) |
+| `GET` | `/api/merchant/foresight` | ✅ JWT | `MERCHANT` | AI proxy — fetch 30d history from DB, POST to FastAPI, return forecast JSON |
 | `POST` | `/order` | ✅ JWT | `CONSUMER` | Create order with **pessimistic stock lock** (Serializable tx) |
 | `GET` | `/order` | ✅ JWT | `CONSUMER` | List all orders for the authenticated customer |
 | `GET` | `/order/:id` | ✅ JWT | `CONSUMER`/`ADMIN` | Get order detail (includes payment + listing) |
@@ -597,6 +609,15 @@ The Axios singleton in `frontend/src/lib/api.ts` injects this header automatical
 ### frontend/.env.local
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `NEXT_PUBLIC_BACKEND_URL` | ✅ | Express API base URL (default: `http://localhost:5000`) |
-| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase project URL (for auth session reading only) |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Supabase anon key (public, read-only auth operations) |
+### backend-ai/.env
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ENVIRONMENT` | ✅ | `development` \| `production`. Controls whether `/docs` Swagger UI is exposed |
+| `BACKEND_CORE_URL` | ✅ | Express backend URL for internal calls (default: `http://localhost:5000`) |
+| `ALLOWED_ORIGINS` | ✅ | JSON array of CORS origins (must include frontend + backend-core URLs) |
+| `PROPHET_MODEL_PATH` | ✅ | Relative/absolute path to `SaveBite_Prophet_Final.joblib` |
+| `XGBOOST_MODEL_PATH` | ✅ | Relative/absolute path to `SaveBite_XGBoost_Final.joblib` |
+| `MODEL_CACHE_DIR` | ⚠️ | Directory for retrained model persistence (default: `./data/processed`) |
+| `DATABASE_URL` | ⚠️ | PostgreSQL connection string (asyncpg driver) |
+| `HOST` | ⚠️ | Uvicorn bind host (default: `0.0.0.0`) |
+| `PORT` | ⚠️ | Uvicorn bind port (default: `8000`) |

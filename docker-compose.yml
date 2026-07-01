@@ -43,6 +43,10 @@ services:
       ALLOWED_ORIGINS: '["http://localhost:3000","http://frontend:3000","http://backend-core:5000"]'
       HOST: "0.0.0.0"
       PORT: "8000"
+      ENVIRONMENT: "development"
+      # Model file paths — .joblib files are COPYed into the image by Dockerfile
+      PROPHET_MODEL_PATH: "./SaveBite_Prophet_Final.joblib"
+      XGBOOST_MODEL_PATH: "./SaveBite_XGBoost_Final.joblib"
     volumes:
       # ── Source hot-reload: map local code into the container ────────────────
       - ./backend-ai/app:/app/app
@@ -50,6 +54,7 @@ services:
       # ── ML model cache persistence across container restarts ────────────────
       # Mount a named volume so trained models survive `docker compose restart`.
       - ai_model_cache:/app/data/processed
+
     networks:
       - savebite-net
     healthcheck:
