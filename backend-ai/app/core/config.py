@@ -14,9 +14,14 @@ class Settings(BaseSettings):
 
     ENVIRONMENT: str = "development"
     DATABASE_URL: str = "postgresql+asyncpg://user:pass@localhost:5432/savebite"
-    BACKEND_CORE_URL: str = "http://localhost:4000"
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
+    BACKEND_CORE_URL: str = "http://localhost:5000"
+    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5000"]
     MODEL_CACHE_DIR: str = "./data/processed"
+
+    # ── ML model file paths ───────────────────────────────────────────────────
+    # Relative paths are resolved from the working directory (backend-ai/).
+    PROPHET_MODEL_PATH: str = "./SaveBite_Prophet_Final.joblib"
+    XGBOOST_MODEL_PATH: str = "./SaveBite_XGBoost_Final.joblib"
 
 
 settings = Settings()
