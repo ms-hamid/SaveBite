@@ -17,6 +17,8 @@ export default function HomePage() {
   const [locationLoading, setLocationLoading] = useState(false);
   const [isLoadingListings, setIsLoadingListings] = useState(true);
   const [userName, setUserName] = useState<string | null>(null);
+  const [locationName, setLocationName] = useState<string | null>(null);
+
   // Filter state
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [filterMinPrice, setFilterMinPrice] = useState("");
@@ -67,7 +69,30 @@ export default function HomePage() {
       .catch(() => {});
   }, []);
 
+  
   useEffect(() => {
+    async function fetchLocationName() {
+      if (latitude !== null && longitude !== null) {
+        try {
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
+          const data = await response.json();
+          if (data && data.address) {
+            const { city, town, village, state, country } = data.address;
+            const location = city || town || village || state || country || "Unknown location";
+            setLocationName(location);
+          }
+        } catch (error) {
+          console.error("Failed to fetch location name:", error);
+        }
+      }
+    }
+
+    fetchLocationName();
+  }, [latitude, longitude]);
+
+
+  useEffect(() => {
+
     // Attempt to get user GPS coordinates on mount
     if (typeof window !== "undefined" && navigator.geolocation) {
       setLocationLoading(true);
@@ -76,6 +101,7 @@ export default function HomePage() {
           setLatitude(position.coords.latitude);
           setLongitude(position.coords.longitude);
           setLocationLoading(false);
+        
         },
         (error) => {
           console.error("GPS location permission or error:", error);
@@ -175,7 +201,6 @@ export default function HomePage() {
     filteredItems.sort((a, b) => new Date(a.close_time ?? "").getTime() - new Date(b.close_time ?? "").getTime());
   }
 
-
   return (
     <main className="min-h-screen bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased selection:bg-primary/30">
       <div className="flex flex-col w-full max-w-md mx-auto bg-background-light dark:bg-background-dark pb-[88px]">
@@ -193,11 +218,11 @@ export default function HomePage() {
                 </span>
 
                 <span>
-                  {latitude && longitude
-                    ? `GPS: ${latitude.toFixed(2)}, ${longitude.toFixed(2)}`
+                  {locationName
+                    ? locationName
                     : locationLoading
                     ? "Locating..."
-                    : "Batam, ID"}
+                    : "Location not available"}
                 </span>
 
                 {/* <span className="material-symbols-outlined text-[18px] text-slate-400">
