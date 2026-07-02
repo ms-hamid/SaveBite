@@ -36,3 +36,24 @@ export function get_close_text(close_time: string) : string {
 
   return `Ends in ${diff_hour}h ${mnt_left}m`;
 }
+
+export function get_remaining_time(target_time: string): string {
+  const now = new Date();
+  const target = new Date(target_time);
+
+  const diff_ms = target.getTime() - now.getTime();
+  const diff_total_mnt = Math.floor(diff_ms / 1000 / 60);
+
+  if (diff_total_mnt <= 0) {
+    return "Pickup closed";
+  }
+
+  const hours = Math.floor(diff_total_mnt / 60);
+  const minutes = diff_total_mnt % 60;
+
+  if (hours === 0) {
+    return `Pickup in ${minutes}m`;
+  }
+
+  return `[Pickup in ${hours}h ${minutes}m`;
+}

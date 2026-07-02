@@ -30,7 +30,7 @@ export default function OrderQRPage() {
                   alt="QR Code"
                   width={256}
                   height={256}
-                  className="w-70 h-70"
+                  className="w-55 h-55"
                 />
               </div>
             </div>

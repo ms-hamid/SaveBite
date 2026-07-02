@@ -7,55 +7,70 @@ import { useListing } from "../../../components/providers/ListingProvider";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import { create_order } from "@/services/order";
 import { get_close_text } from "@/lib/format";
+import ListingUnavailableAlert from "@/components/ListingUnavailableAlert";
 
 export default function ListingDetailPage() {
   const params = useParams();
   const router = useRouter();
 
   const [isFavorite, setIsFavorite] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertVariant, setAlertVariant] = useState<"sold_out" | "expired" | "unavailable">("sold_out");
+  const [reserveError, setReserveError] = useState<string | null>(null);
 
-  const {listing, is_loading} = useListing();
-  const stockLeft = (listing?.stock_total ?? 0 )- (listing?.sold_total ?? 0);
+  const { listing, is_loading } = useListing();
+  const stockLeft = (listing?.stock_total ?? 0) - (listing?.sold_total ?? 0);
+  const isExpired = listing?.close_time ? new Date(listing.close_time) < new Date() : false;
+  const isSoldOut = stockLeft <= 0;
+  const isUnavailable = isExpired || isSoldOut;
+
+  // Auto-show alert when listing loads and is unavailable
+  useEffect(() => {
+    if (!is_loading && listing) {
+      if (isExpired) {
+        setAlertVariant("expired");
+        setAlertOpen(true);
+      } else if (isSoldOut) {
+        setAlertVariant("sold_out");
+        setAlertOpen(true);
+      }
+    }
+  }, [is_loading, listing, isExpired, isSoldOut]);
 
   function handleFavorite() {
     setIsFavorite((prev) => !prev);
   }
 
-  console.log(listing)
-
-  /**
-   * handleReserve — creates an order via Express backend.
-   *
-   * The backend atomically:
-   *  1. Acquires SELECT FOR UPDATE lock on the listing (Serializable tx)
-   *  2. Validates stock availability
-   *  3. Decrements stock
-   *  4. Inserts the order record
-   *
-   * No stock management or payment creation happens on the frontend.
-   */
   async function handleReserve() {
-    // Ensure user is authenticated (JWT must exist in localStorage)
-    // const token = typeof window !== "undefined" ? localStorage.getItem("sb_access_token") : null;
-  
+    // Guard: show alert if unavailable instead of attempting order
+    if (isSoldOut) {
+      setAlertVariant("sold_out");
+      setAlertOpen(true);
+      return;
+    }
+    if (isExpired) {
+      setAlertVariant("expired");
+      setAlertOpen(true);
+      return;
+    }
 
+    setReserveError(null);
     try {
       const data = await create_order(
         listing?.public_id,
         qty,
       );
-      console.log(data)
-
-      // Navigate to payment page using the order's public_id from the response
       router.push(`/order/${data.data.public_id}/serve`);
     } catch (err) {
-      console.error("Reserve failed:", getApiErrorMessage(err));
-      // TODO: show user-facing error toast
+      const msg = getApiErrorMessage(err);
+      console.error("Reserve failed:", msg);
+      setReserveError(msg);
     }
   }
 
   function handleDirections() {
-    router.push(`/merchant/${params.public_id}/nav`)
+    // Use merchant's user_id from the listing relation
+    router.push(`/merchant/${listing?.merchant_id}/nav`);
   }
 
   const [qty, setQty] = useState(1);
@@ -326,7 +341,12 @@ export default function ListingDetailPage() {
 
     <button
       onClick={handleReserve}
-      className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold h-12 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+      disabled={isUnavailable}
+      className={`flex-1 font-bold h-12 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 ${
+        isUnavailable
+          ? "bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed shadow-none"
+          : "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20 active:scale-[0.98]"
+      }`}
     >
       <span>Reserve & Pay</span>
 
@@ -344,6 +364,12 @@ export default function ListingDetailPage() {
             font-family: "Plus Jakarta Sans", sans-serif;
           }
         `}</style>
+        
+        <ListingUnavailableAlert 
+          isOpen={alertOpen} 
+          variant={alertVariant} 
+          onClose={() => setAlertOpen(false)} 
+        />
       </main>
     </>
   );

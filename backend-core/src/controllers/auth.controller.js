@@ -12,21 +12,6 @@ import { supabase } from "../lib/supabase.js";
 import { serializeBigInt } from "../utils/json.js";
 import { get_acc_by_email } from "../repositories/auth.repository.js";
 
-// export async function register(req, res) {
-//     try {
-//         const new_user = await register_user(req.body);
-//         return res.status(201).json({
-//             user: new_user,
-//             message: "Berhasil mendaftarkan akun"
-//         })
-//     } catch (e) {
-//         return res.status(500).json({
-//             error: e.message,
-//             message: "Internal Server Error"
-//         });
-//     }
-// }
-
 
 export async function register(
     req,
@@ -81,8 +66,8 @@ export async function login(req, res) {
 
         res.cookie("sb_access_token", token, {
             httpOnly: true,
-            secure: true,
-            sameSite: "none",
+            secure: false, // Set to true in production with HTTPS
+            sameSite: "lax",
             maxAge: 24 * 60 * 60 * 1000,
         });
 

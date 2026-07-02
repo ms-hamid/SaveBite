@@ -22,22 +22,21 @@ export default function PaymentDoneOrderPage({order}: {order: Order | null | und
               <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-5 border border-slate-100 dark:border-white/10 shadow-sm">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">Order #SB-1042</p>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Artisan Pastry Bag</h3>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">Order #{order?.public_id?.substring(0, 8).toUpperCase()}...</p>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">{order?.listing?.name}</h3>
                   </div>
-                  <div className="h-10 w-10 bg-slate-200 dark:bg-slate-700 rounded-lg bg-cover bg-center" data-alt="Close up of artisanal bread" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCq48ESxPWP6UKYKU68nYg6VmlTmj3TfaLaRusMnORN-mFBJ_74DBgwiviyEC5_UmyGg5IECYOQaWdDZvJcqIgzij3RUkC5aKUlc3kCQiZExTgmTqJpDt5wCBoY9Gio5obIY2ftR14vl1Y3uI6264gvsGw0IXdc9wW3thzy47oC-qgKXhQCWT87U-7-FQMEqTAZkYECYZFXyS6_eLJFvH5cB4KUvxHQDvMcHfoNnBvF8Sn5WTSohzxY08dAnUsZkeSBC1XRgGJMw1Yx")'}} />
+                  <div className="h-10 w-10 bg-slate-200 dark:bg-slate-700 rounded-lg bg-cover bg-center" style={{backgroundImage: `url("${order?.listing?.img_url ?? 'https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg'}")`}} />
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
                     <span className="material-symbols-outlined text-primary text-[20px]">schedule</span>
                     <div className="flex flex-col">
-                      <span className="font-medium">Pickup: 18:00 â€“ 19:30</span>
-                      <span className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-0.5">Reserved until 19:30 today</span>
+                      <span className="font-medium">Pickup time limits apply</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
                     <span className="material-symbols-outlined text-primary text-[20px]">storefront</span>
-                    <span className="font-medium">123 Baker Street</span>
+                    <span className="font-medium">{order?.merchant?.address || "Address not provided"}</span>
                   </div>
                 </div>
               </div>
@@ -46,10 +45,10 @@ export default function PaymentDoneOrderPage({order}: {order: Order | null | und
               <div className="flex flex-col items-center bg-white dark:bg-white/5 rounded-2xl p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] dark:shadow-none border border-slate-100 dark:border-white/10">
                 <p className="text-slate-900 dark:text-white font-bold mb-2 text-center">Show this QR code at pickup</p>
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 bg-slate-100 dark:bg-white/10 px-3 py-1 rounded-full">
-                  Valid for pickup in <span className="text-primary font-bold tabular-nums">02:14:35</span>
+                  Valid for pickup at <span className="text-primary font-bold tabular-nums">{new Date(order?.merchant?.pickup_open ?? "").toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})}</span>
                 </p>
                 <div className="bg-white p-3 rounded-xl border border-slate-100 mb-2 w-full max-w-[276px] aspect-square flex items-center justify-center">
-                  <img alt="Order QR Code" className="w-full h-full object-contain mix-blend-multiply opacity-90" data-alt="QR Code for order redemption" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBcGAbDPFEHYNYspVge9L1Lzuzvm0rbfFS_AO6FTTZMo09qkPv-9kGFbnY2a18S_K9AwwWNw6ZDV75_U8GQUHAi_pfPxHr-wuFt7a7HIf2Ud5J7UkyjI0sTMXRSDgeTOCluvPszBMF74Tiz3euJCDkLCx89tMNyIhWiE9Gci9B4Kxgy399nhIWFXDSMfUZ8FLs1r4SuC3auAHQGtkSC7h_hqoxiu7Mjll0OMbreqBNHxpCIshAyjb9wp3PHPpPYuLBcWosFEtqSdni8" />
+                  <img alt="Order QR Code" className="w-full h-full object-contain mix-blend-multiply opacity-90" src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${order?.order_code}`} />
                 </div>
                 <p className="text-[10px] text-slate-400 dark:text-slate-500 mb-6 flex items-center gap-1">
                   <span className="material-symbols-outlined text-[12px]">refresh</span>

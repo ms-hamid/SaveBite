@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 
 export async function generateDailyAiFeature() {
 
+    try {
 
     const today = new Date();
 
@@ -331,7 +332,10 @@ export async function generateDailyAiFeature() {
 
 
     console.log(
-        "AI feature history generated"
+        `[CRON] generateDailyAiFeature successfully generated history for ${listings.length} listings.`
     );
 
+    } catch (error) {
+        console.error("[CRON] generateDailyAiFeature error:", error);
+    }
 }

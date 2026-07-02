@@ -3,6 +3,7 @@
 import { core_api } from "../lib/midtrans/snap.js";
 import { createPayment, get_last_payment_by_order_id, get_payment_by_id, update_payment_by_order_id, update_payment_by_transaction_id, updatePayment } from "../repositories/payment.repository.js";
 import { find_order_by_id, update_order_status } from "../repositories/order.repository.js";
+import { notify_customer_order_status } from "./notification.service.js";
 
 
 const FEE = 2000;
@@ -242,6 +243,14 @@ export async function updatePaymentStatus(data) {
     await updatePayment(payment_id, {
         pg_status: "settlement",
     })
+    
+    if (order && order.customer_id) {
+      notify_customer_order_status(
+        order.customer_id,
+        "Pembayaran Berhasil! 🎉",
+        "QR Code untuk pengambilan pesanan Anda sudah diterbitkan. Silakan tunjukkan QR Code ke kasir."
+      );
+    }
   }
 
 

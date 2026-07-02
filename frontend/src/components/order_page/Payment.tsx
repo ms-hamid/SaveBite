@@ -59,7 +59,7 @@ export default function PaymentOrderPage({order}: {order: Order | undefined | nu
                   <div className="flex flex-col gap-1 p-5 pb-5">
                     <span className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Virtual Account Number</span>
                     <div className="flex items-center justify-between gap-3 mt-1">
-                      <div className="font-mono text-2xl font-black tracking-widest text-slate-900 dark:text-white group-active:scale-[0.99] transition-transform">8800 1234 5678 9012</div>
+                      <div className="font-mono text-2xl font-black tracking-widest text-slate-900 dark:text-white group-active:scale-[0.99] transition-transform">{order?.payment?.midtrans_trx_id || "-"}</div>
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-600 group-hover:bg-primary/10 group-hover:text-primary transition-colors dark:bg-slate-700 dark:text-slate-300">
                         <span className="material-symbols-outlined text-xl copy-icon">content_copy</span>
                         <span className="material-symbols-outlined text-xl check-icon text-green-600 dark:text-green-400 hidden">check</span>
@@ -71,7 +71,7 @@ export default function PaymentOrderPage({order}: {order: Order | undefined | nu
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-500 dark:text-slate-400">Total Payment</span>
                     <div className="flex flex-col items-end">
-                      <span className="text-2xl font-extrabold text-slate-900 dark:text-white">Rp49.900</span>
+                      <span className="text-2xl font-extrabold text-slate-900 dark:text-white">{order?.formatted?.total_amount || order?.total_amount}</span>
                       <span className="text-[10px] text-slate-400 dark:text-slate-500">Include unique code if any</span>
                     </div>
                   </div>
@@ -116,8 +116,8 @@ export default function PaymentOrderPage({order}: {order: Order | undefined | nu
                       <li>Insert your ATM card and enter your PIN.</li>
                       <li>Select <strong>Other Transactions</strong> &gt; <strong>Transfer</strong>.</li>
                       <li>Select <strong>To BCA Virtual Account</strong>.</li>
-                      <li>Enter the Virtual Account number: <strong className="text-slate-900 dark:text-slate-200 select-all">8800 1234 5678 9012</strong>.</li>
-                      <li>Enter the exact amount: <strong>Rp49.900</strong>.</li>
+                      <li>Enter the Virtual Account number: <strong className="text-slate-900 dark:text-slate-200 select-all">{order?.payment?.midtrans_trx_id || "-"}</strong>.</li>
+                      <li>Enter the exact amount: <strong>{order?.formatted?.total_amount || order?.total_amount}</strong>.</li>
                       <li>Confirm payment details and finish transaction.</li>
                     </ol>
                   </div>
@@ -134,7 +134,7 @@ export default function PaymentOrderPage({order}: {order: Order | undefined | nu
                     <ol className="list-decimal space-y-3 pl-4 marker:text-slate-400 marker:font-medium">
                       <li>Log in to your m-BCA application.</li>
                       <li>Select <strong>m-Transfer</strong> &gt; <strong>BCA Virtual Account</strong>.</li>
-                      <li>Input Virtual Account number: <strong className="text-slate-900 dark:text-slate-200 select-all">8800 1234 5678 9012</strong>.</li>
+                      <li>Input Virtual Account number: <strong className="text-slate-900 dark:text-slate-200 select-all">{order?.payment?.midtrans_trx_id || "-"}</strong>.</li>
                       <li>Check details and enter your m-PIN.</li>
                       <li>Wait for successful transaction confirmation.</li>
                     </ol>
@@ -153,7 +153,7 @@ export default function PaymentOrderPage({order}: {order: Order | undefined | nu
                       <li>Log in to KlikBCA Individual.</li>
                       <li>Select <strong>Fund Transfer</strong> &gt; <strong>Transfer to BCA Virtual Account</strong>.</li>
                       <li>Enter the Virtual Account number.</li>
-                      <li>Confirm the payment amount matches <strong>Rp49.900</strong>.</li>
+                      <li>Confirm the payment amount matches <strong>{order?.formatted?.total_amount || order?.total_amount}</strong>.</li>
                       <li>Authorize with KeyBCA.</li>
                     </ol>
                   </div>

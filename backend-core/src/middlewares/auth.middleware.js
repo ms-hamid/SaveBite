@@ -18,6 +18,8 @@ import { verify_token } from "../lib/jwt.js";
 export function authenticate(req, res, next) {
   const token = req.cookies.sb_access_token;
 
+  console.log("token",token)
+
   if (!token) {
     return res.status(401).json({
       error: "Unauthorized",

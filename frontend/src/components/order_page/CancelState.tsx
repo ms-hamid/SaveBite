@@ -29,7 +29,7 @@ export default function CancelledOrderPage({order}: {order: Order | undefined | 
               Order Cancelled
             </h1>
             <p className="text-slate-600 dark:text-slate-300 text-sm font-medium leading-relaxed max-w-[280px] mx-auto">
-              {order?.status}asdasdasdasd
+              {order?.status || "Cancelled"}
             </p>
           </div>
         </div>

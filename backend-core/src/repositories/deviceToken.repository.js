@@ -68,3 +68,22 @@ export async function get_customer_device_tokens() {
 
   return result.map((r) => r.token).filter(Boolean);
 }
+
+/**
+ * Fetch all device tokens belonging to a specific user.
+ * 
+ * @param {string} userId
+ * @returns {Promise<string[]>} List of FCM tokens
+ */
+export async function get_user_device_tokens(userId) {
+  const result = await prisma.device_tokens.findMany({
+    where: {
+      user_id: userId,
+    },
+    select: {
+      token: true,
+    },
+  });
+
+  return result.map((r) => r.token).filter(Boolean);
+}

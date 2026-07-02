@@ -16,6 +16,8 @@ export async function expirePendingPayments() {
             }
         });
 
+        console.log(`[CRON] expirePendingPayments successfully cancelled ${result.count} payments.`);
+
     } catch (error) {
         console.error(
             "[CRON] expirePendingPayments error:",

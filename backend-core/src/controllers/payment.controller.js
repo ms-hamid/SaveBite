@@ -1,5 +1,6 @@
 // controllers/payment.controller.js
 import { serializeBigInt } from "../utils/json.js";
+import crypto from "crypto";
 import { createPaymentTransaction, createQrisTransaction, updatePaymentStatus, checkPaymentStatus }
 from "../services/payment.service.js";
 
@@ -57,6 +58,23 @@ export async function createPaymentHandler(
 export async function handleMidtransCallback(req, res) {
   try {
     const notification = req.body;
+
+    const { order_id, status_code, gross_amount, signature_key } = notification;
+    const serverKey = process.env.MIDTRANS_SERVER_KEY;
+    
+    if (serverKey) {
+      const hash = crypto
+        .createHash("sha512")
+        .update(order_id + status_code + gross_amount + serverKey)
+        .digest("hex");
+
+      if (hash !== signature_key) {
+        console.error("Invalid signature key");
+        return res.status(400).json({
+          message: "Invalid signature key"
+        });
+      }
+    }
 
     await updatePaymentStatus(notification);
 

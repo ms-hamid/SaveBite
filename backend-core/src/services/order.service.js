@@ -24,6 +24,7 @@ import {
 } from "../repositories/order.repository.js";
 import { orderEmitter } from "../events/order.events.js";
 import { createError } from "../middlewares/error.middleware.js";
+import { notify_customer_order_status } from "./notification.service.js";
 
 /**
  * Create a new order for a customer.
@@ -197,10 +198,21 @@ export async function change_order_status(
     );
   }
 
-  return update_order_status(
+  const updatedOrder = await update_order_status(
     order_id,
     new_status
   );
+
+  if (new_status === "ready_to_pickup") {
+    // Fire-and-forget notification
+    notify_customer_order_status(
+      order.customer_id,
+      "Pesanan Siap Diambil! 🛍️",
+      "Pesanan Anda sudah disiapkan dan siap untuk diambil. Jangan lupa tunjukkan QR code saat pengambilan."
+    );
+  }
+
+  return updatedOrder;
 }
 
 
@@ -222,6 +234,13 @@ export async function pickup_order(
     throw createError(
       "Invalid pickup code",
       404
+    );
+  }
+
+  if (order.status === "completed") {
+    throw createError(
+      "qr pickup ataupun order_code sudah digunakan",
+      400
     );
   }
 

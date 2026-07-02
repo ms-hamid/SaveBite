@@ -7,12 +7,14 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getMyListing } from "@/services/listing";
 import { useRouter } from "next/navigation";
+import api from "@/lib/api";
 
 export default function MerchantDashboardActiveListingEndedPage() {
   const [listing_data, set_listing_data] = useState<any[]>([]);
   const router = useRouter();
   const [loading, set_loading] = useState(true);
   const [error, set_error] = useState("");
+  const [foresight, set_foresight] = useState<any>(null);
 
   useEffect(() => {
     async function fetch_my_listings() {
@@ -29,7 +31,18 @@ export default function MerchantDashboardActiveListingEndedPage() {
         set_loading(false);
       }
     }
+    
+    async function fetch_foresight() {
+      try {
+        const res = await api.get('/api/merchant/foresight?bypass=dev_secret');
+        set_foresight(res.data.data);
+      } catch (err) {
+        console.error("Foresight fetch error:", err);
+      }
+    }
+
     fetch_my_listings();
+    fetch_foresight();
   }, []);
 
   // Hitung stats dari listing_data (Listing.sold_total ada di schema)
@@ -109,7 +122,14 @@ export default function MerchantDashboardActiveListingEndedPage() {
 
           {/* AI Prediction */}
           <section>
-            <AIPredictionCard confidence={0} />
+            <AIPredictionCard 
+              confidence={foresight?.confidence_percentage ?? null}
+              peakDemand={foresight?.peak_demand ?? "Unknown"}
+              bestPublishTime={foresight?.best_publish_time ?? "Unknown"}
+              estimatedSurplus={foresight?.estimated_surplus_today ? `~${foresight.estimated_surplus_today} items expected` : "Unknown"}
+              possibleSurplusTime={foresight?.best_publish_time ?? "19:00"}
+              onPrepareListing={() => router.push('/m/listing/create')}
+            />
           </section>
 
           {/* Quick Actions */}

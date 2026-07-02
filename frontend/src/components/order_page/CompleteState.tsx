@@ -40,8 +40,8 @@ const router = useRouter()
           <MerchantCard
             storeName={order?.merchant?.merchant_name ?? ""}
             address={order?.merchant?.address}
-            distance={"distance"}
-            imageUrl={'merchant_image_url'}
+            distance={"-"}
+            imageUrl={order?.listing?.img_url ?? "https://upload.wikimedia.org/wikipedia/commons/6/60/No-Image-Placeholder-banner.svg"}
             onGetDirections={() => router.push(`/merchant/${order?.public_id}`)}
           />
         </div>

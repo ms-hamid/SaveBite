@@ -75,7 +75,7 @@ export default function  ReadyOrderPage({order_data, merchant_data} : {order_dat
           <MerchantCard
             storeName={merchant_data?.merchant_name ?? ""}
             address={merchant_data?.address}
-            distance={"order.distance"}
+            distance={"-"}
             imageUrl={merchant_data?.profile_pic ?? ""}
           />
         </div>
@@ -94,8 +94,8 @@ export default function  ReadyOrderPage({order_data, merchant_data} : {order_dat
         {/* Order Details */}
         <div className="mt-6 mb-6">
           <OrderDetailsInfo
-            orderId={order?.order_code || "order code unvailable"}
-            paymentMethod={"order.paymentMethod"}
+            orderId={order?.public_id || "order code unvailable"}
+            paymentMethod={order?.payment?.payment_method ?? "-"}
           />
         </div>
       </>

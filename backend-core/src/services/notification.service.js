@@ -4,6 +4,7 @@ import {
   upsert_device_token,
   delete_device_token,
   get_customer_device_tokens,
+  get_user_device_tokens,
 } from "../repositories/deviceToken.repository.js";
 
 /**
@@ -115,4 +116,28 @@ export async function notify_all_customers_of_new_listing(listing, merchantName)
   };
 
   return send_multicast_notification(tokens, title, body, data);
+}
+
+/**
+ * Notify a specific customer about an order status update.
+ * 
+ * @param {string} userId The customer's ID
+ * @param {string} title Notification title
+ * @param {string} body Notification body
+ * @param {object} [data] Optional payload
+ */
+export async function notify_customer_order_status(userId, title, body, data = {}) {
+  try {
+    const tokens = await get_user_device_tokens(userId);
+    if (!tokens || tokens.length === 0) {
+      console.log(`No device tokens found for user ${userId}. Skipping notification.`);
+      return { success: true, message: "No tokens to notify" };
+    }
+
+    return await send_multicast_notification(tokens, title, body, data);
+  } catch (error) {
+    console.error(`FCM notification error for user ${userId}:`, error);
+    // Don't throw so it doesn't crash the calling function
+    return { success: false, error: error.message };
+  }
 }
