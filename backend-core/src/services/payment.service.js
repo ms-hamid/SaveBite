@@ -165,6 +165,8 @@ export async function createPaymentTransaction(
             };
             transaction = await core_api.charge(parameter);
             // Extract VA number from response
+            console.log("Transaction response:", transaction);
+
             if (bankCode === "mandiri") {
                 va_number = transaction.bill_key
                     ? `${transaction.biller_code} ${transaction.bill_key}`

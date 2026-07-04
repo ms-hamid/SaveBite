@@ -15,6 +15,7 @@ import foresight_route from './routes/merchant/foresight.route.js';
 import cookieParser from 'cookie-parser';
 import { startCronJobs } from './cron/index.js';
 import notification_route from './routes/notification.route.js';
+import refund_route from './routes/refund.route.js';
 import { orderTimeoutJob } from './jobs/orderTimeout.job.js';
 
 
@@ -49,6 +50,7 @@ app.use('/payment', payment_route);
 app.use('/withdrawal', withdrawal_route);
 app.use('/api/notifications', notification_route);
 app.use('/api/merchant/foresight', foresight_route);  // FR-AI-02 / FR-AI-03: AI proxy
+app.use('/refund', refund_route);                     // FR-AI-04: customer refund requests
 
 
 

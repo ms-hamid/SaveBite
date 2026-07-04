@@ -104,6 +104,37 @@ export class ForesightService {
     return await pyRes.json();
   }
 
+  /**
+   * Trigger model retraining on the backend-ai service with fresh data.
+   * This is called after new training data is uploaded.
+   *
+   * @param {Buffer} fileBuffer - The Excel/CSV file buffer
+   * @param {string} fileName   - Original filename (e.g., "data.xlsx")
+   * @returns {object} Retraining metrics (mae, rmse, wape, rows_used, etc.)
+   */
+  async triggerRetraining(fileBuffer, fileName) {
+    const FormData = (await import('form-data')).default;
+    const form = new FormData();
+    form.append('file', fileBuffer, fileName);
+
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), 120_000); // 2-minute timeout for training
+
+    const pyRes = await fetch(`${AI_SERVICE_URL}/api/v1/forecast/retrain`, {
+      method:  'POST',
+      body:    form,
+      signal:  controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (!pyRes.ok) {
+      const errBody = await pyRes.text();
+      throw new Error(`Retraining service returned HTTP ${pyRes.status}: ${errBody}`);
+    }
+
+    return await pyRes.json();
+  }
+
   buildFallbackResponse(reason) {
     return {
       status: 'fallback',

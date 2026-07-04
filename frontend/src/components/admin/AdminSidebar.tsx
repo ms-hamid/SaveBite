@@ -7,6 +7,7 @@ export type AdminSidebarMenuKey =
   | "customer-management"
   | "order-monitoring"
   | "payout-management"
+  | "refund-management"
   | "reports";
 
 type SidebarItem = {
@@ -57,6 +58,12 @@ const sidebarItems: SidebarItem[] = [
     label: "Payout Management",
     href: "/admin/payout",
     icon: "payments",
+  },
+  {
+    key: "refund-management",
+    label: "Refund Management",
+    href: "/admin/refund",
+    icon: "currency_exchange",
   },
   {
     key: "reports",

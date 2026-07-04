@@ -92,6 +92,18 @@ export default function ProfilePage() {
                 </div>
                 <span className="material-icons-round text-slate-300/60 dark:text-slate-600">chevron_right</span>
               </button>
+              <button
+                onClick={() => router.push("/profile/refund")}
+                className="w-full h-14 px-4 flex items-center justify-between active:bg-slate-50 dark:active:bg-slate-700 transition-colors border-b border-slate-50 dark:border-slate-700/50"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-[30px] h-[30px] rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center text-amber-600">
+                    <span className="material-icons-round text-[18px]">currency_exchange</span>
+                  </div>
+                  <span className="font-bold text-sm text-slate-900 dark:text-white">My Refunds</span>
+                </div>
+                <span className="material-icons-round text-slate-300/60 dark:text-slate-600">chevron_right</span>
+              </button>
               <button className="w-full h-14 px-4 flex items-center justify-between active:bg-slate-50 dark:active:bg-slate-700 transition-colors border-b border-slate-50 dark:border-slate-700/50">
                 <div className="flex items-center gap-3">
                   <div className="w-[30px] h-[30px] rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300">

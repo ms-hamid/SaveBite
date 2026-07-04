@@ -20,6 +20,7 @@ import {
   updateCustomerProfileHandler,
   updateMerchantProfileHandler,
   getMerchantDetailHandler,
+  enableAiHandler,
 } from "../controllers/user.controller.js";
 import { authenticate } from "../middlewares/auth.middleware.js";
 import { authorize } from "../middlewares/rbac.middleware.js";
@@ -57,6 +58,14 @@ user_route.patch("/profile/customer", authenticate, authorize("CUSTOMER"), (req,
  */
 user_route.patch("/profile/merchant", authenticate, authorize("MERCHANT"), (req, res) => {
   updateMerchantProfileHandler(req, res);
+});
+
+/**
+ * PATCH /api/users/merchant/enable-ai
+ * Enable AI forecasting for the authenticated merchant
+ */
+user_route.patch("/merchant/enable-ai", authenticate, authorize("MERCHANT"), (req, res) => {
+  enableAiHandler(req, res);
 });
 
 /**

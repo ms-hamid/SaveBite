@@ -29,7 +29,7 @@ export default function PaymentOrderPage() {
 
   const paymentMethod = searchParams.get("method") ?? payment?.payment_method ?? "va_bca";
   const bankMeta = VA_BANK_META[paymentMethod] ?? VA_BANK_META["va_bca"];
-  const totalToPay = format_price((order?.total_amount ?? 0) + 2000);
+  const totalToPay = format_price(Number(payment?.amount) || Number(order?.total_amount) + 2000 || 0);
 
   // Initialize: create or reuse payment
   useEffect(() => {

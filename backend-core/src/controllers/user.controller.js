@@ -517,3 +517,30 @@ export async function getMerchantDetailHandler(req, res) {
 }
 
 
+
+/**
+ * PATCH /api/users/merchant/enable-ai
+ * Enable AI forecasting for the authenticated merchant
+ */
+export async function enableAiHandler(req, res) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Not authenticated" });
+    }
+
+    const { prisma } = await import("../lib/prisma.js");
+    await prisma.merchant.update({
+      where: { user_id: userId },
+      data: { enable_ai: true },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "AI forecasting enabled",
+    });
+  } catch (error) {
+    console.error("Error in enableAiHandler:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}

@@ -12,6 +12,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.routers import health, forecast
 
+import prophet
+
+print("prophet version", prophet.__version__)
+
 app = FastAPI(
     title="SaveBite AI Service",
     description="Time-series surplus forecasting using Prophet & XGBoost",
