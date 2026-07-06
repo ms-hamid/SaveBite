@@ -72,7 +72,13 @@ export async function handleMidtransCallback(req, res) {
 
         console.log("hash:", hash);
         console.log("signature_key:", signature_key);
-        
+
+        console.log("order_id:", order_id);
+        console.log("status_code:", status_code);
+        console.log("gross_amount:", gross_amount);
+        console.log("serverKey:", serverKey);
+        console.log("signature_key:", signature_key);
+
       if (hash !== signature_key) {
         console.error("Invalid signature key");
         return res.status(400).json({
