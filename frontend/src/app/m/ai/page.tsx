@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import DashboardBottomNav from "../../../components/m/DashboardBottomNav";
 import { getMyProfile } from "@/services/user";
 import { retrainFromExcel, getAiErrorMessage, type UploadResult } from "@/services/forecast";
+import api from "@/lib/api";
 
 const ALLOWED_EXTS = [".xlsx", ".xls", ".csv"];
 
@@ -14,6 +15,10 @@ export default function MerchantAiHubPolishedLayoutPage() {
 
   // Auth / enable_ai check
   const [isChecking, setIsChecking] = useState(true);
+
+  // Foresight data
+  const [foresight, setForesight] = useState<any>(null);
+  const [foresightLoading, setForesightLoading] = useState(true);
 
   // Upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -26,6 +31,7 @@ export default function MerchantAiHubPolishedLayoutPage() {
       try {
         const profile = await getMyProfile();
         const merchant = profile?.data?.merchant;
+        console.log(merchant.enable_ai)
         if (!merchant?.enable_ai) {
           router.replace("/m/ai/intro");
           return;
@@ -36,7 +42,21 @@ export default function MerchantAiHubPolishedLayoutPage() {
         setIsChecking(false);
       }
     }
+    
+    async function fetchForesight() {
+      try {
+        setForesightLoading(true);
+        const res = await api.get('/api/merchant/foresight?bypass=dev_secret');
+        setForesight(res.data.data);
+      } catch (err) {
+        console.error("Foresight fetch error:", err);
+      } finally {
+        setForesightLoading(false);
+      }
+    }
+
     checkAiEnabled();
+    fetchForesight();
   }, [router]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -144,32 +164,75 @@ export default function MerchantAiHubPolishedLayoutPage() {
               </div>
             </section>
 
-            {/* Surplus Estimate Card */}
+            {/* Surplus Estimate Card - Using real foresight data */}
             <section className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] flex flex-col relative">
               {/* AI Confidence Badge */}
-              <div className="absolute bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-100 flex items-center gap-1 top-5 right-5">
-                <span className="material-symbols-outlined text-[12px]">check_circle</span>
-                94% CONFIDENCE
-              </div>
+              {foresight?.confidence_percentage && (
+                <div className="absolute bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-100 flex items-center gap-1 top-5 right-5">
+                  <span className="material-symbols-outlined text-[12px]">check_circle</span>
+                  {foresight.confidence_percentage}% CONFIDENCE
+                </div>
+              )}
+              
               <div className="p-5 flex flex-col gap-4 pt-5">
                 <div className="flex items-center gap-2 text-slate-900">
                   <span className="material-symbols-outlined text-[18px]">inventory_2</span>
                   <h2 className="text-sm font-bold">Today's Surplus Estimate</h2>
                 </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-[48px] font-bold text-slate-900 leading-none">36</span>
-                  <span className="text-sm font-medium text-slate-500">items predicted</span>
-                </div>
-                <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 flex items-center gap-3 mt-2">
-                  <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[16px]">schedule</span>
+                
+                {foresightLoading ? (
+                  <div className="flex flex-col gap-3 animate-pulse">
+                    <div className="h-12 bg-slate-100 rounded w-32" />
+                    <div className="h-16 bg-slate-50 rounded-xl" />
                   </div>
-                  <div>
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">PEAK DEMAND TIME</p>
-                    <p className="text-sm font-bold text-slate-900 mt-0.5">19:00 - 20:30</p>
+                ) : foresight ? (
+                  <>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-[48px] font-bold text-slate-900 leading-none">
+                        {foresight.estimated_surplus_today ?? "—"}
+                      </span>
+                      <span className="text-sm font-medium text-slate-500">items predicted</span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 flex items-center gap-3 mt-2">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-[16px]">schedule</span>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">PEAK DEMAND TIME</p>
+                        <p className="text-sm font-bold text-slate-900 mt-0.5">
+                          {foresight.peak_demand ?? "Unknown"}
+                        </p>
+                      </div>
+                    </div>
+                    {foresight.best_publish_time && (
+                      <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[16px]">alarm</span>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">BEST PUBLISH TIME</p>
+                          <p className="text-sm font-bold text-slate-900 mt-0.5">
+                            {foresight.best_publish_time}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-6 text-center">
+                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                      <span className="material-symbols-outlined text-slate-400">cloud_off</span>
+                    </div>
+                    <p className="text-sm font-medium text-slate-500">No forecast data available</p>
+                    <p className="text-xs text-slate-400 mt-1">Upload training data to get started</p>
                   </div>
-                </div>
-                <button className="w-full mt-2 bg-emerald-500 text-white text-sm font-bold py-3 rounded-xl hover:bg-emerald-600 active:scale-95 transition-all flex justify-center items-center gap-2 shadow-sm">
+                )}
+                
+                <button 
+                  onClick={() => router.push('/m/listing/create')}
+                  className="w-full mt-2 bg-emerald-500 text-white text-sm font-bold py-3 rounded-xl hover:bg-emerald-600 active:scale-95 transition-all flex justify-center items-center gap-2 shadow-sm"
+                  disabled={!foresight}
+                >
                   <span>Prepare Listing</span>
                   <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                 </button>

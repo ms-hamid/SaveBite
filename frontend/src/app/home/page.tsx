@@ -52,6 +52,7 @@ export default function HomePage() {
           setUserName(name);
           setRole(res.data.profile?.role ?? null);
           setProfilePic(res.data.merchant?.profile_pic ?? null);
+          
         }
       })
       .catch(() => {

@@ -7,7 +7,8 @@ import api from "@/lib/api";
 
 /** Enable AI forecasting for the authenticated merchant */
 export async function enableAi(): Promise<void> {
-  await api.patch("/api/users/merchant/enable-ai");
+  const result = await api.patch("/api/users/merchant/enable-ai");
+  console.log(result)
 }
 
 /** Upload historical sales data (Excel/CSV) for AI training */

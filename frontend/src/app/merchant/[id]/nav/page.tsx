@@ -22,6 +22,7 @@ export default function SaveBiteDirections() {
     if (typeof window !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          console.log("Customer GPS:", position.coords.latitude, position.coords.longitude);
           setCustomerLat(position.coords.latitude);
           setCustomerLng(position.coords.longitude);
           setGpsLoading(false);
@@ -46,6 +47,8 @@ export default function SaveBiteDirections() {
         const res = await getMerchantDetail(merchantId);
         if (res?.success && res?.data) {
           setMerchant(res.data);
+    console.log("Opening Google Maps for merchant:", res.data);
+          
         } else {
           setError("Gagal memuat detail toko");
         }
@@ -198,11 +201,11 @@ export default function SaveBiteDirections() {
                       star
                     </span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200">
-                      {merchant?.rating || "4.8"}
+                      {merchant?.rating ? String(merchant.rating) : "N/A"}
                     </span>
                   </div>
                   <span className="text-xs text-slate-400 font-medium">
-                    ({merchant?.rating_times ? String(merchant.rating_times) : "45"})
+                    ({merchant?.rating_times ? String(merchant.rating_times) : "No Ratings"})
                   </span>
                   <span className="text-slate-300 dark:text-slate-600">•</span>
                   <span className="text-slate-600 dark:text-slate-400">
@@ -289,19 +292,19 @@ export default function SaveBiteDirections() {
                   Distance
                 </span>
                 <span className="text-[15px] font-bold text-slate-900 dark:text-white mt-0.5">
-                  {distance !== null ? `${distance.toFixed(2)} km` : "Unknown"}
+                  {distance !== null ? `${distance.toFixed(2)} km` : "distance N/A"}
                   {merchant?.isPlaceholderGeo && " (Placeholder)"}
                 </span>
               </div>
 
-              <div className="flex flex-col items-end">
+              {/* <div className="flex flex-col items-end">
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
                   Route
                 </span>
                 <span className="text-[15px] font-bold text-slate-900 dark:text-white mt-0.5">
                   Via Main St.
                 </span>
-              </div>
+              </div> */}
             </div>
 
             <div className="sticky bottom-0 bg-white dark:bg-slate-900 pt-2 pb-6 z-20">

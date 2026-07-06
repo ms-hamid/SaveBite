@@ -3,7 +3,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { usePayment } from "../../../components/providers/PaymentProvider";
 import { check_payment_status, create_payment } from "../../../services/payment";
 import { useState, useEffect, useCallback } from "react";
-import { format_price } from "@/lib/format";
+import { copyToClipboard, format_price } from "@/lib/format";
 
 const VA_BANK_META: Record<string, { label: string; bg: string; textColor: string }> = {
   va_bca:     { label: "BCA",     bg: "bg-blue-600",   textColor: "text-white" },
@@ -138,10 +138,11 @@ export default function PaymentOrderPage() {
   }
 
   function handle_copy() {
-    if (!vaNumber) return;
-    navigator.clipboard.writeText(vaNumber.replace(/\s/g, "")).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
+    copyToClipboard(vaNumber ?? "").then((sukses) => {
+      if (sukses) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      }
     });
   }
 

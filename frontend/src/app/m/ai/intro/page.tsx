@@ -27,8 +27,8 @@ export default function SmartSellingWithAiIntroRefinedPage() {
       <div className={"bg-white text-on-background antialiased selection:bg-primary-container selection:text-on-primary-container"}>
         <div className="max-w-[448px] mx-auto min-h-screen bg-white relative flex flex-col">
           {/* TopAppBar */}
-          <header className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100">
-            <div className="flex justify-between items-center h-16 px-5 max-w-[448px] mx-auto">
+          <header className="fixed m top-0 w-full z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100">
+            <div className="flex justify-between items-center h-16 px-5 max-w-[448px]">
               <button
                 onClick={() => router.back()}
                 className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-50 transition-colors active:scale-95 duration-150 ease-in-out"

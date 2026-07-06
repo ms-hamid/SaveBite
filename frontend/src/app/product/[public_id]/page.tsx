@@ -6,7 +6,7 @@ import { getApiErrorMessage } from "../../../lib/api";
 import { useListing } from "../../../components/providers/ListingProvider";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import { create_order } from "@/services/order";
-import { get_close_text } from "@/lib/format";
+import { get_close_text, get_current_location, get_distance, set_to_hour } from "@/lib/format";
 import ListingUnavailableAlert from "@/components/ListingUnavailableAlert";
 
 export default function ListingDetailPage() {
@@ -23,6 +23,41 @@ export default function ListingDetailPage() {
   const isExpired = listing?.close_time ? new Date(listing.close_time) < new Date() : false;
   const isSoldOut = stockLeft <= 0;
   const isUnavailable = isExpired || isSoldOut;
+
+
+  const [current_location, setCurrent_location] = useState<{ lat: number; lon: number } | null | any>(null);
+  const [distance, setDistance] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function fetchCurrentLocation() {
+      try {
+        const location = await get_current_location();
+        setCurrent_location(location);
+        console.log("Current location:", location);
+      } catch (error) {
+        console.error("Failed to get current location:", error);
+      }
+    }
+
+    fetchCurrentLocation();
+  }, []);
+
+  useEffect(() => {
+    if (current_location && listing?.merchant) {
+      const lat1 = current_location.lat;
+      const lon1 = current_location.lon;
+      const lat2 = listing.merchant.latitude;
+      const lon2 = listing.merchant.longitude;
+    
+  const calculatedDistance = get_distance(lat1, lon1, lat2, lon2);
+      setDistance(calculatedDistance);
+    } else {
+      setDistance(null);
+    }
+
+
+  }, [current_location, listing]);
+
 
   // Auto-show alert when listing loads and is unavailable
   useEffect(() => {
@@ -206,7 +241,7 @@ export default function ListingDetailPage() {
                   </h3>
 
                   <p className="text-sm text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                    123 Baker Street, Downtown
+                    {listing?.merchant?.address ?? "No address provided"}
                   </p>
 
                   <div className="flex items-center gap-4 mt-3">
@@ -215,7 +250,7 @@ export default function ListingDetailPage() {
                         schedule
                       </span>
 
-                      18:00–19:30
+                      {set_to_hour(listing?.merchant?.pickup_open??"")} - {set_to_hour(listing?.merchant?.pickup_close??"")}
                     </div>
 
                     <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
@@ -223,7 +258,7 @@ export default function ListingDetailPage() {
                         distance
                       </span>
 
-                      1.2 km
+                      {distance !== null ? `${distance.toFixed(2)} km` : "N/A"} away
                     </div>
                   </div>
                 </div>
@@ -244,10 +279,7 @@ export default function ListingDetailPage() {
               </h3>
 
               <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
-                Enjoy a delicious surprise mix of our daily freshly baked
-                goods. This bag might contain croissants, sourdough buns,
-                danishes, or savory pastries that didn't find a home today.
-                Perfect for tomorrow's breakfast or a late-night snack!
+                {listing?.description ?? "No description provided."}
               </p>
 
               <p className="text-xs text-slate-400 mt-2 italic">
