@@ -70,6 +70,9 @@ export async function handleMidtransCallback(req, res) {
         .update(order_id + status_code + Number(gross_amount) + serverKey)
         .digest("hex");
 
+        console.log("hash:", hash);
+        console.log("signature_key:", signature_key);
+        
       if (hash !== signature_key) {
         console.error("Invalid signature key");
         return res.status(400).json({
