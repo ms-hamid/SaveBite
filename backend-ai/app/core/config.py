@@ -20,8 +20,8 @@ class Settings(BaseSettings):
 
     # ── ML model file paths ───────────────────────────────────────────────────
     # Relative paths are resolved from the working directory (backend-ai/).
-    PROPHET_MODEL_PATH: str = "./SaveBite_Prophet_Final.joblib"
-    XGBOOST_MODEL_PATH: str = "./SaveBite_XGBoost_Final.joblib"
+    PROPHET_MODEL_PATH: str = "./backend-ai/SaveBite_Prophet_Final.joblib"
+    XGBOOST_MODEL_PATH: str = "./backend-ai/SaveBite_XGBoost_Final.joblib"
 
 
 settings = Settings()

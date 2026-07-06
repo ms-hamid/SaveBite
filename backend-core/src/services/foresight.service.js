@@ -135,6 +135,37 @@ export class ForesightService {
     return await pyRes.json();
   }
 
+  /**
+   * Trigger database-driven retraining pipeline.
+   * This uses ALL data from ai_feature_history (2-year window) to retrain models,
+   * compares with current production models, and promotes if better.
+   * 
+   * This is the RECOMMENDED method after uploading new training data, as it:
+   * - Uses complete historical data from database
+   * - Automatic model comparison & promotion
+   * - Better model selection based on WAPE
+   *
+   * @returns {object} Retraining pipeline result with model comparison
+   */
+  async triggerRetrainingPipeline() {
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), 180_000); // 3-minute timeout
+
+    const pyRes = await fetch(`${AI_SERVICE_URL}/api/v1/forecast/retrain-pipeline`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal:  controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (!pyRes.ok) {
+      const errBody = await pyRes.text();
+      throw new Error(`Retraining pipeline returned HTTP ${pyRes.status}: ${errBody}`);
+    }
+
+    return await pyRes.json();
+  }
+
   buildFallbackResponse(reason) {
     return {
       status: 'fallback',

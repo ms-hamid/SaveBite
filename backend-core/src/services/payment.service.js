@@ -123,7 +123,7 @@ export async function createPaymentTransaction(
             expired_at: expiredAt
         });
 
-        const midtransOrderId = order.public_id + '@' + payment.id.toString();
+        const midtransOrderId = order.public_id + '~' + payment.id.toString();
 
         let transaction;
         let qris_url = null;

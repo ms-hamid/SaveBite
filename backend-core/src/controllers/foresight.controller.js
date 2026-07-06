@@ -212,7 +212,28 @@ export const uploadAndRetrain = async (req, res) => {
       `[ForesightController] ✅ Upserted ${upsertResults} rows, deleted ${deleted} old rows for merchant ${merchantId}`
     );
 
-    // ── 6. Trigger a fresh forecast using the newly stored data ────────────
+    // ── 6. Trigger database-driven retraining pipeline ────────────────────
+    // After data is stored in DB, trigger retrain-pipeline which:
+    // - Fetches ALL data from ai_feature_history (2-year window)
+    // - Trains new models with complete historical data
+    // - Compares with current models (WAPE-based)
+    // - Promotes new model if better
+    let pipelineResult = null;
+    let pipelineError = null;
+    try {
+      pipelineResult = await foresightService.triggerRetrainingPipeline();
+      console.log(
+        `[ForesightController] ✅ Retraining pipeline completed for merchant ${merchantId}. ` +
+        `Model ${pipelineResult.data?.model_promoted ? 'PROMOTED' : 'RETAINED'}. ` +
+        `WAPE: ${pipelineResult.data?.new_wape ?? 'N/A'}%`
+      );
+    } catch (pipelineErr) {
+      // Non-fatal — data was saved successfully
+      pipelineError = pipelineErr.message;
+      console.warn(`[ForesightController] ⚠️  Retraining pipeline failed: ${pipelineErr.message}`);
+    }
+
+    // ── 7. Get fresh forecast with potentially updated models ──────────────
     let forecastResult = null;
     try {
       forecastResult = await foresightService.getForecast(merchantId);
@@ -221,40 +242,31 @@ export const uploadAndRetrain = async (req, res) => {
       console.warn(`[ForesightController] ⚠️  Forecast after upload failed: ${forecastErr.message}`);
     }
 
-    // ── 7. Trigger model retraining on backend-ai ──────────────────────────
-    let retrainingResult = null;
-    let retrainingError = null;
-    try {
-      retrainingResult = await foresightService.triggerRetraining(req.file.buffer, req.file.originalname);
-      console.log(
-        `[ForesightController] ✅ Retraining triggered for merchant ${merchantId}. ` +
-        `WAPE: ${retrainingResult.metrics?.wape_pct ?? 'N/A'}%`
-      );
-    } catch (retrainErr) {
-      // Non-fatal — data was saved successfully; retraining failure is logged but doesn't fail the request
-      retrainingError = retrainErr.message;
-      console.warn(`[ForesightController] ⚠️  Retraining after upload failed: ${retrainErr.message}`);
-    }
-
     return res.status(200).json({
       success:         true,
       message:         `Successfully imported ${upsertResults} row(s). Old data pruned: ${deleted} row(s).`,
       rows_imported:   upsertResults,
       rows_deleted:    deleted,
       validation_warnings: errors.length > 0 ? errors.slice(0, 5) : undefined,
-      forecast:        forecastResult ?? null,
-      retraining:      retrainingResult ? {
+      retraining:      pipelineResult ? {
         status:   'success',
-        message:  'Models retrained successfully',
-        metrics:  retrainingResult.metrics,
-      } : retrainingError ? {
+        message:  pipelineResult.message,
+        model_promoted: pipelineResult.data?.model_promoted ?? false,
+        metrics:  {
+          rows_used:    pipelineResult.data?.rows_used,
+          current_wape: pipelineResult.data?.current_wape,
+          new_wape:     pipelineResult.data?.new_wape,
+          improvement:  pipelineResult.data?.comparison?.improvement ?? 0,
+        },
+      } : pipelineError ? {
         status:   'failed',
-        message:  retrainingError,
+        message:  pipelineError,
         note:     'Data was imported successfully but model retraining failed. Forecasts will use previous models.',
       } : {
         status: 'skipped',
         message: 'Retraining was not triggered',
       },
+      forecast:        forecastResult ?? null,
     });
 
   } catch (err) {

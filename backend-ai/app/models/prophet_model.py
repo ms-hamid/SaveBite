@@ -29,6 +29,7 @@ def _load_prophet_model():
     keeping inference latency well under the 2.5 s NFR-6 target.
     """
     path = os.path.abspath(settings.PROPHET_MODEL_PATH)
+    print(path)
     if not os.path.exists(path):
         raise FileNotFoundError(
             f"[ProphetForecaster] Model file not found at '{path}'. "
