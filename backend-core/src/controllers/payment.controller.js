@@ -67,7 +67,7 @@ export async function handleMidtransCallback(req, res) {
     if (serverKey) {
       const hash = crypto
         .createHash("sha512")
-        .update(order_id + status_code + gross_amount + serverKey)
+        .update(order_id + status_code + Number(gross_amount) + serverKey)
         .digest("hex");
 
       if (hash !== signature_key) {
