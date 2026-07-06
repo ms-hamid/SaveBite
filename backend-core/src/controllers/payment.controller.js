@@ -65,10 +65,23 @@ export async function handleMidtransCallback(req, res) {
     const serverKey = process.env.MIDTRANS_SERVER_KEY;
     
     if (serverKey) {
-      const hash = crypto
+        const hash = crypto
         .createHash("sha512")
-        .update(order_id + status_code + Number(gross_amount) + serverKey)
+        .update(
+          String(order_id) +
+          String(status_code) +
+          String(gross_amount) +
+          String(serverKey)
+        )
         .digest("hex");
+
+        const rawString =
+        String(order_id) +
+        String(status_code) +
+        String(gross_amount) +
+        String(serverKey);
+      
+        console.log("rawString:", rawString);
 
         console.log("hash:", hash);
         console.log("signature_key:", signature_key);
