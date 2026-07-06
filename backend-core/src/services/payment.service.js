@@ -235,7 +235,7 @@ export async function updatePaymentStatus(data) {
     )
   ) {
 
-    const order_split = order_id.split('@');
+    const order_split = order_id.split('~');
 
     const order_public_id = order_split[0];
     const payment_id = order_split[1];

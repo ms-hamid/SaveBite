@@ -375,6 +375,8 @@ export async function update_order_status(
       expiresAt.getHours() + 2
     );
 
+    console.log("update_order_status:", public_id, status, expiresAt);
+    
     if (status === "paid_reserved") {
        for (
       let attempt = 0;
