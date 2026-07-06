@@ -58,9 +58,6 @@ export async function createPaymentHandler(
 export async function handleMidtransCallback(req, res) {
   try {
 
-    res.status(200).json({
-        message: "callback received"
-    });
 
     const notification = req.body;
 
@@ -91,6 +88,7 @@ export async function handleMidtransCallback(req, res) {
     console.error(err);
 
     res.status(500).json({
+        error: err.message,
       message: "callback failed"
     });
   }
