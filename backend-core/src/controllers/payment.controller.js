@@ -73,7 +73,10 @@ export async function handleMidtransCallback(req, res) {
       if (hash !== signature_key) {
         console.error("Invalid signature key");
         return res.status(400).json({
-          message: "Invalid signature key"
+          message: "Invalid signature key",
+          error: "Signature key validation failed",
+          hash: hash,
+            signature_key: signature_key
         });
       }
     }
