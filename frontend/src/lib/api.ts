@@ -57,11 +57,11 @@ api.interceptors.response.use(
       const status = error.response.status;
       if (status === 401) {
         console.log(error.response)
-        // window.location.href = "/401";
+        window.location.href = "/401";
       } else if (status === 403) {
         window.location.href = "/403";
       } else if (status === 404) {
-        // window.location.href = "/404";
+        window.location.href = "/404";
       }
     }
     return Promise.reject(error);

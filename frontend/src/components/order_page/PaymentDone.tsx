@@ -4,7 +4,7 @@ export default function PaymentDoneOrderPage({order}: {order: Order | null | und
     return (
       <>
         <div className="relative flex min-h-screen w-full flex-col max-w-md mx-auto bg-white dark:bg-surface-dark shadow-xl overflow-hidden">
-          <div className="flex-1 overflow-y-auto pb-32 pt-12">
+          <div className="flex-1 overflow-y-auto pb-24 pt-12">
             <div className="flex flex-col items-center justify-center pt-6 pb-6 px-4 text-center">
               <div className="relative flex items-center justify-center mb-6">
                 <div className="absolute w-24 h-24 rounded-full bg-primary/10 animate-ping" />
@@ -76,8 +76,10 @@ export default function PaymentDoneOrderPage({order}: {order: Order | null | und
               </div>
             </div>
           </div>
-          <div className="fixed bottom-0 left-0 right-0 p-4 max-w-md mx-auto pointer-events-none bg-white/80 dark:bg-surface-dark/80 backdrop-blur-md pb-8">
-            <button className="pointer-events-auto w-full bg-primary hover:bg-emerald-600 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+          
+          {/* Fixed Bottom Button - Above Navbar */}
+          <div className="sticky bottom-0 left-0 right-0 p-4 bg-white dark:bg-surface-dark border-t border-slate-100 dark:border-white/10 z-10">
+            <button className="w-full bg-primary hover:bg-emerald-600 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
               <span>View Orders</span>
               <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
             </button>
