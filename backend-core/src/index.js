@@ -12,6 +12,7 @@ import { globalErrorHandler } from './middlewares/error.middleware.js';
 import payment_route from './routes/payment.route.js';
 import withdrawal_route from './routes/merchant/withdrawal.route.js';
 import foresight_route from './routes/merchant/foresight.route.js';
+import customer_admin_route from './routes/admin/customer.route.js';
 import cookieParser from 'cookie-parser';
 import { startCronJobs } from './cron/index.js';
 import notification_route from './routes/notification.route.js';
@@ -50,6 +51,7 @@ app.use('/payment', payment_route);
 app.use('/withdrawal', withdrawal_route);
 app.use('/api/notifications', notification_route);
 app.use('/api/merchant/foresight', foresight_route);  // FR-AI-02 / FR-AI-03: AI proxy
+app.use('/api/admin/customers', customer_admin_route); // Admin customer management
 app.use('/refund', refund_route);                     // FR-AI-04: customer refund requests
 
 

@@ -14,6 +14,7 @@ export default function ScanPickupCodeRefinedMinimalistPage() {
   const [status, setStatus] = useState<"idle" | "success" | "error" | "loading">(
     "idle"
   );
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Menggunakan pickupOrder dari API (sesuai ADR-001 — backend-only mutation)
   // qrToken = Order.qr_token (schema: orders.qr_token)
@@ -23,19 +24,27 @@ export default function ScanPickupCodeRefinedMinimalistPage() {
       setStatus("loading");
       setMessage("Memeriksa kode pickup...");
 
-      // pickupOrder mengirim { pickup_code, order_public_id } ke POST /order/pickup
-      // pickup_code = Order.order_code (schema) yang di-embed dalam QR token
       await pickupOrder(qrToken, params.public_id as string);
 
       setStatus("success");
       setMessage("Pickup dikonfirmasi. Pesanan selesai.");
+      setShowSuccessModal(true);
 
       // Redirect ke daftar order setelah sukses
-      setTimeout(() => router.push("/m/order"), 1500);
+      setTimeout(() => router.push("/m/order"), 2000);
     } catch (error) {
       console.error(error);
       setStatus("error");
-      setMessage(getApiErrorMessage(error) || "Gagal memverifikasi pickup.");
+      const errorMsg = getApiErrorMessage(error) || "Gagal memverifikasi pickup.";
+      setMessage(errorMsg);
+      
+      // Show alert for error
+      alert(`Scan Failed: ${errorMsg}`);
+      
+      // Auto refresh scanner after 2 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     }
   }, [params.public_id, router]);
 
@@ -142,6 +151,36 @@ export default function ScanPickupCodeRefinedMinimalistPage() {
             </p>
           </div>
         </main>
+
+        {/* Success Modal */}
+        {showSuccessModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4 animate-fadeIn">
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full animate-scaleIn shadow-2xl">
+              <div className="flex flex-col items-center text-center">
+                <div className="relative mb-4">
+                  <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl animate-ping"></div>
+                  <div className="relative w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center">
+                    <span 
+                      className="material-symbols-outlined text-emerald-600 text-[32px]" 
+                      style={{fontVariationSettings: "'FILL' 1"}}
+                    >
+                      check_circle
+                    </span>
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                  Scan Successful!
+                </h3>
+                <p className="text-sm text-slate-600 mb-1">
+                  Order pickup confirmed
+                </p>
+                <p className="text-xs text-slate-400">
+                  Redirecting...
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -13,6 +13,7 @@ export default function ManualPickupCodeRefinedMinimalistPage() {
 
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""));
   const [activeIndex, setActiveIndex] = useState(0);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -92,38 +93,26 @@ export default function ManualPickupCodeRefinedMinimalistPage() {
   }
 
 
-  async function verifyPickup(
-    pickup_order: string
-  ) {
+  async function verifyPickup(pickup_order: string) {
     try {
-  
-      const result =
-        await pickupOrder(
-          pickup_order,
-          params.public_id as string
-        );
-  
-      alert(
-        "Order berhasil diselesaikan"
-      );
-  
+      const result = await pickupOrder(pickup_order, params.public_id as string);
+      
+      setShowSuccessModal(true);
+      
+      // Auto redirect after 2 seconds
+      setTimeout(() => {
+        router.push("/m/order");
+      }, 2000);
 
       return result;
-  
     } catch (error) {
-  
       console.error(error);
-  
-      alert(
-        getApiErrorMessage(error)
-      );
+      alert(getApiErrorMessage(error));
     }
   }
 
-
   async function handleVerifyCode() {
-    const data = await verifyPickup(pickup_order).then(() => router.push("/m/order"))
-
+    await verifyPickup(pickup_order);
   }
 
   return (
@@ -220,6 +209,36 @@ export default function ManualPickupCodeRefinedMinimalistPage() {
             Verify Code
           </button>
         </main>
+
+        {/* Success Modal */}
+        {showSuccessModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4 animate-fadeIn">
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full animate-scaleIn shadow-2xl">
+              <div className="flex flex-col items-center text-center">
+                <div className="relative mb-4">
+                  <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl animate-ping"></div>
+                  <div className="relative w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center">
+                    <span 
+                      className="material-symbols-outlined text-emerald-600 text-[32px]" 
+                      style={{fontVariationSettings: "'FILL' 1"}}
+                    >
+                      check_circle
+                    </span>
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                  Pickup Confirmed!
+                </h3>
+                <p className="text-sm text-slate-600 mb-1">
+                  Order has been successfully completed
+                </p>
+                <p className="text-xs text-slate-400">
+                  Redirecting...
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

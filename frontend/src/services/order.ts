@@ -72,3 +72,12 @@ export async function getOrderByPublicId(publicId: string) {
 
   return response.data;
 }
+
+export async function cancelOrder(orderId: string, reason?: string) {
+  const response = await api.patch(
+    `/order/${orderId}/cancel`,
+    { reason }
+  );
+
+  return response.data;
+}
