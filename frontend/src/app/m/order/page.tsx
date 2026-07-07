@@ -37,7 +37,17 @@ async function change_status(id: string, status: string) {
     // TODO: Replace with a dedicated merchant status-transition endpoint
     // e.g. PATCH /merchant/order/:id/status { status: next_status }
     // For now, routed through the generic order cancel/confirm cycle
-    await update_order_status(id, next_status);
+    const updated_order = await update_order_status(id, next_status);
+    console.log("updated order:", id, next_status, updated_order.data);
+    console.log("Status change successful:", updated_order.data);
+    
+    set_orders((prev_orders : Order[] | null | undefined) => {
+      if (!prev_orders) return prev_orders;
+      return prev_orders.map((order) =>
+        order.public_id === id ? updated_order.data : order
+      );
+    });
+
     // Refresh orders list after update
     // get_orders_ref.current?.();
   } catch (err) {

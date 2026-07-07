@@ -398,7 +398,8 @@ export async function update_order_status(
 
           include: {
             listing: true,
-            merchant: true
+            merchant: true,
+            customer: true
           }
         });
 
@@ -422,6 +423,11 @@ export async function update_order_status(
     data: {
       status,
     },
+    include: {
+      listing: true,
+      merchant: true,
+      customer: true
+    },
   });
 }
 
@@ -435,6 +441,11 @@ export async function complete_order(
     data: {
       status: "completed",
       order_code_active: false,
+    },
+    include: {
+      listing: true,
+      merchant: true,
+      customer: true
     },
   });
 }

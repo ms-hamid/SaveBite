@@ -47,7 +47,7 @@ export default function PaymentConfirmedScreen() {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">
-                    Order #SB-1042
+                    Order #{order?.order_code ?? "—"}
                   </p>
 
                   <h3 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -60,7 +60,7 @@ export default function PaymentConfirmedScreen() {
                   data-alt="Close up of artisanal bread"
                   style={{
                     backgroundImage:
-                      "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCq48ESxPWP6UKYKU68nYg6VmlTmj3TfaLaRusMnORN-mFBJ_74DBgwiviyEC5_UmyGg5IECYOQaWdDZvJcqIgzij3RUkC5aKUlc3kCQiZExTgmTqJpDt5wCBoY9Gio5obIY2ftR14vl1Y3uI6264gvsGw0IXdc9wW3thzy47oC-qgKXhQCWT87U-7-FQMEqTAZkYECYZFXyS6_eLJFvH5cB4KUvxHQDvMcHfoNnBvF8Sn5WTSohzxY08dAnUsZkeSBC1XRgGJMw1Yx')",
+                      "url({order?.listing?.image ?? 'https://lh3.googleusercontent.com/aida-public/AB6AXuCq48ESxPWP6UKYKU68nYg6VmlTmj3TfaLaRusMnORN-mFBJ_74DBgwiviyEC5_UmyGg5IECYOQaWdDZvJcqIgzij3RUkC5aKUlc3kCQiZExTgmTqJpDt5wCBoY9Gio5obIY2ftR14vl1Y3uI6264gvsGw0IXdc9wW3thzy47oC-qgKXhQCWT87U-7-FQMEqTAZkYECYZFXyS6_eLJFvH5cB4KUvxHQDvMcHfoNnBvF8Sn5WTSohzxY08dAnUsZkeSBC1XRgGJMw1Yx'})",
                   }}
                 ></div>
               </div>
@@ -109,9 +109,12 @@ export default function PaymentConfirmedScreen() {
               </p>
 
               <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 bg-slate-100 dark:bg-white/10 px-3 py-1 rounded-full">
-                Valid for pickup in{" "}
+                Valid for pickup at{" "}
                 <span className="text-primary font-bold tabular-nums">
-                  02:14:35
+                  {order?.merchant?.pickup_open
+                    ? new Date(order.merchant.pickup_open).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+                    : "--:--"
+                  }
                 </span>
               </p>
 

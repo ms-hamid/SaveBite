@@ -1,22 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../../lib/supabase";
 import CustomerOrderTableRow, { CustomerOrder } from "./CustomerOrderTabelRow";
-
-
-type Customer = {
-  full_name: string;
-  exp: number | null;
-  strike_count: number | null;
-  user_id: string;
-};
-
-type CustomerWithOrders = Customer & {
-  orders: CustomerOrder[] | null;
-};
-
-
+import { getCustomerDetail, suspendCustomer, unsuspendCustomer, type CustomerWithOrders } from "../../services/customer";
 
 function getInitials(name: string) {
   return name
@@ -41,52 +27,70 @@ export default function CustomerDetailClient({
   const [customer, set_customer] = useState<CustomerWithOrders | null>(null);
   const [loading, set_loading] = useState<boolean>(true);
   const [error_message, set_error_message] = useState<string>("");
+  const [action_loading, set_action_loading] = useState<boolean>(false);
 
   async function get_customer_detail() {
     set_loading(true);
     set_error_message("");
 
-    const { data, error } = await supabase
-      .from("customers")
-      .select(
-        `
-        full_name,
-        exp,
-        strike_count,
-        user_id,
-        orders (
-          id,
-          qty,
-          total_amount,
-          qr_token,
-          status,
-          created_at,
-          updated_at,
-          deleted_at,
-          listing_id,
-          public_id,
-          merchant_id,
-          customer_id
-        )
-      `
-      )
-      .eq("user_id", public_id)
-      .single<CustomerWithOrders>();
-
-    if (error) {
-      console.log(error);
-      set_error_message(error.message);
+    try {
+      const response = await getCustomerDetail(public_id as string);
+      
+      if (response.success) {
+        set_customer(response.data);
+      } else {
+        set_error_message(response.message || "Failed to fetch customer detail");
+        set_customer(null);
+      }
+    } catch (error: any) {
+      console.error(error);
+      set_error_message(error?.response?.data?.message || error.message || "Failed to fetch customer detail");
       set_customer(null);
-      set_loading(false);
-      return;
     }
 
-    set_customer(data);
     set_loading(false);
   }
 
+  async function handle_suspend() {
+    if (!customer || action_loading) return;
+    
+    const confirmed = window.confirm("Apakah Anda yakin ingin suspend akun customer ini?");
+    if (!confirmed) return;
+
+    set_action_loading(true);
+    try {
+      await suspendCustomer(customer.user_id);
+      alert("Customer berhasil di-suspend");
+      await get_customer_detail(); // Refresh data
+    } catch (error: any) {
+      console.error(error);
+      alert(error?.response?.data?.message || "Gagal suspend customer");
+    }
+    set_action_loading(false);
+  }
+
+  async function handle_unsuspend() {
+    if (!customer || action_loading) return;
+    
+    const confirmed = window.confirm("Apakah Anda yakin ingin mengaktifkan kembali akun customer ini?");
+    if (!confirmed) return;
+
+    set_action_loading(true);
+    try {
+      await unsuspendCustomer(customer.user_id);
+      alert("Customer berhasil diaktifkan kembali");
+      await get_customer_detail(); // Refresh data
+    } catch (error: any) {
+      console.error(error);
+      alert(error?.response?.data?.message || "Gagal mengaktifkan customer");
+    }
+    set_action_loading(false);
+  }
+
   useEffect(() => {
-    get_customer_detail();
+    if (public_id) {
+      get_customer_detail();
+    }
   }, [public_id]);
 
   const orders = useMemo(() => {
@@ -186,7 +190,7 @@ export default function CustomerDetailClient({
                 <span className="material-symbols-outlined text-[18px]">
                   calendar_today
                 </span>
-                Joined -
+                Joined {customer.joined_date ? new Date(customer.joined_date).toLocaleDateString("id-ID") : "-"}
               </span>
 
               <span className="flex items-center gap-1.5">
@@ -208,18 +212,24 @@ export default function CustomerDetailClient({
           </button>
 
           {status === "Suspended" ? (
-            <button className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-bold text-label-bold hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2">
+            <button 
+              onClick={handle_unsuspend}
+              disabled={action_loading}
+              className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-bold text-label-bold hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2 disabled:opacity-50">
               <span className="material-symbols-outlined text-[20px]">
                 check_circle
               </span>
-              Reactivate Account
+              {action_loading ? "Loading..." : "Reactivate Account"}
             </button>
           ) : (
-            <button className="px-4 py-2 border border-error/30 text-error rounded-lg font-label-bold text-label-bold hover:bg-error-container/50 transition-colors shadow-sm flex items-center gap-2">
+            <button 
+              onClick={handle_suspend}
+              disabled={action_loading}
+              className="px-4 py-2 border border-error/30 text-error rounded-lg font-label-bold text-label-bold hover:bg-error-container/50 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50">
               <span className="material-symbols-outlined text-[20px]">
                 block
               </span>
-              Suspend Account
+              {action_loading ? "Loading..." : "Suspend Account"}
             </button>
           )}
         </div>
@@ -380,19 +390,19 @@ export default function CustomerDetailClient({
 
           <div>
             <label className="font-caption text-caption text-on-surface-variant uppercase tracking-wider block mb-1">
-              Phone Number
+              Email Address
             </label>
             <div className="font-body-medium text-body-medium text-on-surface">
-              -
+              {customer.email || "-"}
             </div>
           </div>
 
           <div>
             <label className="font-caption text-caption text-on-surface-variant uppercase tracking-wider block mb-1">
-              Email Address
+              Phone Number
             </label>
             <div className="font-body-medium text-body-medium text-on-surface">
-              -
+              {customer.phone || "-"}
             </div>
           </div>
 
@@ -404,7 +414,7 @@ export default function CustomerDetailClient({
               <span className="material-symbols-outlined text-[18px] text-on-surface-variant">
                 location_on
               </span>
-              -
+              {customer.location || "-"}
             </div>
           </div>
 
@@ -413,7 +423,7 @@ export default function CustomerDetailClient({
               Joined Date
             </label>
             <div className="font-body-medium text-body-medium text-on-surface">
-              -
+              {customer.joined_date ? new Date(customer.joined_date).toLocaleDateString("id-ID") : "-"}
             </div>
           </div>
         </div>

@@ -222,7 +222,7 @@ export async function pickup_order(
   order_public_id
 ) {
   const order =
-    await find_order_by_code(
+    await find_order_by_id(
       pickup_code,
     );
   

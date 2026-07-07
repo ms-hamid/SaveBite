@@ -2,15 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "../../../components/admin/AdminLayout";
-import { supabase } from "../../../lib/supabase";
 import CustomerTableRow, { CustomerRow } from "../../../components/admin/CustomerTabelRow";
-
-type Customer = {
-  full_name: string;
-  exp: number | null;
-  strike_count: number | null;
-  user_id: string;
-};
+import { getCustomers, type Customer } from "../../../services/customer";
 
 const PAGE_SIZE = 5;
 
@@ -43,47 +36,32 @@ export default function Page() {
     set_loading(true);
     set_error_message("");
 
-    const from = (page - 1) * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
-
-    const { data, error, count } = await supabase
-      .from("customers")
-      .select("full_name, exp, strike_count, user_id", { count: "exact" })
-      .order("full_name", { ascending: true })
-      .range(from, to)
-      .returns<Customer[]>();
-
-    if (error) {
-      console.log(error);
-      set_error_message(error.message);
+    try {
+      const response = await getCustomers(page, PAGE_SIZE);
+      
+      if (response.success) {
+        set_customers(response.data.customers);
+        set_total_count(response.data.total);
+        set_suspended_count(response.data.suspended_count);
+      } else {
+        set_error_message(response.message || "Failed to fetch customers");
+        set_customers([]);
+        set_total_count(0);
+        set_suspended_count(0);
+      }
+    } catch (error: any) {
+      console.error(error);
+      set_error_message(error?.response?.data?.message || error.message || "Failed to fetch customers");
       set_customers([]);
       set_total_count(0);
-    } else {
-      set_customers(data ?? []);
-      set_total_count(count ?? 0);
+      set_suspended_count(0);
     }
 
     set_loading(false);
   }
 
-  async function get_suspended_count() {
-    const { count, error } = await supabase
-      .from("customers")
-      .select("user_id", { count: "exact", head: true })
-      .gte("strike_count", 3);
-
-    if (error) {
-      console.log(error);
-      set_suspended_count(0);
-      return;
-    }
-
-    set_suspended_count(count ?? 0);
-  }
-
   useEffect(() => {
     get_customers(current_page);
-    get_suspended_count();
   }, [current_page]);
 
   const customer_rows: CustomerRow[] = useMemo(() => {
@@ -92,12 +70,11 @@ export default function Page() {
 
       return {
         ...customer,
-
-        // Placeholder karena kolom ini tidak ada di tabel customers
-        email: "-",
-        total_rescue: "-",
-        joined_date: "-",
-
+        email: customer.email || "-",
+        total_rescue: "-", // TODO: Calculate from orders
+        joined_date: customer.joined_date 
+          ? new Date(customer.joined_date).toLocaleDateString("id-ID") 
+          : "-",
         status: strike_count >= 3 ? "Suspended" : "Active",
         initials: getInitials(customer.full_name),
       };
