@@ -9,7 +9,7 @@ export type OrderStatus =
   | null;
 
 export type CustomerOrder = {
-  id: number;
+  id: string;
   qty: number;
   total_amount: number | string;
   qr_token: string | null;
@@ -17,7 +17,7 @@ export type CustomerOrder = {
   created_at: string | null;
   updated_at: string | null;
   deleted_at: string | null;
-  listing_id: number;
+  listing_id: number | string;
   public_id: string;
   merchant_id: string;
   customer_id: string;
