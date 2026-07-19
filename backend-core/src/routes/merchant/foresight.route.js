@@ -16,7 +16,7 @@ import { getForesight, uploadAndRetrain } from '../../controllers/foresight.cont
 const router = express.Router();
 
 // ── Multer: store file in memory (no disk writes needed — we stream to AI) ────
-const upload = multer({
+const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 10 * 1024 * 1024, // 10 MB max

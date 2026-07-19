@@ -65,7 +65,7 @@ export async function register(
     email,
     password,
     options: {
-      emailRedirectTo: "http://localhost:3000/email-verification/success"
+      emailRedirectTo: "https://app-savebite.up.railway.app/email-verification/success"
     }
   }, );
 

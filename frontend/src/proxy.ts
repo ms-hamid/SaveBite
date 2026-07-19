@@ -12,10 +12,9 @@ export function proxy(request: NextRequest) {
   const token = request.cookies.get("sb_access_token")?.value;
   console.log(token)
   if (!token) {
+    console.log("no token 1")
     return NextResponse.redirect(new URL("/401", request.url));
-    // return ;
   }
-
   
   try {
     const decoded = jwt.verify(
@@ -63,6 +62,8 @@ export function proxy(request: NextRequest) {
 
     return NextResponse.next();
   } catch (e){
+    console.log("no token 2")
+
     return NextResponse.redirect(new URL("/401", request.url));
   }
 }

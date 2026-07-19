@@ -56,6 +56,8 @@ api.interceptors.response.use(
     if (typeof window !== "undefined" && error.response) {
       const status = error.response.status;
       if (status === 401) {
+    console.log("no token api")
+
         console.log(error.response)
         window.location.href = "/401";
       } else if (status === 403) {
