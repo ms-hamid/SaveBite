@@ -13,6 +13,7 @@ export function proxy(request: NextRequest) {
   console.log(token)
   if (!token) {
     console.log("no token 1")
+    return 
     return NextResponse.redirect(new URL("/401", request.url));
   }
   
@@ -63,7 +64,8 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   } catch (e){
     console.log("no token 2")
-
+    console.log(e)
+    return 
     return NextResponse.redirect(new URL("/401", request.url));
   }
 }

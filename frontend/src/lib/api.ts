@@ -59,7 +59,8 @@ api.interceptors.response.use(
     console.log("no token api")
 
         console.log(error.response)
-        window.location.href = "/401";
+        // window.location.href = "/401";
+        return 
       } else if (status === 403) {
         window.location.href = "/403";
       } else if (status === 404) {
