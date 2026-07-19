@@ -66,7 +66,7 @@ export async function login(req, res) {
 
         res.cookie("sb_access_token", token, {
             httpOnly: true,
-            secure: none, // Set to true in production with HTTPS
+            secure: false, // Set to true in production with HTTPS
             sameSite: "lax",
             maxAge: 24 * 60 * 60 * 1000,
         });
