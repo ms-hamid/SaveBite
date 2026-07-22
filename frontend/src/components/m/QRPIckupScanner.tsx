@@ -17,7 +17,25 @@ export default function QRPickupScanner({
   const scannerId = "pickup-qr-reader";
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const hasStartedRef = useRef(false);
+  const isRunningRef = useRef(false);
   const hasScannedRef = useRef(false);
+
+  async function safeStop(scanner: Html5Qrcode) {
+    try {
+      await scanner.stop();
+    } catch (error) {
+      const message =
+        typeof error === "string"
+          ? error
+          : error instanceof Error
+          ? error.message
+          : "";
+      if (message.includes("Cannot stop")) {
+        return;
+      }
+      console.error("Stop scanner error:", error);
+    }
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -85,7 +103,7 @@ export default function QRPickupScanner({
             console.log("QR TERBACA:", decodedText);
 
             try {
-              await scanner.stop();
+              await safeStop(scanner);
               scanner.clear();
             } catch (error) {
               console.error("Stop scanner error:", error);
@@ -115,8 +133,7 @@ export default function QRPickupScanner({
       const scanner = scannerRef.current;
 
       if (scanner) {
-        scanner
-          .stop()
+        safeStop(scanner)
           .then(() => {
             scanner.clear();
           })
