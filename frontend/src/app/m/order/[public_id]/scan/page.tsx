@@ -15,6 +15,11 @@ export default function ScanPickupCodeRefinedMinimalistPage() {
     "idle"
   );
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [availableCameras, setAvailableCameras] = useState<{
+    id: string;
+    label: string;
+  }[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string | undefined>(undefined);
 
   // Menggunakan pickupOrder dari API (sesuai ADR-001 — backend-only mutation)
   // qrToken = Order.qr_token (schema: orders.qr_token)
@@ -31,7 +36,7 @@ export default function ScanPickupCodeRefinedMinimalistPage() {
       setShowSuccessModal(true);
 
       // Redirect ke daftar order setelah sukses
-      setTimeout(() => router.push("/m/order"), 2000);
+      setTimeout(() => router.push("/m/order"), 1200);
     } catch (error) {
       console.error(error);
       setStatus("error");
@@ -47,6 +52,30 @@ export default function ScanPickupCodeRefinedMinimalistPage() {
       }, 2000);
     }
   }, [params.public_id, router]);
+
+  const handleCamerasReady = useCallback(
+    (cameras: { id: string; label: string }[]) => {
+      setAvailableCameras(cameras);
+      if (!selectedCameraId && cameras.length > 0) {
+        setSelectedCameraId(cameras[0].id);
+      }
+    },
+    [selectedCameraId]
+  );
+
+  const handleSwitchCamera = useCallback(() => {
+    if (availableCameras.length <= 1) return;
+
+    const currentIndex = availableCameras.findIndex(
+      (camera) => camera.id === selectedCameraId
+    );
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % availableCameras.length : 0;
+    setSelectedCameraId(availableCameras[nextIndex].id);
+  }, [availableCameras, selectedCameraId]);
+
+  const selectedCameraLabel =
+    availableCameras.find((camera) => camera.id === selectedCameraId)?.label ||
+    "kamera";
 
   return (
     <div className="bg-background text-text-primary h-full font-sans antialiased">
@@ -119,9 +148,13 @@ export default function ScanPickupCodeRefinedMinimalistPage() {
             </p>
           </div>
 
-          <div className="relative w-full aspect-square max-w-[280px] bg-gray-50/50 overflow-hidden flex items-center justify-center mb-8 rounded-xl">
+          <div className="relative w-full aspect-square max-w-[280px] bg-gray-50/50 overflow-hidden flex items-center justify-center mb-4 rounded-xl">
             <div className="absolute inset-0">
-              <QRPickupScanner onScanSuccess={updateOrderToCompleted} />
+              <QRPickupScanner
+                onScanSuccess={updateOrderToCompleted}
+                selectedCameraId={selectedCameraId}
+                onCamerasReady={handleCamerasReady}
+              />
             </div>
 
             <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-primary rounded-tl-lg z-10"></div>
@@ -133,6 +166,26 @@ export default function ScanPickupCodeRefinedMinimalistPage() {
               <div className="absolute left-0 w-full h-[2px] bg-primary scanner-line shadow-[0_0_8px_2px_rgba(16,185,129,0.5)] z-10"></div>
             )}
           </div>
+
+          {availableCameras.length > 0 && (
+            <div className="w-full max-w-[280px] mb-4 text-center space-y-2">
+              <button
+                type="button"
+                onClick={handleSwitchCamera}
+                disabled={availableCameras.length <= 1}
+                className="w-full py-3 px-4 rounded-xl border border-border bg-surface text-text-primary hover:bg-gray-50 active:scale-[0.98] transition-all duration-200 text-sm font-semibold shadow-sm disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+              >
+                {availableCameras.length > 1
+                  ? `Ganti kamera (${selectedCameraLabel})`
+                  : `Menggunakan ${selectedCameraLabel}`}
+              </button>
+              {availableCameras.length > 1 && (
+                <p className="text-xs text-slate-500">
+                  Ketuk untuk beralih antara kamera depan/belakang.
+                </p>
+              )}
+            </div>
+          )}
 
           <Link href={`/m/order/${params.public_id}/pickup_input`} className="w-full max-w-[280px] py-3 px-4 rounded-xl border border-border bg-surface text-text-primary hover:bg-gray-50 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-sm font-semibold shadow-sm">
             <span

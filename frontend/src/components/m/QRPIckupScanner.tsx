@@ -5,9 +5,15 @@ import type { Html5Qrcode } from "html5-qrcode";
 
 type QRPickupScannerProps = {
   onScanSuccess: (decodedText: string) => void;
+  selectedCameraId?: string;
+  onCamerasReady?: (cameras: { id: string; label: string }[]) => void;
 };
 
-export default function QRPickupScanner({ onScanSuccess }: QRPickupScannerProps) {
+export default function QRPickupScanner({
+  onScanSuccess,
+  selectedCameraId,
+  onCamerasReady,
+}: QRPickupScannerProps) {
   const scannerId = "pickup-qr-reader";
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const hasStartedRef = useRef(false);
@@ -47,7 +53,19 @@ export default function QRPickupScanner({ onScanSuccess }: QRPickupScannerProps)
 
         console.log("CAMERAS:", cameras);
 
-        const selectedCamera = cameras[0];
+        const cameraList = cameras.map((camera) => ({
+          id: camera.id,
+          label: camera.label || camera.id,
+        }));
+
+        if (onCamerasReady && isMounted) {
+          onCamerasReady(cameraList);
+        }
+
+        const selectedCamera =
+          cameraList.find((camera) => camera.id === selectedCameraId) ?? cameraList[0];
+
+        hasScannedRef.current = false;
 
         await scanner.start(
           selectedCamera.id,
@@ -96,7 +114,7 @@ export default function QRPickupScanner({ onScanSuccess }: QRPickupScannerProps)
 
       const scanner = scannerRef.current;
 
-      if (scanner && hasStartedRef.current) {
+      if (scanner) {
         scanner
           .stop()
           .then(() => {
@@ -107,9 +125,11 @@ export default function QRPickupScanner({ onScanSuccess }: QRPickupScannerProps)
           });
       }
 
+      scannerRef.current = null;
       hasStartedRef.current = false;
+      hasScannedRef.current = false;
     };
-  }, [onScanSuccess]);
+  }, [onScanSuccess, onCamerasReady, selectedCameraId]);
 
   return <div id={scannerId} className="w-full h-full" />;
 }
